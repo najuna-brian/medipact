@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+ENV/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Hedera
+*.key
+*.pem
+*.der
+hedera-credentials.json
+
+# Test data (keep sample data, ignore real patient data)
+**/data/real_*.csv
+**/data/patient_*.csv
+!**/data/raw_data.csv
+!**/data/sample_*.csv
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
