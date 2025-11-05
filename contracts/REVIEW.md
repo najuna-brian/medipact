@@ -401,10 +401,11 @@ The contracts demonstrate:
 
 ## References
 
-- Hedera Smart Contracts Repository: `/hedera-repos/hedera-smart-contracts`
-- Hedera Documentation: `/hedera-repos/hedera-docs`
-- Examples Referenced:
-  - `CrowdFund.sol` - Access control and HBAR transfers
+- **Hedera Smart Contracts Repository**: https://github.com/hashgraph/hedera-smart-contracts
+- **Hedera Documentation**: https://docs.hedera.com/
+- **Hedera SDK Examples**: https://github.com/hashgraph/hedera-examples
+- **Examples Referenced**:
+  - `CrowdFund.sol` - Access control and HBAR transfers (https://github.com/hashgraph/hedera-smart-contracts/tree/main/contracts)
   - `PaymentChannel.sol` - Payment distribution
   - `Errors.sol` - Custom error patterns
 

@@ -4,220 +4,101 @@ Smart contracts for the MediPact platform, deployed on Hedera EVM.
 
 ## Contracts
 
-### RevenueSplitter.sol
+- **RevenueSplitter.sol** - Automated revenue distribution (60% Patient, 25% Hospital, 15% MediPact)
+- **ConsentManager.sol** - Patient consent record management with HCS topic linking
 
-Automated revenue distribution contract that splits incoming HBAR payments according to the MediPact revenue model:
+## Quick Start
 
-- **60%** → Patient Wallet
-- **25%** → Hospital Wallet  
-- **15%** → MediPact Wallet
-
-#### Features
-
-- Automatic distribution on receipt of HBAR
-- Manual distribution trigger via `distributeRevenue()`
-- Owner-controlled recipient address updates
-- Ownership transfer capability
-- Comprehensive events for tracking
-
-#### Functions
-
-**Public/External:**
-- `receive()` - Receives HBAR and auto-distributes
-- `distributeRevenue()` - Manually trigger distribution
-- `updateRecipients()` - Update wallet addresses (owner only)
-- `transferOwnership()` - Transfer contract ownership (owner only)
-- `getBalance()` - Get contract HBAR balance
-- `getSplitPercentages()` - Get split percentages
-
-**State Variables:**
-- `patientWallet` - Address receiving 60%
-- `hospitalWallet` - Address receiving 25%
-- `medipactWallet` - Address receiving 15%
-- `owner` - Contract owner
-
-#### Usage Example
-
-```solidity
-// Deploy contract
-RevenueSplitter splitter = new RevenueSplitter(
-    patientWallet,
-    hospitalWallet,
-    medipactWallet
-);
-
-// Send HBAR to contract (auto-distributes)
-payable(address(splitter)).transfer(1 ether);
-
-// Or manually trigger distribution
-splitter.distributeRevenue();
-```
-
----
-
-### ConsentManager.sol
-
-Consent management contract that stores patient consent records linked to HCS topics for verifiable proof.
-
-#### Features
-
-- Store consent records with HCS topic references
-- Link original patient IDs to anonymous patient IDs
-- Consent validity tracking (valid/revoked)
-- Lookup by patient ID or anonymous ID
-- Enumeration support for all consents
-
-#### Functions
-
-**Public/External:**
-- `recordConsent()` - Record a new consent (owner only)
-- `revokeConsent()` - Revoke a consent (owner only)
-- `reinstateConsent()` - Reinstate a revoked consent (owner only)
-- `getConsent()` - Get consent by patient ID
-- `getConsentByAnonymousId()` - Get consent by anonymous ID
-- `isConsentValid()` - Check if consent is valid
-- `getConsentCount()` - Get total number of consents
-- `getPatientIdAtIndex()` - Get patient ID at index
-- `transferOwnership()` - Transfer ownership (owner only)
-
-#### ConsentRecord Structure
-
-```solidity
-struct ConsentRecord {
-    string patientId;           // Original patient ID
-    string anonymousPatientId;  // Anonymous ID (PID-001)
-    string hcsTopicId;          // HCS topic ID
-    string consentHash;         // Hash of consent form
-    uint256 timestamp;          // Record timestamp
-    bool isValid;              // Validity status
-}
-```
-
-#### Usage Example
-
-```solidity
-// Deploy contract
-ConsentManager manager = new ConsentManager();
-
-// Record a consent
-manager.recordConsent(
-    "ID-12345",
-    "PID-001",
-    "0.0.123456",
-    "0xabc123..."
-);
-
-// Check if consent is valid
-bool isValid = manager.isConsentValid("ID-12345");
-
-// Get consent record
-ConsentRecord memory consent = manager.getConsent("ID-12345");
-```
-
----
-
-## Deployment
-
-### Prerequisites
-
-1. Hedera Testnet account with HBAR
-2. Hardhat or Remix IDE
-3. Contract deployment tools
-
-### Deployment Steps
-
-1. **Set up Hardhat** (if using):
+### 1. Install Dependencies
 
 ```bash
-npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+npm install
 ```
 
-2. **Configure Hedera Network** in `hardhat.config.js`:
-
-```javascript
-module.exports = {
-  networks: {
-    hederaTestnet: {
-      url: "https://testnet.hashio.io/api",
-      accounts: [process.env.PRIVATE_KEY],
-      chainId: 296
-    }
-  }
-};
-```
-
-3. **Deploy Contracts**:
+### 2. Compile Contracts
 
 ```bash
-npx hardhat run scripts/deploy.js --network hederaTestnet
+npm run compile
 ```
 
-### Deployment Script Example
+✅ **No .env file needed for compilation!**
 
-```javascript
-const hre = require("hardhat");
+### 3. Run Tests
 
-async function main() {
-  // Get signers
-  const [deployer] = await hre.ethers.getSigners();
-
-  // Deploy RevenueSplitter
-  const RevenueSplitter = await hre.ethers.getContractFactory("RevenueSplitter");
-  const splitter = await RevenueSplitter.deploy(
-    "0x...", // patientWallet
-    "0x...", // hospitalWallet
-    "0x..."  // medipactWallet
-  );
-  await splitter.deployed();
-  console.log("RevenueSplitter deployed to:", splitter.address);
-
-  // Deploy ConsentManager
-  const ConsentManager = await hre.ethers.getContractFactory("ConsentManager");
-  const manager = await ConsentManager.deploy();
-  await manager.deployed();
-  console.log("ConsentManager deployed to:", manager.address);
-}
-
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+```bash
+npm test
 ```
 
----
+✅ **No .env file needed for tests!** (Uses Hardhat's built-in local network)
 
-## Security Considerations
+### 4. Deploy to Testnet (Optional)
 
-1. **Access Control**: Both contracts use owner-only functions for sensitive operations
-2. **Input Validation**: All addresses and data are validated before storage
-3. **Reentrancy**: RevenueSplitter uses `call()` instead of `transfer()` for better gas efficiency
-4. **Rounding**: RevenueSplitter handles rounding in the final distribution
-5. **Ownership**: Contracts support ownership transfer for future upgrades
+**Only when you're ready to deploy**, create a `.env` file:
 
----
+```bash
+cp .env.example .env
+# Edit .env with your OPERATOR_KEY_HEX
+```
 
-## Events
+Then deploy:
 
-Both contracts emit comprehensive events for off-chain tracking:
+```bash
+npm run deploy:testnet
+```
 
-- `RevenueReceived` - When HBAR is received
-- `RevenueDistributed` - When revenue is split
-- `ConsentRecorded` - When consent is recorded
-- `ConsentRevoked` - When consent is revoked
-- `OwnershipTransferred` - When ownership changes
+## When Do You Need `.env`?
 
----
+### ✅ NOT Needed For:
+- **Compiling contracts** - Already works without it
+- **Running tests** - Uses Hardhat's local network
+- **Development** - Everything works locally
 
-## Integration with Adapter
+### ⚠️ Required For:
+- **Deploying to Hedera Testnet** - Needs `OPERATOR_KEY_HEX`
+- **Deploying to Previewnet** - Needs `PREVIEWNET_OPERATOR_KEY_HEX`
 
-The contracts can be integrated with the MediPact Adapter:
+## Current Status
 
-1. **RevenueSplitter**: Adapter can send HBAR to contract after data sale
-2. **ConsentManager**: Adapter can record consents when processing patient data
+✅ **Contracts compiled successfully**  
+✅ **Ready for testing**  
+⏳ **Deployment** - Optional, create `.env` when ready
 
----
+## Environment Variables
 
-## License
+When you're ready to deploy, create `.env` with:
 
-Apache-2.0
+```env
+# Required for testnet deployment
+OPERATOR_KEY_HEX="0x..." # Your private key in HEX format
 
+# Optional
+HEDERA_RPC_URL="https://testnet.hashio.io/api"
+PATIENT_WALLET="0x..."
+HOSPITAL_WALLET="0x..."
+MEDIPACT_WALLET="0x..."
+```
+
+## Scripts
+
+- `npm run compile` - Compile contracts (no .env needed)
+- `npm test` - Run tests (no .env needed)
+- `npm run deploy:testnet` - Deploy to testnet (requires .env)
+- `npm run deploy:previewnet` - Deploy to previewnet (requires .env)
+- `npm run clean` - Clean cache and artifacts
+
+## Documentation
+
+- [SETUP.md](./SETUP.md) - Detailed setup instructions
+- [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Complete deployment guide
+- [README.md](./README.md) - Contract documentation
+- [REVIEW.md](./REVIEW.md) - Code review and best practices
+
+## Summary
+
+**You don't need a `.env` file right now!** 
+
+- ✅ Compilation works
+- ✅ Tests can run
+- ✅ Development is ready
+
+Create `.env` only when you're ready to deploy to testnet.
