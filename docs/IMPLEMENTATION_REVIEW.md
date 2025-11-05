@@ -6,7 +6,7 @@
 
 ## Overview
 
-After reviewing all Hedera reference repositories (`hedera-repos/`), our implementation follows official patterns well. This document compares our code with Hedera best practices and recommends improvements.
+After reviewing Hedera reference repositories and official documentation, our implementation follows official patterns well. This document compares our code with Hedera best practices and recommends improvements.
 
 ---
 
@@ -183,9 +183,11 @@ The code follows Hedera best practices and official patterns. The structure is c
 
 ## 📚 References
 
-- **Official Docs**: `hedera-repos/hedera-docs/getting-started-hedera-native-developers/create-a-topic.md`
-- **Agent Kit**: `hedera-repos/hedera-agent-kit-js/typescript/src/plugins/core-consensus-plugin/`
-- **SDK Examples**: Official Hedera SDK documentation
+- **Official Docs**: https://docs.hedera.com/getting-started-hedera-native-developers/create-a-topic
+- **HCS Documentation**: https://docs.hedera.com/sdks-and-apis/consensus-service
+- **Agent Kit**: https://github.com/hashgraph/hedera-agent-kit-js
+- **SDK Examples**: https://github.com/hiero-ledger/hiero-sdk-js/tree/main/examples
+- **SDK Documentation**: https://docs.hedera.com/sdks-and-apis/sdks
 
 ---
 
