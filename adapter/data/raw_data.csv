@@ -1,0 +1,11 @@
+Patient Name,Patient ID,Address,Phone Number,Date of Birth,Lab Test,Test Date,Result,Unit,Reference Range
+John Doe,ID-12345,"123 Main St Kampala",0771234567,1990-05-15,Blood Glucose,2024-01-15,95,mg/dL,70-100
+Jane Smith,ID-12346,"456 Oak Ave Entebbe",0772345678,1985-08-22,Blood Glucose,2024-01-15,110,mg/dL,70-100
+Musa Kato,ID-12347,"789 Pine Rd Jinja",0773456789,1992-03-10,Blood Glucose,2024-01-15,88,mg/dL,70-100
+Sarah Nakato,ID-12348,"321 Elm St Gulu",0774567890,1988-11-05,Blood Glucose,2024-01-15,102,mg/dL,70-100
+Peter Okello,ID-12349,"654 Maple Dr Mbale",0775678901,1995-07-20,Blood Glucose,2024-01-15,92,mg/dL,70-100
+John Doe,ID-12345,"123 Main St Kampala",0771234567,1990-05-15,Cholesterol,2024-01-20,180,mg/dL,<200
+Jane Smith,ID-12346,"456 Oak Ave Entebbe",0772345678,1985-08-22,Cholesterol,2024-01-20,220,mg/dL,<200
+Musa Kato,ID-12347,"789 Pine Rd Jinja",0773456789,1992-03-10,Hemoglobin,2024-01-25,14.5,g/dL,12-16
+Sarah Nakato,ID-12348,"321 Elm St Gulu",0774567890,1988-11-05,Hemoglobin,2024-01-25,13.2,g/dL,12-16
+Peter Okello,ID-12349,"654 Maple Dr Mbale",0775678901,1995-07-20,Blood Glucose,2024-01-30,98,mg/dL,70-100

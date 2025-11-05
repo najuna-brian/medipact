@@ -5,5 +5,221 @@
  * proof hashes to Hedera Consensus Service (HCS).
  */
 
-// Main adapter script will be implemented here
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+import { parseCSV, anonymizeRecords, writeAnonymizedCSV } from './anonymizer/anonymize.js';
+import { hashPatientRecord, hashConsentForm, hashBatch } from './utils/hash.js';
+import { formatHbar, hbarToUsd, usdToLocal, formatCurrency, calculateRevenueSplit } from './utils/currency.js';
+import { 
+  createHederaClient, 
+  initializeMedipactTopics, 
+  submitMessage, 
+  getHashScanLink 
+} from './hedera/hcs-client.js';
 
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Configuration
+const INPUT_FILE = path.join(__dirname, '../data/raw_data.csv');
+const OUTPUT_FILE = path.join(__dirname, '../data/anonymized_data.csv');
+
+/**
+ * Process a single patient record
+ * @param {Object} anonymizedRecord - Anonymized patient record
+ * @param {string} dataTopicId - HCS topic ID for data proofs
+ * @param {Client} client - Hedera client
+ * @returns {Promise<Object>} Processing result with transaction info
+ */
+async function processPatientRecord(anonymizedRecord, dataTopicId, client) {
+  // Generate hash of the anonymized record
+  const dataHash = hashPatientRecord(anonymizedRecord);
+  
+  // Submit data proof to HCS
+  const transactionId = await submitMessage(client, dataTopicId, dataHash);
+  
+  return {
+    anonymousPID: anonymizedRecord['Anonymous PID'],
+    dataHash,
+    transactionId,
+    hashScanLink: getHashScanLink(transactionId)
+  };
+}
+
+/**
+ * Generate consent proof hash for a patient
+ * @param {string} originalPatientId - Original patient ID (before anonymization)
+ * @param {string} consentTopicId - HCS topic ID for consent proofs
+ * @param {Client} client - Hedera client
+ * @returns {Promise<Object>} Consent proof result
+ */
+async function processConsentProof(originalPatientId, consentTopicId, client) {
+  const consentHash = hashConsentForm(originalPatientId, new Date().toISOString());
+  const transactionId = await submitMessage(client, consentTopicId, consentHash);
+  
+  return {
+    patientId: originalPatientId,
+    consentHash,
+    transactionId,
+    hashScanLink: getHashScanLink(transactionId)
+  };
+}
+
+/**
+ * Main adapter function
+ */
+async function main() {
+  console.log('=== MediPact Adapter ===\n');
+  
+  try {
+    // Step 1: Initialize Hedera client
+    console.log('1. Initializing Hedera client...');
+    const client = createHederaClient();
+    console.log('   ✓ Client initialized\n');
+
+    // Step 2: Initialize HCS topics (create if needed)
+    console.log('2. Setting up HCS topics...');
+    const { consentTopicId, dataTopicId } = await initializeMedipactTopics(client);
+    console.log(`   ✓ Consent Topic: ${consentTopicId}`);
+    console.log(`   ✓ Data Topic: ${dataTopicId}\n`);
+
+    // Step 3: Read and parse CSV file
+    console.log('3. Reading EHR data...');
+    const rawRecords = await parseCSV(INPUT_FILE);
+    console.log(`   ✓ Read ${rawRecords.length} records from ${INPUT_FILE}\n`);
+
+    // Step 4: Anonymize data
+    console.log('4. Anonymizing patient data...');
+    const { records: anonymizedRecords, patientMapping } = anonymizeRecords(rawRecords);
+    console.log(`   ✓ Anonymized ${anonymizedRecords.length} records`);
+    console.log(`   ✓ Mapped ${patientMapping.size} unique patients\n`);
+
+    // Step 5: Write anonymized data to CSV
+    console.log('5. Writing anonymized data...');
+    await writeAnonymizedCSV(anonymizedRecords, OUTPUT_FILE);
+    console.log('   ✓ Anonymized data saved\n');
+
+    // Step 6: Process consent proofs (one per unique patient)
+    console.log('6. Processing consent proofs...');
+    const consentResults = [];
+    for (const [originalPatientId, anonymousPID] of patientMapping) {
+      const result = await processConsentProof(originalPatientId, consentTopicId, client);
+      consentResults.push(result);
+      console.log(`   ✓ Consent proof for ${originalPatientId} (${anonymousPID}): ${result.hashScanLink}`);
+    }
+    console.log('');
+
+    // Step 7: Process data proofs (one per record)
+    console.log('7. Processing data proofs...');
+    const dataResults = [];
+    for (const record of anonymizedRecords) {
+      const result = await processPatientRecord(record, dataTopicId, client);
+      dataResults.push(result);
+      console.log(`   ✓ Data proof for ${result.anonymousPID}: ${result.hashScanLink}`);
+      
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    console.log('');
+
+    // Step 8: Display summary
+    console.log('=== Processing Complete ===\n');
+    console.log('Summary:');
+    console.log(`  - Records processed: ${anonymizedRecords.length}`);
+    console.log(`  - Consent proofs: ${consentResults.length}`);
+    console.log(`  - Data proofs: ${dataResults.length}`);
+    console.log(`  - Output file: ${OUTPUT_FILE}\n`);
+
+    // Step 9: Display topic links
+    console.log('HCS Topics:');
+    console.log(`  Consent Topic: https://hashscan.io/testnet/topic/${consentTopicId}`);
+    console.log(`  Data Topic: https://hashscan.io/testnet/topic/${dataTopicId}\n`);
+
+    // Step 10: Payout simulation (placeholder)
+    // Note: This is a simulation for demo purposes.
+    // In production, this would use actual HBAR transfers via TransferTransaction.
+    // Currency conversion rates are example values and should be fetched from:
+    //   - HBAR/USD: Hedera Network Exchange Rate or CoinGecko API
+    //   - USD/Local: Exchange rate API (e.g., exchangerate-api.com, fixer.io)
+    console.log('=== Payout Simulation ===');
+    const totalRecords = anonymizedRecords.length;
+    
+    // Simulated pricing: 0.01 HBAR per record
+    // HBAR has 8 decimal places (1 HBAR = 100,000,000 tinybars)
+    const hbarPerRecord = 0.01;
+    const totalHbar = totalRecords * hbarPerRecord;
+    
+    // Revenue split: 60% patient, 25% hospital, 15% MediPact
+    const split = calculateRevenueSplit(totalHbar, {
+      patient: 60,
+      hospital: 25,
+      medipact: 15
+    });
+    
+    // Currency conversion rates (example values for simulation)
+    // In production, fetch from:
+    //   - HBAR/USD: Hedera network exchange rate or CoinGecko
+    //   - USD/Local: Exchange rate API
+    const hbarToUsdRate = 0.05; // Example: 1 HBAR = $0.05 USD
+    
+    // Local currency configuration (optional)
+    // Set LOCAL_CURRENCY_CODE in .env to enable local currency display
+    // Set USD_TO_LOCAL_RATE in .env for the exchange rate
+    const localCurrencyCode = process.env.LOCAL_CURRENCY_CODE || null;
+    const usdToLocalRate = process.env.USD_TO_LOCAL_RATE ? parseFloat(process.env.USD_TO_LOCAL_RATE) : null;
+    
+    // Convert to USD (primary currency)
+    const totalUsd = hbarToUsd(totalHbar, hbarToUsdRate);
+    const patientShareUsd = hbarToUsd(split.patient, hbarToUsdRate);
+    const hospitalShareUsd = hbarToUsd(split.hospital, hbarToUsdRate);
+    const medipactShareUsd = hbarToUsd(split.medipact, hbarToUsdRate);
+    const perPatientShareUsd = patientShareUsd / patientMapping.size;
+    
+    console.log(`Total Revenue: ${formatHbar(totalHbar)} HBAR`);
+    console.log(`  Patient Share (60%): ${formatHbar(split.patient)} HBAR`);
+    console.log(`  Hospital Share (25%): ${formatHbar(split.hospital)} HBAR`);
+    console.log(`  MediPact Share (15%): ${formatHbar(split.medipact)} HBAR`);
+    
+    console.log(`\nCurrency Conversion (Example Rates):`);
+    console.log(`  1 HBAR = ${formatCurrency(hbarToUsdRate, 'USD')}`);
+    
+    console.log(`\nRevenue in USD:`);
+    console.log(`  Total: ${formatCurrency(totalUsd, 'USD')}`);
+    console.log(`  Patient Share: ${formatCurrency(patientShareUsd, 'USD')}`);
+    console.log(`  Hospital Share: ${formatCurrency(hospitalShareUsd, 'USD')}`);
+    console.log(`  MediPact Share: ${formatCurrency(medipactShareUsd, 'USD')}`);
+    console.log(`  Per Patient: ${formatCurrency(perPatientShareUsd, 'USD')}`);
+    
+    // Display local currency if configured
+    if (localCurrencyCode && usdToLocalRate) {
+      const patientShareLocal = usdToLocal(patientShareUsd, usdToLocalRate);
+      const perPatientShareLocal = usdToLocal(perPatientShareUsd, usdToLocalRate);
+      
+      console.log(`\nCurrency Conversion (Example Rates):`);
+      console.log(`  1 USD = ${usdToLocalRate.toLocaleString()} ${localCurrencyCode}`);
+      
+      console.log(`\nRevenue in ${localCurrencyCode} (for reference):`);
+      console.log(`  Patient Share: ${formatCurrency(patientShareLocal, localCurrencyCode)}`);
+      console.log(`  Per Patient: ${formatCurrency(perPatientShareLocal, localCurrencyCode)}`);
+    } else if (localCurrencyCode || usdToLocalRate) {
+      console.log(`\n⚠️  Local currency partially configured. Set both LOCAL_CURRENCY_CODE and USD_TO_LOCAL_RATE in .env`);
+    }
+    
+    console.log(`\nPAYOUT SIMULATED: ${formatCurrency(perPatientShareUsd, 'USD')} per patient (${patientMapping.size} patients)\n`);
+
+    // Close client
+    client.close();
+    
+    console.log('✓ All done!');
+    
+  } catch (error) {
+    console.error('Error in adapter:', error);
+    process.exit(1);
+  }
+}
+
+// Run the adapter
+main();
