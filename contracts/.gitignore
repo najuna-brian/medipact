@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Hardhat files
+cache/
+artifacts/
+coverage/
+coverage.json
+
+# Deployment info
+deployment-info.json
+
+# IDE
+.vscode/
+.idea/
+
