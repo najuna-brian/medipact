@@ -14,8 +14,13 @@ npm install
 Create a `.env` file in the `adapter/` directory with your Hedera testnet credentials:
 
 ```env
-ACCOUNT_ID="0.0.7156417"
-PRIVATE_KEY="0x519669071785c63d0938f89eacd4632332ec152eafcecacb984c8a89f72f85c7"
+# Required: Operator account ID (the account that pays for transactions)
+OPERATOR_ID="0.0.7156417"
+
+# Required: Operator private key (ECDSA format, HEX encoded)
+OPERATOR_KEY="0x519669071785c63d0938f89eacd4632332ec152eafcecacb984c8a89f72f85c7"
+
+# Required: Network to connect to (mainnet, testnet, previewnet, localhost)
 HEDERA_NETWORK="testnet"
 
 # Optional: Local Currency Configuration
@@ -48,6 +53,28 @@ This will:
 ```bash
 npm start
 ```
+
+This will:
+- Read `raw_data.csv`
+- Anonymize all patient data
+- Create HCS topics
+- Submit consent and data proofs
+- Display HashScan links
+- Show payout simulation
+
+### 5. Validate Output (Optional)
+
+After running the adapter, validate the anonymized output:
+
+```bash
+npm run validate
+```
+
+This checks:
+- No PII is present
+- Anonymous IDs are correctly formatted
+- Medical data is preserved
+- Record counts match
 
 ## Account Information
 
