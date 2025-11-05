@@ -1,0 +1,27 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for the MediPact platform, deployed on Hedera EVM.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network hederaTestnet",
+    "deploy:previewnet": "hardhat run scripts/deploy.js --network hederaPreviewnet",
+    "clean": "hardhat clean"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "chai": "^4.5.0",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.15.0",
+    "hardhat": "^2.26.5"
+  }
+}
