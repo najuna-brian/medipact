@@ -10,12 +10,12 @@ medipact/
 │   ├── scripts/                # Utility scripts
 │   ├── src/                    # Source code
 │   │   ├── anonymizer/         # Data anonymization logic
-│   │   │   └── anonymize.ts
+│   │   │   └── anonymize.js
 │   │   ├── hedera/             # Hedera integration
-│   │   │   └── hcs-client.ts
+│   │   │   └── hcs-client.js
 │   │   ├── utils/              # Helper functions
-│   │   │   └── hash.ts
-│   │   └── index.ts            # Main adapter entry point
+│   │   │   └── hash.js
+│   │   └── index.js            # Main adapter entry point
 │   └── tests/                  # Adapter tests
 │
 ├── contracts/                  # Smart contracts
@@ -63,10 +63,10 @@ medipact/
 
 ### Adapter (`adapter/`)
 The core engine that processes hospital EHR data:
-- **`src/index.ts`**: Main entry point that orchestrates the entire flow
-- **`src/anonymizer/anonymize.ts`**: Removes PII from medical records
-- **`src/hedera/hcs-client.ts`**: Handles HCS topic creation and message submission
-- **`src/utils/hash.ts`**: Cryptographic hash generation utilities
+- **`src/index.js`**: Main entry point that orchestrates the entire flow
+- **`src/anonymizer/anonymize.js`**: Removes PII from medical records
+- **`src/hedera/hcs-client.js`**: Handles HCS topic creation and message submission
+- **`src/utils/hash.js`**: Cryptographic hash generation utilities
 - **`data/`**: Contains sample EHR data (CSV files)
 
 ### Contracts (`contracts/`)
@@ -86,7 +86,8 @@ API server for future integrations (optional for MVP):
 
 ## File Naming Conventions
 
-- **TypeScript files**: `.ts` for source, `.tsx` for React components
+- **JavaScript files**: `.js` for backend/adapter source code
+- **TypeScript files**: `.tsx` for React components (frontend)
 - **Solidity files**: `.sol` for smart contracts
 - **Data files**: `.csv` for EHR data
 - **Configuration**: `.env.example` for environment template
@@ -104,13 +105,13 @@ API server for future integrations (optional for MVP):
 ```
 raw_data.csv (adapter/data/)
     ↓
-[Adapter Script] (adapter/src/index.ts)
+[Adapter Script] (adapter/src/index.js)
     ↓
-[Anonymizer] (adapter/src/anonymizer/anonymize.ts)
+[Anonymizer] (adapter/src/anonymizer/anonymize.js)
     ↓
-[Hash Generator] (adapter/src/utils/hash.ts)
+[Hash Generator] (adapter/src/utils/hash.js)
     ↓
-[HCS Client] (adapter/src/hedera/hcs-client.ts)
+[HCS Client] (adapter/src/hedera/hcs-client.js)
     ↓
 Hedera Consensus Service (HCS)
     ↓
@@ -119,9 +120,9 @@ HashScan Explorer (transaction visible)
 
 ## Next Steps
 
-1. Set up TypeScript configuration
+1. Set up Node.js project (package.json)
 2. Install dependencies (`@hashgraph/sdk`, `hedera-agent-kit`, etc.)
 3. Create sample `raw_data.csv` file
-4. Implement adapter components
+4. Implement adapter components (JavaScript)
 5. Test HCS integration
 

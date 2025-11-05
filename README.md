@@ -75,7 +75,7 @@ Our hackathon MVP demonstrates the core "In-Person Bridge" flow:
   - Hedera Agent Kit JS for HCS topic management and message submission
   - HBAR for micropayments
   - Smart Contracts (Solidity) for revenue distribution
-- **Backend**: Node.js / TypeScript
+- **Backend/Adapter**: Node.js / JavaScript
 - **Frontend**: (Optional for demo) React/Next.js
 - **Integration**: FHIR API (simulated), Mobile Money APIs (simulated)
 
@@ -86,14 +86,14 @@ medipact/
 ├── adapter/                    # MediPact Adapter (Core Engine)
 │   ├── data/                   # Sample EHR data (CSV files)
 │   ├── scripts/                # Adapter utility scripts
-│   ├── src/                    # Source code
+│   ├── src/                    # Source code (JavaScript)
 │   │   ├── anonymizer/         # Data anonymization logic
-│   │   │   └── anonymize.ts
+│   │   │   └── anonymize.js
 │   │   ├── hedera/             # HCS integration
-│   │   │   └── hcs-client.ts
+│   │   │   └── hcs-client.js
 │   │   ├── utils/              # Helper functions
-│   │   │   └── hash.ts
-│   │   └── index.ts            # Main adapter entry point
+│   │   │   └── hash.js
+│   │   └── index.js            # Main adapter entry point
 │   └── tests/                  # Adapter tests
 │
 ├── contracts/                  # Smart contracts

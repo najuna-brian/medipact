@@ -144,10 +144,10 @@
 ### Key Files to Create
 
 #### Adapter Script
-- `adapter/src/index.ts` - Main adapter script
-- `adapter/src/anonymizer/anonymize.ts` - Anonymization logic
-- `adapter/src/hedera/hcs-client.ts` - HCS integration
-- `adapter/src/utils/hash.ts` - Hash generation utilities
+- `adapter/src/index.js` - Main adapter script
+- `adapter/src/anonymizer/anonymize.js` - Anonymization logic
+- `adapter/src/hedera/hcs-client.js` - HCS integration
+- `adapter/src/utils/hash.js` - Hash generation utilities
 
 #### Data
 - `adapter/data/raw_data.csv` - Sample EHR data with PII
@@ -162,13 +162,10 @@
 ### Core Dependencies
 - `@hashgraph/sdk` - Hedera SDK
 - `hedera-agent-kit` - Hedera Agent Kit for HCS operations
-- `typescript` - TypeScript compiler
 - `dotenv` - Environment variables
 
 ### Development Dependencies
-- `@types/node` - Node.js type definitions
-- `ts-node` - TypeScript execution
-- `tsx` - TypeScript execution (alternative)
+- Node.js 18+ (for ES modules support)
 
 ## Success Criteria
 
