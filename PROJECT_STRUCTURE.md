@@ -14,13 +14,16 @@ medipact/
 │   │   ├── hedera/             # Hedera integration
 │   │   │   └── hcs-client.js
 │   │   ├── utils/              # Helper functions
-│   │   │   └── hash.js
+│   │   │   ├── hash.js         # Cryptographic hash generation (SHA-256)
+│   │   │   └── currency.js     # Currency conversion utilities
 │   │   └── index.js            # Main adapter entry point
 │   └── tests/                  # Adapter tests
 │
-├── contracts/                  # Smart contracts
+├── contracts/                  # Smart contracts (Solidity)
 │   ├── ConsentManager.sol      # Consent management contract
-│   ├── RevenueSplitter.sol     # Revenue distribution contract
+│   ├── RevenueSplitter.sol     # Revenue distribution contract (60/25/15)
+│   ├── README.md               # Contract documentation and usage
+│   ├── REVIEW.md               # Code review vs Hedera standards
 │   ├── scripts/                # Deployment scripts
 │   └── test/                   # Contract tests
 │
@@ -48,7 +51,9 @@ medipact/
 │   └── tests/                  # Backend tests
 │
 ├── docs/                       # Documentation
-│   └── plan.md                 # Development plan
+│   ├── plan.md                 # Development plan
+│   ├── MASTER_PLAN.md          # Comprehensive master plan (21-day timeline)
+│   └── IMPLEMENTATION_REVIEW.md # Implementation review notes
 │
 ├── scripts/                    # Utility scripts
 │   └── .gitkeep
@@ -64,15 +69,31 @@ medipact/
 ### Adapter (`adapter/`)
 The core engine that processes hospital EHR data:
 - **`src/index.js`**: Main entry point that orchestrates the entire flow
+  - Reads CSV, anonymizes data, submits to HCS, displays results
 - **`src/anonymizer/anonymize.js`**: Removes PII from medical records
+  - Parses CSV, removes PII, generates anonymous patient IDs (PID-001, etc.)
 - **`src/hedera/hcs-client.js`**: Handles HCS topic creation and message submission
+  - Creates topics, submits messages, generates HashScan links
 - **`src/utils/hash.js`**: Cryptographic hash generation utilities
-- **`data/`**: Contains sample EHR data (CSV files)
+  - SHA-256 hashing for consent forms and anonymized records
+- **`src/utils/currency.js`**: Currency conversion utilities
+  - USD-based conversion (HBAR → USD → Local Currency)
+  - Configurable local currency support
+- **`data/raw_data.csv`**: Sample EHR data with PII
+- **`data/anonymized_data.csv`**: Generated anonymized output (gitignored)
 
 ### Contracts (`contracts/`)
 Smart contracts for revenue distribution and consent management:
 - **`RevenueSplitter.sol`**: Automates 60/25/15 revenue split (Patient/Hospital/MediPact)
+  - Receives HBAR via `receive()`/`fallback()`
+  - Automatically distributes to configured wallets
+  - Owner-controlled recipient updates
 - **`ConsentManager.sol`**: Manages patient consent records on-chain
+  - Links original patient IDs to anonymous IDs
+  - Stores HCS topic references for verifiable proof
+  - Consent validity tracking (valid/revoked)
+- **`README.md`**: Contract documentation, deployment instructions, usage examples
+- **`REVIEW.md`**: Comprehensive code review against Hedera standards (Grade: A+)
 
 ### Frontend (`frontend/`)
 Optional demo UI components:
@@ -107,15 +128,31 @@ raw_data.csv (adapter/data/)
     ↓
 [Adapter Script] (adapter/src/index.js)
     ↓
-[Anonymizer] (adapter/src/anonymizer/anonymize.js)
+[CSV Parser] (adapter/src/anonymizer/anonymize.js)
+    ↓
+[Anonymizer] (removes PII, generates PID-001, PID-002, etc.)
     ↓
 [Hash Generator] (adapter/src/utils/hash.js)
+    ├── Consent Proof Hash (SHA-256)
+    └── Data Proof Hash (SHA-256)
     ↓
 [HCS Client] (adapter/src/hedera/hcs-client.js)
+    ├── Create Consent Topic (if needed)
+    ├── Create Data Topic (if needed)
+    ├── Submit Consent Proof → HCS
+    └── Submit Data Proof → HCS
     ↓
 Hedera Consensus Service (HCS)
     ↓
-HashScan Explorer (transaction visible)
+HashScan Explorer (all transactions visible)
+    ├── Consent Proof Transaction
+    └── Data Proof Transaction
+    ↓
+[Currency Utilities] (adapter/src/utils/currency.js)
+    ├── Convert HBAR → USD
+    └── Convert USD → Local Currency (optional)
+    ↓
+Payout Simulation Display (USD + optional local currency)
 ```
 
 ## Next Steps

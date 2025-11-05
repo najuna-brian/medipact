@@ -54,9 +54,10 @@ For billions of patients without smartphones or high digital literacy:
 - **Data Proof**: Hash of anonymous lab file (verifies data authenticity)
 
 **HBAR Payments**: Global 60/25/15 revenue split (Patient/Hospital/MediPact)
-- Instant micropayments
-- Auto-convert to local currency (UGX, etc.)
-- Mobile Money integration with SMS notifications
+- Instant micropayments via smart contracts
+- USD-based currency conversion (HBAR → USD → Local Currency)
+- Configurable local currency support (UGX, KES, TZS, etc.)
+- Mobile Money integration with SMS notifications (future)
 
 ## MVP Demo Flow
 
@@ -66,7 +67,7 @@ Our hackathon MVP demonstrates the core "In-Person Bridge" flow:
 2. **MediPact Adapter Script**: Reads CSV, anonymizes data (removes PII), generates hashes
 3. **HCS Submission**: Posts consent proof hash and data proof hash to Hedera Consensus Service
 4. **HCS Proof on HashScan**: Shows transaction on Hedera Testnet explorer (HashScan) - verifiable proof
-5. **Payout Simulation**: Displays "PAYOUT SIMULATED: 2,800 UGX sent to patient 077...XXX"
+5. **Payout Simulation**: Displays revenue split in USD (and optional local currency) with "PAYOUT SIMULATED: $X.XX USD per patient"
 
 ## Tech Stack
 
@@ -92,13 +93,16 @@ medipact/
 │   │   ├── hedera/             # HCS integration
 │   │   │   └── hcs-client.js
 │   │   ├── utils/              # Helper functions
-│   │   │   └── hash.js
+│   │   │   ├── hash.js         # Cryptographic hash generation
+│   │   │   └── currency.js     # Currency conversion utilities (USD-based)
 │   │   └── index.js            # Main adapter entry point
 │   └── tests/                  # Adapter tests
 │
 ├── contracts/                  # Smart contracts
 │   ├── ConsentManager.sol      # Consent management contract
-│   ├── RevenueSplitter.sol     # Revenue distribution contract
+│   ├── RevenueSplitter.sol     # Revenue distribution contract (60/25/15 split)
+│   ├── README.md               # Contract documentation
+│   ├── REVIEW.md               # Code review against Hedera standards
 │   ├── scripts/                # Deployment scripts
 │   └── test/                   # Contract tests
 │
@@ -123,7 +127,8 @@ medipact/
 │   └── tests/                 # Backend tests
 │
 ├── docs/                       # Documentation
-│   └── plan.md                # Development plan
+│   ├── plan.md                # Development plan
+│   └── MASTER_PLAN.md         # Comprehensive master plan
 │
 ├── scripts/                    # Utility scripts
 │
@@ -136,6 +141,8 @@ medipact/
 See [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) for detailed documentation.
 
 ## Getting Started
+
+**🚀 Quick Start**: See [QUICK_START.md](./QUICK_START.md) for a 5-minute setup guide!
 
 ### Prerequisites
 
@@ -150,38 +157,69 @@ See [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) for detailed documentation.
 git clone git@github.com:najuna-brian/medipact.git
 cd medipact
 
+# Navigate to adapter directory
+cd adapter
+
 # Install dependencies
 npm install
 
 # Set up environment variables
-cp .env.example .env
+cp ../env.example .env
 # Edit .env with your Hedera testnet credentials
 ```
 
 ### Running the MVP Demo
 
 ```bash
+# Navigate to adapter directory
+cd adapter
+
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp ../env.example .env
+# Edit .env with your Hedera testnet credentials
+
 # Run the adapter script
-npm run adapter:demo
+npm start
 
 # This will:
 # 1. Read raw_data.csv
-# 2. Anonymize the data
-# 3. Submit hashes to HCS
-# 4. Display HashScan link
-# 5. Show payout simulation
+# 2. Anonymize the data (remove PII, generate anonymous IDs)
+# 3. Create HCS topics (Consent Proofs, Data Proofs)
+# 4. Submit consent proof hashes to HCS
+# 5. Submit data proof hashes to HCS
+# 6. Display HashScan links for all transactions
+# 7. Show payout simulation (USD + optional local currency)
 ```
+
+### Optional: Local Currency Configuration
+
+To display revenue in local currency (e.g., UGX), add to your `.env` file:
+
+```env
+LOCAL_CURRENCY_CODE="UGX"
+USD_TO_LOCAL_RATE="3700"
+```
+
+See `adapter/SETUP.md` for detailed setup instructions.
 
 ## Development Status
 
 - [x] Project setup and repository structure
 - [x] README and documentation
-- [ ] Hedera HCS integration (topic creation, message submission)
-- [ ] Data anonymization service
-- [ ] Adapter script (CSV → anonymize → HCS)
-- [ ] Smart contracts (RevenueSplitter, ConsentManager)
-- [ ] Demo UI (optional)
+- [x] Hedera HCS integration (topic creation, message submission)
+- [x] Data anonymization service
+- [x] Adapter script (CSV → anonymize → HCS → HashScan)
+- [x] Currency utilities (USD-based with configurable local currency)
+- [x] Smart contracts (RevenueSplitter, ConsentManager)
+- [x] Contract documentation and code review
+- [x] Contract testing (24/24 tests passing)
+- [x] Hardhat deployment environment setup
+- [ ] Smart contract deployment to testnet (ready, requires .env)
 - [ ] End-to-end testing
+- [ ] Demo UI (optional)
 - [ ] Demo video and pitch deck
 
 ## Hackathon Submission Requirements
