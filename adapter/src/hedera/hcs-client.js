@@ -6,25 +6,32 @@
  * - Data proofs
  */
 
-import { Client, PrivateKey, TopicCreateTransaction, TopicMessageSubmitTransaction, Status } from '@hashgraph/sdk';
+import { Client, PrivateKey, AccountId, TopicCreateTransaction, TopicMessageSubmitTransaction, Status } from '@hashgraph/sdk';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 /**
- * Initialize Hedera client for testnet
+ * Initialize Hedera client based on environment configuration
+ * Follows official Hiero SDK patterns for client initialization
  * @returns {Client} Configured Hedera client
  */
 export function createHederaClient() {
-  const accountId = process.env.ACCOUNT_ID;
-  const privateKey = process.env.PRIVATE_KEY;
-
-  if (!accountId || !privateKey) {
-    throw new Error('ACCOUNT_ID and PRIVATE_KEY must be set in .env file');
+  if (
+    process.env.OPERATOR_ID == null ||
+    process.env.OPERATOR_KEY == null ||
+    process.env.HEDERA_NETWORK == null
+  ) {
+    throw new Error(
+      "Environment variables OPERATOR_ID, HEDERA_NETWORK, and OPERATOR_KEY are required.",
+    );
   }
 
-  const client = Client.forTestnet();
-  client.setOperator(accountId, PrivateKey.fromStringECDSA(privateKey));
+  const operatorId = AccountId.fromString(process.env.OPERATOR_ID);
+  const operatorKey = PrivateKey.fromStringECDSA(process.env.OPERATOR_KEY);
+
+  const client = Client.forName(process.env.HEDERA_NETWORK);
+  client.setOperator(operatorId, operatorKey);
 
   return client;
 }
