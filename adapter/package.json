@@ -1,0 +1,25 @@
+{
+  "name": "medipact-adapter",
+  "version": "1.0.0",
+  "description": "MediPact Adapter - Core engine for processing EHR data and submitting to Hedera HCS",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test:hcs": "node scripts/test-hcs.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "hedera",
+    "hcs",
+    "medical-data",
+    "anonymization"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@hashgraph/sdk": "^2.68.0",
+    "dotenv": "^16.4.5"
+  }
+}
+
