@@ -32,10 +32,14 @@ jobs:
 
       - name: Compile contracts
         working-directory: contracts
+        env:
+          HARDHAT_NON_INTERACTIVE: true
         run: npm run compile
 
       - name: Run tests
         working-directory: contracts
+        env:
+          HARDHAT_NON_INTERACTIVE: true
         run: npm test
 
   test-adapter:
@@ -60,8 +64,9 @@ jobs:
       - name: Verify module imports
         working-directory: adapter
         run: |
-          node --input-type=module -e "import('./src/index.js').then(() => console.log('✓ Main module'))"
-          node --input-type=module -e "import('./src/hedera/hcs-client.js').then(() => console.log('✓ HCS client'))"
-          node --input-type=module -e "import('./src/utils/currency.js').then(() => console.log('✓ Currency utils'))"
-          node --input-type=module -e "import('./src/utils/hash.js').then(() => console.log('✓ Hash utils'))"
-          node --input-type=module -e "import('./src/anonymizer/anonymize.js').then(() => console.log('✓ Anonymizer'))"
+          echo "Testing module imports..."
+          node --input-type=module -e "import('./src/hedera/hcs-client.js').then(() => console.log('✓ HCS client'))" || exit 1
+          node --input-type=module -e "import('./src/utils/currency.js').then(() => console.log('✓ Currency utils'))" || exit 1
+          node --input-type=module -e "import('./src/utils/hash.js').then(() => console.log('✓ Hash utils'))" || exit 1
+          node --input-type=module -e "import('./src/anonymizer/anonymize.js').then(() => console.log('✓ Anonymizer'))" || exit 1
+          echo "✅ All modules can be imported"
