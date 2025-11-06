@@ -37,8 +37,10 @@ The adapter will:
 3. Generate consent and data proof hashes
 4. Create HCS topics (Consent Proofs, Data Proofs)
 5. Submit proofs to Hedera HCS
-6. Display HashScan links for all transactions
-7. Show payout simulation (USD + optional local currency)
+6. **Record consent proofs on-chain** using ConsentManager smart contract (if configured)
+7. Display HashScan links for all transactions
+8. Show payout simulation (USD + optional local currency)
+9. **Execute real payouts** via RevenueSplitter smart contract (if configured)
 
 ### Test HCS Integration
 
@@ -74,6 +76,7 @@ All source code is in `src/`:
 - `index.js` - Main entry point (orchestrates entire flow)
 - `anonymizer/anonymize.js` - Data anonymization (CSV parsing, PII removal)
 - `hedera/hcs-client.js` - HCS integration (topic creation, message submission)
+- `hedera/evm-client.js` - EVM smart contract integration (ConsentManager, RevenueSplitter)
 - `utils/hash.js` - Cryptographic hash generation (SHA-256)
 - `utils/currency.js` - Currency conversion utilities (USD-based)
 
@@ -93,7 +96,13 @@ Required:
 Optional:
 - `LOCAL_CURRENCY_CODE` - Local currency code (e.g., "UGX", "KES")
 - `USD_TO_LOCAL_RATE` - Exchange rate (local currency per USD)
+- `CONSENT_MANAGER_ADDRESS` - Deployed ConsentManager contract address (EVM format: 0x...)
+- `REVENUE_SPLITTER_ADDRESS` - Deployed RevenueSplitter contract address (EVM format: 0x...)
 
-See `SETUP.md` for detailed setup instructions.
+**Smart Contract Integration:**
+- If `CONSENT_MANAGER_ADDRESS` is set, consent proofs are recorded on-chain
+- If `REVENUE_SPLITTER_ADDRESS` is set, real HBAR payouts are executed (automatically splits 60/25/15)
+- Contracts can be deployed using `contracts/scripts/deploy.js`
+- See `SETUP.md` for detailed setup instructions including contract deployment
 
 

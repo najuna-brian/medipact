@@ -54,10 +54,18 @@ For billions of patients without smartphones or high digital literacy:
 - **Data Proof**: Hash of anonymous lab file (verifies data authenticity)
 
 **HBAR Payments**: Global 60/25/15 revenue split (Patient/Hospital/MediPact)
+- **Smart Contracts**: Automated revenue distribution via RevenueSplitter contract
+- **Real Payouts**: HBAR transfers automatically split 60/25/15
 - Instant micropayments via smart contracts
 - USD-based currency conversion (HBAR → USD → Local Currency)
 - Configurable local currency support (UGX, KES, TZS, etc.)
 - Mobile Money integration with SMS notifications (future)
+
+**Hedera EVM Integration**:
+- **ConsentManager Contract**: On-chain registry of consent proofs linked to HCS topics
+- **RevenueSplitter Contract**: Automated HBAR distribution with 60/25/15 split
+- Contracts deployed on Hedera EVM (testnet/mainnet)
+- Full smart contract interaction via Hedera SDK
 
 ## MVP Demo Flow
 
@@ -66,8 +74,10 @@ Our hackathon MVP demonstrates the core "In-Person Bridge" flow:
 1. **Simulated Hospital EHR**: CSV file (`raw_data.csv`) with fake lab results containing patient names and IDs
 2. **MediPact Adapter Script**: Reads CSV, anonymizes data (removes PII), generates hashes
 3. **HCS Submission**: Posts consent proof hash and data proof hash to Hedera Consensus Service
-4. **HCS Proof on HashScan**: Shows transaction on Hedera Testnet explorer (HashScan) - verifiable proof
-5. **Payout Simulation**: Displays revenue split in USD (and optional local currency) with "PAYOUT SIMULATED: $X.XX USD per patient"
+4. **On-Chain Registry**: Records consent proofs in ConsentManager smart contract (optional, if deployed)
+5. **HCS Proof on HashScan**: Shows transaction on Hedera Testnet explorer (HashScan) - verifiable proof
+6. **Payout Simulation**: Displays revenue split in USD (and optional local currency)
+7. **Real Payout Execution**: Transfers HBAR to RevenueSplitter contract which automatically distributes 60/25/15 (optional, if deployed)
 
 ## Tech Stack
 
@@ -90,8 +100,9 @@ medipact/
 │   ├── src/                    # Source code (JavaScript)
 │   │   ├── anonymizer/         # Data anonymization logic
 │   │   │   └── anonymize.js
-│   │   ├── hedera/             # HCS integration
-│   │   │   └── hcs-client.js
+│   │   ├── hedera/             # Hedera integration
+│   │   │   ├── hcs-client.js   # HCS integration
+│   │   │   └── evm-client.js   # EVM smart contract integration
 │   │   ├── utils/              # Helper functions
 │   │   │   ├── hash.js         # Cryptographic hash generation
 │   │   │   └── currency.js     # Currency conversion utilities (USD-based)
@@ -139,6 +150,28 @@ medipact/
 ```
 
 See [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) for detailed documentation.
+
+## 🛡️ Development Workflow
+
+**Important**: The `main` branch is protected. All changes must go through Pull Requests.
+
+### Quick Start Workflow
+
+```bash
+# 1. Create a feature branch
+git checkout -b feature/your-feature-name
+
+# 2. Make changes and commit
+git add .
+git commit -m "feat: Your feature description"
+
+# 3. Push to your branch
+git push origin feature/your-feature-name
+
+# 4. Create Pull Request on GitHub
+```
+
+**Direct pushes to `main` are blocked** - see [CONTRIBUTING.md](CONTRIBUTING.md) for full workflow.
 
 ## Getting Started
 
@@ -217,7 +250,10 @@ See `adapter/SETUP.md` for detailed setup instructions.
 - [x] Contract documentation and code review
 - [x] Contract testing (24/24 tests passing)
 - [x] Hardhat deployment environment setup
-- [ ] Smart contract deployment to testnet (ready, requires .env)
+- [x] Smart contract deployment to testnet
+- [x] EVM integration in adapter (ConsentManager, RevenueSplitter)
+- [x] On-chain consent registry
+- [x] Real HBAR payout execution
 - [ ] End-to-end testing
 - [ ] Demo UI (optional)
 - [ ] Demo video and pitch deck

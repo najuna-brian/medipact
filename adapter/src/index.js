@@ -17,6 +17,11 @@ import {
   submitMessage, 
   getHashScanLink 
 } from './hedera/hcs-client.js';
+import { 
+  recordConsentOnChain,
+  executeRealPayout
+} from './hedera/evm-client.js';
+import { Hbar } from '@hashgraph/sdk';
 
 dotenv.config();
 
@@ -52,13 +57,32 @@ async function processPatientRecord(anonymizedRecord, dataTopicId, client) {
 /**
  * Generate consent proof hash for a patient
  * @param {string} originalPatientId - Original patient ID (before anonymization)
+ * @param {string} anonymousPatientId - Anonymous patient ID (e.g., PID-001)
  * @param {string} consentTopicId - HCS topic ID for consent proofs
  * @param {Client} client - Hedera client
  * @returns {Promise<Object>} Consent proof result
  */
-async function processConsentProof(originalPatientId, consentTopicId, client) {
+async function processConsentProof(originalPatientId, anonymousPatientId, consentTopicId, client) {
   const consentHash = hashConsentForm(originalPatientId, new Date().toISOString());
   const transactionId = await submitMessage(client, consentTopicId, consentHash);
+  
+  // Record consent on-chain using ConsentManager contract
+  if (process.env.CONSENT_MANAGER_ADDRESS) {
+    try {
+      const onChainTxId = await recordConsentOnChain(
+        client,
+        process.env.CONSENT_MANAGER_ADDRESS,
+        originalPatientId,
+        anonymousPatientId,
+        consentTopicId,
+        consentHash
+      );
+      console.log(`   ✓ Successfully recorded consent proof on-chain in ConsentManager contract: ${getHashScanLink(onChainTxId)}`);
+    } catch (error) {
+      console.error(`   ⚠️  Failed to record consent on-chain: ${error.message}`);
+      // Continue execution even if on-chain recording fails
+    }
+  }
   
   return {
     patientId: originalPatientId,
@@ -106,7 +130,7 @@ async function main() {
     console.log('6. Processing consent proofs...');
     const consentResults = [];
     for (const [originalPatientId, anonymousPID] of patientMapping) {
-      const result = await processConsentProof(originalPatientId, consentTopicId, client);
+      const result = await processConsentProof(originalPatientId, anonymousPID, consentTopicId, client);
       consentResults.push(result);
       console.log(`   ✓ Consent proof for ${originalPatientId} (${anonymousPID}): ${result.hashScanLink}`);
     }
@@ -209,6 +233,32 @@ async function main() {
     }
     
     console.log(`\nPAYOUT SIMULATED: ${formatCurrency(perPatientShareUsd, 'USD')} per patient (${patientMapping.size} patients)\n`);
+
+    // Step 11: Execute real payout
+    // Transfer HBAR to RevenueSplitter contract which will automatically split the revenue
+    if (process.env.REVENUE_SPLITTER_ADDRESS) {
+      console.log('=== 7. EXECUTE REAL PAYOUT ===');
+      try {
+        const totalHbarPayout = new Hbar(totalHbar);
+        const payoutTxId = await executeRealPayout(
+          client,
+          process.env.REVENUE_SPLITTER_ADDRESS,
+          totalHbarPayout
+        );
+        console.log(`   ✓ Real payout executed successfully!`);
+        console.log(`   ✓ Transaction ID: ${payoutTxId}`);
+        console.log(`   ✓ HashScan: ${getHashScanLink(payoutTxId)}`);
+        console.log(`   ✓ RevenueSplitter contract will automatically distribute:`);
+        console.log(`     - Patient Share (60%): ${formatHbar(split.patient)} HBAR`);
+        console.log(`     - Hospital Share (25%): ${formatHbar(split.hospital)} HBAR`);
+        console.log(`     - MediPact Share (15%): ${formatHbar(split.medipact)} HBAR\n`);
+      } catch (error) {
+        console.error(`   ⚠️  Failed to execute real payout: ${error.message}`);
+        console.log(`   Continuing with simulation-only mode...\n`);
+      }
+    } else {
+      console.log('⚠️  REVENUE_SPLITTER_ADDRESS not configured. Skipping real payout.\n');
+    }
 
     // Close client
     client.close();
