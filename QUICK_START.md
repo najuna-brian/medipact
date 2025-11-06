@@ -8,7 +8,7 @@ Get up and running with MediPact in 5 minutes!
 - Hedera testnet account (get free at https://portal.hedera.com/dashboard)
 - Git
 
-## Quick Setup (5 Steps)
+## Quick Setup (6 Steps)
 
 ### 1. Clone Repository
 
@@ -20,7 +20,12 @@ cd medipact
 ### 2. Install Dependencies
 
 ```bash
+# Install adapter dependencies
 cd adapter
+npm install
+
+# Install contract dependencies (for smart contract deployment)
+cd ../contracts
 npm install
 ```
 
@@ -36,13 +41,30 @@ HEDERA_NETWORK="testnet"
 
 Get your credentials from: https://portal.hedera.com/dashboard
 
-### 4. Run the Adapter
+### 4. Deploy Smart Contracts (Optional but Recommended)
+
+For full EVM integration with on-chain consent registry and real payouts:
 
 ```bash
+cd contracts
+npm run compile
+npm run deploy:testnet
+```
+
+After deployment, add the contract addresses to `adapter/.env`:
+```env
+CONSENT_MANAGER_ADDRESS="0x..."  # From deployment output
+REVENUE_SPLITTER_ADDRESS="0x..."  # From deployment output
+```
+
+### 5. Run the Adapter
+
+```bash
+cd ../adapter
 npm start
 ```
 
-### 5. Verify Results
+### 6. Verify Results
 
 ```bash
 # Check anonymized output
@@ -59,9 +81,11 @@ npm run validate
 1. **Reads** `data/raw_data.csv` (10 sample records)
 2. **Anonymizes** data (removes PII, generates PID-001, PID-002, etc.)
 3. **Creates** HCS topics (Consent Proofs, Data Proofs)
-4. **Submits** proof hashes to Hedera
-5. **Displays** HashScan links (click to verify on-chain)
-6. **Shows** payout simulation (USD + optional local currency)
+4. **Submits** proof hashes to Hedera HCS
+5. **Records consent on-chain** (if ConsentManager address configured)
+6. **Displays** HashScan links (click to verify on-chain)
+7. **Shows** payout simulation (USD + optional local currency)
+8. **Executes real payout** (if RevenueSplitter address configured) - automatically splits 60/25/15
 
 ## Verify on HashScan
 
@@ -89,6 +113,14 @@ USD_TO_LOCAL_RATE="3700"
 
 **Error**: "Error parsing CSV"
 - Solution: Check `raw_data.csv` format is correct
+
+**Error**: "Failed to record consent on-chain"
+- Solution: Check `CONSENT_MANAGER_ADDRESS` is correct and contract is deployed
+- Solution: Ensure account has sufficient HBAR for gas fees
+
+**Error**: "Failed to execute real payout"
+- Solution: Check `REVENUE_SPLITTER_ADDRESS` is correct and contract is deployed
+- Solution: Ensure account has sufficient HBAR for transfer + gas fees
 
 ## Next Steps
 
