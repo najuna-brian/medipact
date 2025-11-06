@@ -140,6 +140,28 @@ medipact/
 
 See [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) for detailed documentation.
 
+## 🛡️ Development Workflow
+
+**Important**: The `main` branch is protected. All changes must go through Pull Requests.
+
+### Quick Start Workflow
+
+```bash
+# 1. Create a feature branch
+git checkout -b feature/your-feature-name
+
+# 2. Make changes and commit
+git add .
+git commit -m "feat: Your feature description"
+
+# 3. Push to your branch
+git push origin feature/your-feature-name
+
+# 4. Create Pull Request on GitHub
+```
+
+**Direct pushes to `main` are blocked** - see [CONTRIBUTING.md](CONTRIBUTING.md) for full workflow.
+
 ## Getting Started
 
 **🚀 Quick Start**: See [QUICK_START.md](./QUICK_START.md) for a 5-minute setup guide!
