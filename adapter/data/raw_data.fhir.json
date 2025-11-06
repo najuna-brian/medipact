@@ -1,0 +1,567 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "timestamp": "2025-11-06T11:00:50.977Z",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:ID-12345",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "ID-12345",
+        "identifier": [
+          {
+            "system": "urn:hospital:patient-id",
+            "value": "ID-12345"
+          }
+        ],
+        "name": [
+          {
+            "text": "John Doe"
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "0771234567"
+          }
+        ],
+        "address": [
+          {
+            "text": "123 Main St Kampala"
+          }
+        ],
+        "birthDate": "1990-05-15"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ID-12346",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "ID-12346",
+        "identifier": [
+          {
+            "system": "urn:hospital:patient-id",
+            "value": "ID-12346"
+          }
+        ],
+        "name": [
+          {
+            "text": "Jane Smith"
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "0772345678"
+          }
+        ],
+        "address": [
+          {
+            "text": "456 Oak Ave Entebbe"
+          }
+        ],
+        "birthDate": "1985-08-22"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ID-12347",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "ID-12347",
+        "identifier": [
+          {
+            "system": "urn:hospital:patient-id",
+            "value": "ID-12347"
+          }
+        ],
+        "name": [
+          {
+            "text": "Musa Kato"
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "0773456789"
+          }
+        ],
+        "address": [
+          {
+            "text": "789 Pine Rd Jinja"
+          }
+        ],
+        "birthDate": "1992-03-10"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ID-12348",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "ID-12348",
+        "identifier": [
+          {
+            "system": "urn:hospital:patient-id",
+            "value": "ID-12348"
+          }
+        ],
+        "name": [
+          {
+            "text": "Sarah Nakato"
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "0774567890"
+          }
+        ],
+        "address": [
+          {
+            "text": "321 Elm St Gulu"
+          }
+        ],
+        "birthDate": "1988-11-05"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:ID-12349",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "ID-12349",
+        "identifier": [
+          {
+            "system": "urn:hospital:patient-id",
+            "value": "ID-12349"
+          }
+        ],
+        "name": [
+          {
+            "text": "Peter Okello"
+          }
+        ],
+        "telecom": [
+          {
+            "system": "phone",
+            "value": "0775678901"
+          }
+        ],
+        "address": [
+          {
+            "text": "654 Maple Dr Mbale"
+          }
+        ],
+        "birthDate": "1995-07-20"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-ID-12345-Blood-Glucose-2024-01-15",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-ID-12345-Blood-Glucose-2024-01-15",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2339-0",
+              "display": "Blood Glucose"
+            }
+          ],
+          "text": "Blood Glucose"
+        },
+        "subject": {
+          "reference": "Patient/ID-12345"
+        },
+        "effectiveDateTime": "2024-01-15",
+        "valueQuantity": {
+          "value": 95,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 70,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            },
+            "high": {
+              "value": 100,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-ID-12346-Blood-Glucose-2024-01-15",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-ID-12346-Blood-Glucose-2024-01-15",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2339-0",
+              "display": "Blood Glucose"
+            }
+          ],
+          "text": "Blood Glucose"
+        },
+        "subject": {
+          "reference": "Patient/ID-12346"
+        },
+        "effectiveDateTime": "2024-01-15",
+        "valueQuantity": {
+          "value": 110,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 70,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            },
+            "high": {
+              "value": 100,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-ID-12347-Blood-Glucose-2024-01-15",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-ID-12347-Blood-Glucose-2024-01-15",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2339-0",
+              "display": "Blood Glucose"
+            }
+          ],
+          "text": "Blood Glucose"
+        },
+        "subject": {
+          "reference": "Patient/ID-12347"
+        },
+        "effectiveDateTime": "2024-01-15",
+        "valueQuantity": {
+          "value": 88,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 70,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            },
+            "high": {
+              "value": 100,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-ID-12348-Blood-Glucose-2024-01-15",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-ID-12348-Blood-Glucose-2024-01-15",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2339-0",
+              "display": "Blood Glucose"
+            }
+          ],
+          "text": "Blood Glucose"
+        },
+        "subject": {
+          "reference": "Patient/ID-12348"
+        },
+        "effectiveDateTime": "2024-01-15",
+        "valueQuantity": {
+          "value": 102,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 70,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            },
+            "high": {
+              "value": 100,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-ID-12349-Blood-Glucose-2024-01-15",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-ID-12349-Blood-Glucose-2024-01-15",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2339-0",
+              "display": "Blood Glucose"
+            }
+          ],
+          "text": "Blood Glucose"
+        },
+        "subject": {
+          "reference": "Patient/ID-12349"
+        },
+        "effectiveDateTime": "2024-01-15",
+        "valueQuantity": {
+          "value": 92,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 70,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            },
+            "high": {
+              "value": 100,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-ID-12345-Cholesterol-2024-01-20",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-ID-12345-Cholesterol-2024-01-20",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2093-3",
+              "display": "Cholesterol"
+            }
+          ],
+          "text": "Cholesterol"
+        },
+        "subject": {
+          "reference": "Patient/ID-12345"
+        },
+        "effectiveDateTime": "2024-01-20",
+        "valueQuantity": {
+          "value": 180,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "referenceRange": [
+          {
+            "high": {
+              "value": 200,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-ID-12346-Cholesterol-2024-01-20",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-ID-12346-Cholesterol-2024-01-20",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2093-3",
+              "display": "Cholesterol"
+            }
+          ],
+          "text": "Cholesterol"
+        },
+        "subject": {
+          "reference": "Patient/ID-12346"
+        },
+        "effectiveDateTime": "2024-01-20",
+        "valueQuantity": {
+          "value": 220,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "referenceRange": [
+          {
+            "high": {
+              "value": 200,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-ID-12347-Hemoglobin-2024-01-25",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-ID-12347-Hemoglobin-2024-01-25",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "718-7",
+              "display": "Hemoglobin"
+            }
+          ],
+          "text": "Hemoglobin"
+        },
+        "subject": {
+          "reference": "Patient/ID-12347"
+        },
+        "effectiveDateTime": "2024-01-25",
+        "valueQuantity": {
+          "value": 14.5,
+          "unit": "g/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "g/dL"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 12,
+              "unit": "g/dL",
+              "system": "http://unitsofmeasure.org"
+            },
+            "high": {
+              "value": 16,
+              "unit": "g/dL",
+              "system": "http://unitsofmeasure.org"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-ID-12348-Hemoglobin-2024-01-25",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-ID-12348-Hemoglobin-2024-01-25",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "718-7",
+              "display": "Hemoglobin"
+            }
+          ],
+          "text": "Hemoglobin"
+        },
+        "subject": {
+          "reference": "Patient/ID-12348"
+        },
+        "effectiveDateTime": "2024-01-25",
+        "valueQuantity": {
+          "value": 13.2,
+          "unit": "g/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "g/dL"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 12,
+              "unit": "g/dL",
+              "system": "http://unitsofmeasure.org"
+            },
+            "high": {
+              "value": 16,
+              "unit": "g/dL",
+              "system": "http://unitsofmeasure.org"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:obs-ID-12349-Blood-Glucose-2024-01-30",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-ID-12349-Blood-Glucose-2024-01-30",
+        "status": "final",
+        "code": {
+          "coding": [
+            {
+              "system": "http://loinc.org",
+              "code": "2339-0",
+              "display": "Blood Glucose"
+            }
+          ],
+          "text": "Blood Glucose"
+        },
+        "subject": {
+          "reference": "Patient/ID-12349"
+        },
+        "effectiveDateTime": "2024-01-30",
+        "valueQuantity": {
+          "value": 98,
+          "unit": "mg/dL",
+          "system": "http://unitsofmeasure.org",
+          "code": "mg/dL"
+        },
+        "referenceRange": [
+          {
+            "low": {
+              "value": 70,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            },
+            "high": {
+              "value": 100,
+              "unit": "mg/dL",
+              "system": "http://unitsofmeasure.org"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
