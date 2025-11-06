@@ -1,0 +1,7 @@
+MediPact is a verifiable medical data marketplace on Hedera Hashgraph solving the patient data black market. Using Hedera Consensus Service (HCS), we create immutable proof of consent and data authenticity for ethical, transparent transactions.
+
+Our MVP demonstrates the "In-Person Bridge" - a hospital adapter that anonymizes patient data, submits proof hashes to HCS, and enables verifiable sharing. Patients receive 60% revenue via HBAR, hospitals 25%, platform 15%.
+
+Features: FHIR R4 compliant, automatic PII removal, immutable proofs on Hedera, automated revenue distribution via smart contracts, full audit trail on HashScan.
+
+Tech: Hedera HCS, Hedera EVM, Solidity, Node.js, FHIR R4
