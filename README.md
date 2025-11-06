@@ -43,9 +43,10 @@ For billions of patients without smartphones or high digital literacy:
 
 ### The MediPact Adapter (Core Engine)
 - **Installation**: Small, secure software installed on hospital servers
-- **Connection**: Connects to existing EHR via FHIR API (simulated with CSV for MVP)
+- **Connection**: Connects to existing EHR via **FHIR API** (FHIR R4 standard) or CSV
 - **Anonymization**: Automatically strips PII (name, ID, address), replaces with anonymous PID
-- **Logging**: Prepares clean, anonymous files for marketplace
+- **Standards Compliance**: Full FHIR R4 support for production-ready integration
+- **Logging**: Prepares clean, anonymous files for marketplace (CSV and FHIR formats)
 
 ### Hedera Integration
 
@@ -71,13 +72,17 @@ For billions of patients without smartphones or high digital literacy:
 
 Our hackathon MVP demonstrates the core "In-Person Bridge" flow:
 
-1. **Simulated Hospital EHR**: CSV file (`raw_data.csv`) with fake lab results containing patient names and IDs
-2. **MediPact Adapter Script**: Reads CSV, anonymizes data (removes PII), generates hashes
+1. **Hospital EHR Data**: FHIR Bundle (`raw_data.fhir.json`) or CSV file (`raw_data.csv`) with lab results
+2. **MediPact Adapter Script**: 
+   - Automatically detects input format (FHIR or CSV)
+   - Reads and parses data (FHIR R4 standard or CSV)
+   - Anonymizes data (removes PII), generates hashes
 3. **HCS Submission**: Posts consent proof hash and data proof hash to Hedera Consensus Service
 4. **On-Chain Registry**: Records consent proofs in ConsentManager smart contract (optional, if deployed)
 5. **HCS Proof on HashScan**: Shows transaction on Hedera Testnet explorer (HashScan) - verifiable proof
 6. **Payout Simulation**: Displays revenue split in USD (and optional local currency)
 7. **Real Payout Execution**: Transfers HBAR to RevenueSplitter contract which automatically distributes 60/25/15 (optional, if deployed)
+8. **Output**: Generates anonymized data in both CSV and FHIR formats (if FHIR input)
 
 ## Tech Stack
 
@@ -88,7 +93,8 @@ Our hackathon MVP demonstrates the core "In-Person Bridge" flow:
   - Smart Contracts (Solidity) for revenue distribution
 - **Backend/Adapter**: Node.js / JavaScript
 - **Frontend**: (Optional for demo) React/Next.js
-- **Integration**: FHIR API (simulated), Mobile Money APIs (simulated)
+- **Integration**: **FHIR R4 API** (global healthcare standard), Mobile Money APIs (simulated)
+- **Data Standards**: FHIR (Fast Healthcare Interoperability Resources) R4 compliant
 
 ## Repository Structure
 
@@ -176,6 +182,8 @@ git push origin feature/your-feature-name
 ## Getting Started
 
 **🚀 Quick Start**: See [QUICK_START.md](./QUICK_START.md) for a 5-minute setup guide!
+
+**📚 Complete Tutorial**: See [docs/tutorial/README.md](./docs/tutorial/README.md) for a comprehensive, step-by-step guide covering everything from introduction to advanced topics!
 
 ### Prerequisites
 
