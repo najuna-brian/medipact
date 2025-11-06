@@ -13,7 +13,8 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "test:hcs": "node scripts/test-hcs.js",
-    "validate": "node scripts/validate-output.js"
+    "validate": "node scripts/validate-output.js",
+    "test:e2e": "node scripts/e2e-test.js"
   },
   "keywords": [
     "hedera",
