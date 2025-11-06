@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-contracts:
+    name: Test Smart Contracts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: contracts/package-lock.json
+
+      - name: Install dependencies
+        working-directory: contracts
+        run: npm ci
+
+      - name: Compile contracts
+        working-directory: contracts
+        run: npm run compile
+
+      - name: Run tests
+        working-directory: contracts
+        run: npm test
+
+  test-adapter:
+    name: Test Adapter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: adapter/package-lock.json
+
+      - name: Install dependencies
+        working-directory: adapter
+        run: npm ci
+
+      - name: Verify module imports
+        working-directory: adapter
+        run: |
+          node --input-type=module -e "import('./src/index.js').then(() => console.log('✓ Main module'))"
+          node --input-type=module -e "import('./src/hedera/hcs-client.js').then(() => console.log('✓ HCS client'))"
+          node --input-type=module -e "import('./src/utils/currency.js').then(() => console.log('✓ Currency utils'))"
+          node --input-type=module -e "import('./src/utils/hash.js').then(() => console.log('✓ Hash utils'))"
+          node --input-type=module -e "import('./src/anonymizer/anonymize.js').then(() => console.log('✓ Anonymizer'))"
