@@ -6,9 +6,14 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "test:hcs": "node scripts/test-hcs.js",
-    "validate": "node scripts/validate-output.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "validate": "node scripts/validate-output.js"
   },
   "keywords": [
     "hedera",
@@ -21,6 +26,10 @@
   "dependencies": {
     "@hashgraph/sdk": "^2.68.0",
     "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.7",
+    "@vitest/ui": "^4.0.7",
+    "vitest": "^4.0.7"
   }
 }
-
