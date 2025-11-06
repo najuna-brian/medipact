@@ -112,7 +112,12 @@ export function formatCurrency(amount, currency = 'USD', decimals = null) {
   }
   
   // For currencies with decimals, format with specified precision
-  return `${amount.toFixed(decimals).toLocaleString()} ${currency}`;
+  // Use toLocaleString with 'en-US' locale to ensure consistent comma formatting
+  const formattedAmount = amount.toFixed(decimals);
+  const parts = formattedAmount.split('.');
+  const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const decimalPart = parts[1] ? `.${parts[1]}` : '';
+  return `${integerPart}${decimalPart} ${currency}`;
 }
 
 /**
