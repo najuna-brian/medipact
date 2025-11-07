@@ -305,6 +305,7 @@ Adds project configuration files and TypeScript type definitions.
 - Add `useContracts` hook for smart contract interactions
 - Add utility functions (cn, formatDate, etc.)
 - Configure PostCSS and build tools
+- Update .gitignore for Next.js build files
 
 **Benefits:**
 - Proper project configuration
@@ -358,6 +359,45 @@ Adds remaining components and test setup.
 
 ---
 
+## PR 16: HashScan Link Utility
+
+**Branch:** `feature/missing-files-cleanup`
+
+### Description
+
+Adds HashScan link utility for generating Hedera transaction and topic links.
+
+**Changes:**
+- Add `hashscan.ts` utility for generating HashScan links
+- Support for transactions and topics
+- Network-aware link generation (testnet/mainnet/previewnet)
+
+**Benefits:**
+- Consistent HashScan link generation
+- Network-aware URL construction
+- Reusable utility for all Hedera links
+
+---
+
+## PR 17: PR Descriptions Documentation
+
+**Branch:** `feature/pr-descriptions-doc`
+
+### Description
+
+Adds PR descriptions document for easy reference when creating pull requests.
+
+**Changes:**
+- Add PR_DESCRIPTIONS.md with descriptions for all PRs
+- Add next-env.d.ts for Next.js TypeScript support
+
+**Benefits:**
+- Easy reference for PR creation
+- Consistent PR descriptions
+- TypeScript support for Next.js
+
+---
+
 ## Summary
 
 All PRs are organized by feature area and can be merged independently. Each PR is self-contained and adds value to the application. Review and merge in any order, though the suggested order is:
@@ -371,4 +411,4 @@ All PRs are organized by feature area and can be merged independently. Each PR i
 7. Backend Integrations (adapter, Hedera, contracts)
 8. Real-time Features (enhancements)
 9. Documentation (reference)
-
+10. Missing Files Cleanup (utilities)
