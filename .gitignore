@@ -41,6 +41,14 @@ build/
 *.der
 hedera-credentials.json
 
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+backend/data/*.db
+backend/data/*.sqlite
+backend/data/*.sqlite3
+
 # Test data (keep sample data, ignore real patient data)
 **/data/real_*.csv
 **/data/patient_*.csv
