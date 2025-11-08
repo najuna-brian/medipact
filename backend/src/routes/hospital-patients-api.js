@@ -9,7 +9,7 @@ import { processBulkRegistration } from '../services/bulk-patient-service.js';
 import { generateUPI, getOrCreateUPI } from '../services/patient-identity-service.js';
 import { linkHospitalToUPI } from '../services/hospital-linkage-service.js';
 import { createPatient, patientExists } from '../db/patient-db.js';
-import { createLinkage } from '../db/linkage-db.js';
+import { createLinkage, getLinkagesByHospital } from '../db/linkage-db.js';
 import { upsertPatientContact } from '../db/patient-contacts-db.js';
 import { verifyHospitalApiKey, getHospital as getHospitalFromDB } from '../db/hospital-db.js';
 import { isHospitalVerified } from '../services/hospital-verification-service.js';
@@ -85,6 +85,38 @@ router.post('/:hospitalId/patients/bulk', authenticateHospital, async (req, res)
     });
   } catch (error) {
     console.error('Error processing bulk registration:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/hospital/:hospitalId/patients
+ * List all patients linked to this hospital
+ */
+router.get('/:hospitalId/patients', authenticateHospital, async (req, res) => {
+  try {
+    const { hospitalId } = req.params;
+    
+    // Verify hospital ID matches authenticated hospital
+    if (hospitalId !== req.hospitalId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const linkages = await getLinkagesByHospital(hospitalId);
+    
+    res.json({
+      hospitalId,
+      totalPatients: linkages.length,
+      patients: linkages.map(l => ({
+        upi: l.upi,
+        hospitalPatientId: l.hospitalPatientId,
+        linkedAt: l.linkedAt,
+        verified: l.verified,
+        verificationMethod: l.verificationMethod
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching hospital patients:', error);
     res.status(500).json({ error: error.message });
   }
 });

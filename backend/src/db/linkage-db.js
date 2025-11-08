@@ -138,3 +138,29 @@ export async function verifyLinkage(upi, hospitalId, verificationMethod) {
   return await getLinkage(upi, hospitalId);
 }
 
+/**
+ * Get all linkages for a hospital
+ */
+export async function getLinkagesByHospital(hospitalId) {
+  const linkages = await all(
+    `SELECT 
+      l.id,
+      l.upi,
+      l.hospital_id as hospitalId,
+      l.hospital_patient_id as hospitalPatientId,
+      l.linked_at as linkedAt,
+      l.verified,
+      l.verification_method as verificationMethod,
+      l.status
+    FROM hospital_linkages l
+    WHERE l.hospital_id = ? AND l.status = 'active'
+    ORDER BY l.linked_at DESC`,
+    [hospitalId]
+  );
+
+  return linkages.map(l => ({
+    ...l,
+    verified: l.verified === 1
+  }));
+}
+
