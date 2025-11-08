@@ -10,12 +10,11 @@ pragma solidity ^0.8.20;
  * where the actual consent proofs are stored immutably.
  */
 contract ConsentManager {
-    // Consent record structure
+    // Consent record structure (NO PII - only anonymous IDs)
     struct ConsentRecord {
-        string patientId;           // Original patient ID (before anonymization)
-        string anonymousPatientId;  // Anonymous patient ID (PID-001, etc.)
+        string anonymousPatientId;  // Anonymous patient ID (PID-001, etc.) - NO original ID
         string hcsTopicId;          // HCS topic ID where consent proof is stored
-        string consentHash;         // Hash of the consent form
+        string dataHash;            // Hash of the anonymized data
         uint256 timestamp;          // Block timestamp when consent was recorded
         bool isValid;              // Whether consent is currently valid
     }
@@ -23,31 +22,27 @@ contract ConsentManager {
     // Owner address (can manage consents)
     address public owner;
 
-    // Mapping: patientId => ConsentRecord
+    // Mapping: anonymousPatientId => ConsentRecord
     mapping(string => ConsentRecord) public consents;
 
-    // Mapping: anonymousPatientId => patientId
-    mapping(string => string) public anonymousToPatient;
-
-    // Array of all patient IDs (for enumeration)
-    string[] public patientIds;
+    // Array of all anonymous patient IDs (for enumeration)
+    string[] public anonymousPatientIds;
 
     // Events
     event ConsentRecorded(
-        string indexed patientId,
         string indexed anonymousPatientId,
         string hcsTopicId,
-        string consentHash
+        string dataHash
     );
-    event ConsentRevoked(string indexed patientId);
-    event ConsentReinstated(string indexed patientId);
+    event ConsentRevoked(string indexed anonymousPatientId);
+    event ConsentReinstated(string indexed anonymousPatientId);
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     // Errors
     error Unauthorized();
     error InvalidAddress();
-    error ConsentAlreadyExists(string patientId);
-    error ConsentNotFound(string patientId);
+    error ConsentAlreadyExists(string anonymousPatientId);
+    error ConsentNotFound(string anonymousPatientId);
     error InvalidConsentData();
 
     /**
@@ -58,86 +53,70 @@ contract ConsentManager {
     }
 
     /**
-     * @dev Record a new consent
-     * @param _patientId Original patient ID
+     * @dev Record a new consent (NO PII - only anonymous ID)
      * @param _anonymousPatientId Anonymous patient ID (e.g., PID-001)
      * @param _hcsTopicId HCS topic ID where consent proof is stored
-     * @param _consentHash Hash of the consent form
+     * @param _dataHash Hash of the anonymized data
      */
     function recordConsent(
-        string memory _patientId,
         string memory _anonymousPatientId,
         string memory _hcsTopicId,
-        string memory _consentHash
+        string memory _dataHash
     ) external {
         if (msg.sender != owner) {
             revert Unauthorized();
         }
-        if (bytes(_patientId).length == 0 || bytes(_anonymousPatientId).length == 0) {
+        if (bytes(_anonymousPatientId).length == 0) {
             revert InvalidConsentData();
         }
-        if (bytes(consents[_patientId].patientId).length > 0) {
-            revert ConsentAlreadyExists(_patientId);
+        if (bytes(consents[_anonymousPatientId].anonymousPatientId).length > 0) {
+            revert ConsentAlreadyExists(_anonymousPatientId);
         }
 
         ConsentRecord memory newConsent = ConsentRecord({
-            patientId: _patientId,
             anonymousPatientId: _anonymousPatientId,
             hcsTopicId: _hcsTopicId,
-            consentHash: _consentHash,
+            dataHash: _dataHash,
             timestamp: block.timestamp,
             isValid: true
         });
 
-        consents[_patientId] = newConsent;
-        anonymousToPatient[_anonymousPatientId] = _patientId;
-        patientIds.push(_patientId);
+        consents[_anonymousPatientId] = newConsent;
+        anonymousPatientIds.push(_anonymousPatientId);
 
-        emit ConsentRecorded(_patientId, _anonymousPatientId, _hcsTopicId, _consentHash);
+        emit ConsentRecorded(_anonymousPatientId, _hcsTopicId, _dataHash);
     }
 
     /**
      * @dev Revoke a consent (mark as invalid)
-     * @param _patientId Patient ID whose consent to revoke
+     * @param _anonymousPatientId Anonymous patient ID whose consent to revoke
      */
-    function revokeConsent(string memory _patientId) external {
+    function revokeConsent(string memory _anonymousPatientId) external {
         if (msg.sender != owner) {
             revert Unauthorized();
         }
-        if (bytes(consents[_patientId].patientId).length == 0) {
-            revert ConsentNotFound(_patientId);
+        if (bytes(consents[_anonymousPatientId].anonymousPatientId).length == 0) {
+            revert ConsentNotFound(_anonymousPatientId);
         }
 
-        consents[_patientId].isValid = false;
-        emit ConsentRevoked(_patientId);
+        consents[_anonymousPatientId].isValid = false;
+        emit ConsentRevoked(_anonymousPatientId);
     }
 
     /**
      * @dev Reinstate a revoked consent
-     * @param _patientId Patient ID whose consent to reinstate
+     * @param _anonymousPatientId Anonymous patient ID whose consent to reinstate
      */
-    function reinstateConsent(string memory _patientId) external {
+    function reinstateConsent(string memory _anonymousPatientId) external {
         if (msg.sender != owner) {
             revert Unauthorized();
         }
-        if (bytes(consents[_patientId].patientId).length == 0) {
-            revert ConsentNotFound(_patientId);
+        if (bytes(consents[_anonymousPatientId].anonymousPatientId).length == 0) {
+            revert ConsentNotFound(_anonymousPatientId);
         }
 
-        consents[_patientId].isValid = true;
-        emit ConsentReinstated(_patientId);
-    }
-
-    /**
-     * @dev Get consent record by patient ID
-     * @param _patientId Patient ID to lookup
-     * @return ConsentRecord The consent record
-     */
-    function getConsent(string memory _patientId) external view returns (ConsentRecord memory) {
-        if (bytes(consents[_patientId].patientId).length == 0) {
-            revert ConsentNotFound(_patientId);
-        }
-        return consents[_patientId];
+        consents[_anonymousPatientId].isValid = true;
+        emit ConsentReinstated(_anonymousPatientId);
     }
 
     /**
@@ -146,23 +125,22 @@ contract ConsentManager {
      * @return ConsentRecord The consent record
      */
     function getConsentByAnonymousId(string memory _anonymousPatientId) external view returns (ConsentRecord memory) {
-        string memory patientId = anonymousToPatient[_anonymousPatientId];
-        if (bytes(patientId).length == 0) {
+        if (bytes(consents[_anonymousPatientId].anonymousPatientId).length == 0) {
             revert ConsentNotFound(_anonymousPatientId);
         }
-        return consents[patientId];
+        return consents[_anonymousPatientId];
     }
 
     /**
      * @dev Check if a consent is valid
-     * @param _patientId Patient ID to check
+     * @param _anonymousPatientId Anonymous patient ID to check
      * @return bool True if consent exists and is valid
      */
-    function isConsentValid(string memory _patientId) external view returns (bool) {
-        if (bytes(consents[_patientId].patientId).length == 0) {
+    function isConsentValid(string memory _anonymousPatientId) external view returns (bool) {
+        if (bytes(consents[_anonymousPatientId].anonymousPatientId).length == 0) {
             return false;
         }
-        return consents[_patientId].isValid;
+        return consents[_anonymousPatientId].isValid;
     }
 
     /**
@@ -170,17 +148,17 @@ contract ConsentManager {
      * @return uint256 Number of recorded consents
      */
     function getConsentCount() external view returns (uint256) {
-        return patientIds.length;
+        return anonymousPatientIds.length;
     }
 
     /**
-     * @dev Get patient ID at index (for enumeration)
-     * @param index Index in patientIds array
-     * @return string Patient ID
+     * @dev Get anonymous patient ID at index (for enumeration)
+     * @param index Index in anonymousPatientIds array
+     * @return string Anonymous patient ID
      */
-    function getPatientIdAtIndex(uint256 index) external view returns (string memory) {
-        require(index < patientIds.length, "Index out of bounds");
-        return patientIds[index];
+    function getAnonymousPatientIdAtIndex(uint256 index) external view returns (string memory) {
+        require(index < anonymousPatientIds.length, "Index out of bounds");
+        return anonymousPatientIds[index];
     }
 
     /**
