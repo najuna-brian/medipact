@@ -382,17 +382,26 @@ function anonymizeRecordWithDemographics(record, anonymousPID, hospitalInfo) {
  * @param {Object} hospitalInfo - Hospital configuration
  *   - country: string (REQUIRED) - Hospital country
  *   - location: string (optional) - Hospital location
+ *   - hospitalId: string (optional) - Hospital ID for UPI-based anonymization
+ * @param {Object} upiOptions - UPI integration options (optional)
+ *   - enabled: boolean - Enable UPI-based anonymization
+ *   - getUPI: Function - (record) => Promise<string> - Get UPI for record
+ *   - generateUPIPID: Function - (upi, hospitalId, index) => string - Generate UPI-based PID
  * @returns {Object} Object with anonymized records and patient mapping
  */
-export function anonymizeWithDemographics(records, hospitalInfo) {
+export async function anonymizeWithDemographics(records, hospitalInfo, upiOptions = null) {
   // Validate hospital info
   if (!hospitalInfo || !hospitalInfo.country) {
     throw new Error('HOSPITAL_COUNTRY is required in hospitalInfo');
   }
   
+  // Check if UPI is enabled
+  const useUPI = upiOptions && upiOptions.enabled && hospitalInfo.hospitalId;
+  
   // Group records by patient (using Patient ID before anonymization)
   const patientMap = new Map();
   const patientMapping = new Map(); // Original ID -> Anonymous PID
+  const upiMapping = new Map(); // Original ID -> UPI (if UPI enabled)
   
   records.forEach(record => {
     const patientId = record['Patient ID'] || record['Patient Name'];
@@ -406,8 +415,28 @@ export function anonymizeWithDemographics(records, hospitalInfo) {
   const anonymizedRecords = [];
   let pidIndex = 0;
   
-  patientMap.forEach((patientRecords, originalPatientId) => {
-    const anonymousPID = generateAnonymousPID(pidIndex);
+  for (const [originalPatientId, patientRecords] of patientMap) {
+    let anonymousPID;
+    let upi = null;
+    
+    if (useUPI && upiOptions.getUPI) {
+      // Use UPI-based anonymization
+      try {
+        upi = await upiOptions.getUPI(patientRecords[0]);
+        anonymousPID = upiOptions.generateUPIPID 
+          ? upiOptions.generateUPIPID(upi, hospitalInfo.hospitalId, pidIndex)
+          : `${upi}-${hospitalInfo.hospitalId}-PID${String(pidIndex).padStart(3, '0')}`;
+        upiMapping.set(originalPatientId, upi);
+      } catch (error) {
+        console.warn(`Failed to get UPI for patient ${originalPatientId}, falling back to standard anonymization:`, error.message);
+        // Fallback to standard anonymization
+        anonymousPID = generateAnonymousPID(pidIndex);
+      }
+    } else {
+      // Standard anonymization (no UPI)
+      anonymousPID = generateAnonymousPID(pidIndex);
+    }
+    
     patientMapping.set(originalPatientId, anonymousPID);
     
     patientRecords.forEach(record => {
@@ -421,14 +450,15 @@ export function anonymizeWithDemographics(records, hospitalInfo) {
     });
     
     pidIndex++;
-  });
+  }
   
   // Enforce k-anonymity
   const kAnonymizedRecords = enforceKAnonymity(anonymizedRecords, 5);
   
   return {
     records: kAnonymizedRecords,
-    patientMapping
+    patientMapping,
+    upiMapping: useUPI ? upiMapping : null
   };
 }
 

@@ -41,20 +41,54 @@ npm start
 ```
 
 The adapter will:
-1. Load hospital configuration (country, location)
+1. Load hospital configuration (country, location, hospitalId)
 2. Read EHR data from `data/raw_data.csv`
 3. **Anonymize patient information with demographics**:
    - Remove PII (name, ID, address, phone, exact DOB/age)
    - Preserve demographics (age range, country, gender, occupation category)
-   - Generate anonymous IDs (PID-001, PID-002, etc.)
+   - Generate anonymous IDs (PID-001, PID-002, etc. or UPI-based if enabled)
    - Enforce k-anonymity (minimum 5 records per demographic group)
-4. Generate consent and data proof hashes
-5. Create HCS topics (Consent Proofs, Data Proofs)
-6. Submit proofs to Hedera HCS
-7. **Record consent proofs on-chain** using ConsentManager smart contract (NO original patient IDs stored)
-8. Display HashScan links for all transactions
-9. Show payout simulation (USD + optional local currency)
-10. **Execute real payouts** via RevenueSplitter smart contract (if configured)
+4. **Optional: UPI Integration** (if enabled):
+   - Generate or match Unique Patient Identity (UPI) for each patient
+   - Create UPI-based anonymous IDs for cross-hospital linking
+   - Link hospital patient IDs to UPIs
+5. Generate consent and data proof hashes
+6. Create HCS topics (Consent Proofs, Data Proofs)
+7. Submit proofs to Hedera HCS
+8. **Record consent proofs on-chain** using ConsentManager smart contract (NO original patient IDs stored)
+9. Display HashScan links for all transactions
+10. Show payout simulation (USD + optional local currency)
+11. **Execute real payouts** via RevenueSplitter smart contract (if configured)
+
+### UPI Integration (Optional)
+
+To enable UPI-based anonymization for cross-hospital patient identity:
+
+1. Set `HOSPITAL_ID` in `.env`:
+```env
+HOSPITAL_ID=HOSP-001234567890
+```
+
+2. Configure UPI options in the adapter:
+```javascript
+import { anonymizeWithDemographics } from './anonymizer/demographic-anonymize.js';
+import { getUPIForRecord, generateUPIBasedAnonymousPID } from './services/upi-integration.js';
+
+const upiOptions = {
+  enabled: true,
+  getUPI: async (record) => {
+    // Call backend API or local UPI service
+    return await getUPIForRecord(record, { /* options */ });
+  },
+  generateUPIPID: (upi, hospitalId, index) => {
+    return generateUPIBasedAnonymousPID(upi, hospitalId, index);
+  }
+};
+
+const result = await anonymizeWithDemographics(records, hospitalInfo, upiOptions);
+```
+
+See `../docs/PATIENT_IDENTITY_MANAGEMENT.md` for complete UPI documentation.
 
 ### Test HCS Integration
 
