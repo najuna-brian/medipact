@@ -47,15 +47,15 @@ export function hashPatientRecord(record) {
 }
 
 /**
- * Generate hash of consent form data
- * @param {string} patientId - Patient ID (before anonymization)
+ * Generate hash of consent form data (NO original patient ID - only anonymous ID)
+ * @param {string} anonymousPatientId - Anonymous patient ID (e.g., PID-001)
  * @param {string} consentDate - Date of consent
  * @param {string} consentType - Type of consent (e.g., "data_sharing")
  * @returns {string} Hash of consent form
  */
-export function hashConsentForm(patientId, consentDate, consentType = 'data_sharing') {
+export function hashConsentForm(anonymousPatientId, consentDate, consentType = 'data_sharing') {
   const consentData = {
-    patientId,
+    anonymousPatientId,  // PID-XXX only (NO original patient ID)
     consentDate,
     consentType,
     timestamp: new Date().toISOString()

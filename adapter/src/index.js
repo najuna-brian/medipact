@@ -8,7 +8,8 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { parseCSV, anonymizeRecords, writeAnonymizedCSV } from './anonymizer/anonymize.js';
+import { parseCSV, writeAnonymizedCSV } from './anonymizer/anonymize.js';
+import { anonymizeWithDemographics } from './anonymizer/demographic-anonymize.js';
 import { hashPatientRecord, hashConsentForm, hashBatch } from './utils/hash.js';
 import { formatHbar, hbarToUsd, usdToLocal, formatCurrency, calculateRevenueSplit } from './utils/currency.js';
 import { 
@@ -55,27 +56,27 @@ async function processPatientRecord(anonymizedRecord, dataTopicId, client) {
 }
 
 /**
- * Generate consent proof hash for a patient
- * @param {string} originalPatientId - Original patient ID (before anonymization)
+ * Generate consent proof hash for a patient (NO original patient ID)
  * @param {string} anonymousPatientId - Anonymous patient ID (e.g., PID-001)
+ * @param {string} dataHash - Hash of the anonymized data
  * @param {string} consentTopicId - HCS topic ID for consent proofs
  * @param {Client} client - Hedera client
  * @returns {Promise<Object>} Consent proof result
  */
-async function processConsentProof(originalPatientId, anonymousPatientId, consentTopicId, client) {
-  const consentHash = hashConsentForm(originalPatientId, new Date().toISOString());
+async function processConsentProof(anonymousPatientId, dataHash, consentTopicId, client) {
+  // Use data hash as consent hash (no original patient ID)
+  const consentHash = hashConsentForm(anonymousPatientId, new Date().toISOString());
   const transactionId = await submitMessage(client, consentTopicId, consentHash);
   
-  // Record consent on-chain using ConsentManager contract
+  // Record consent on-chain using ConsentManager contract (NO original patient ID)
   if (process.env.CONSENT_MANAGER_ADDRESS) {
     try {
       const onChainTxId = await recordConsentOnChain(
         client,
         process.env.CONSENT_MANAGER_ADDRESS,
-        originalPatientId,
         anonymousPatientId,
         consentTopicId,
-        consentHash
+        dataHash
       );
       console.log(`   ✓ Successfully recorded consent proof on-chain in ConsentManager contract: ${getHashScanLink(onChainTxId)}`);
     } catch (error) {
@@ -85,8 +86,9 @@ async function processConsentProof(originalPatientId, anonymousPatientId, consen
   }
   
   return {
-    patientId: originalPatientId,
+    anonymousPatientId,
     consentHash,
+    dataHash,
     transactionId,
     hashScanLink: getHashScanLink(transactionId)
   };
@@ -99,45 +101,82 @@ async function main() {
   console.log('=== MediPact Adapter ===\n');
   
   try {
-    // Step 1: Initialize Hedera client
-    console.log('1. Initializing Hedera client...');
+    // Step 1: Load hospital configuration (REQUIRED)
+    console.log('1. Loading hospital configuration...');
+    if (!process.env.HOSPITAL_COUNTRY) {
+      throw new Error('HOSPITAL_COUNTRY environment variable is required');
+    }
+    
+    const hospitalInfo = {
+      country: process.env.HOSPITAL_COUNTRY,  // REQUIRED
+      location: process.env.HOSPITAL_LOCATION || null  // Optional
+    };
+    console.log(`   ✓ Hospital Country: ${hospitalInfo.country}`);
+    if (hospitalInfo.location) {
+      console.log(`   ✓ Hospital Location: ${hospitalInfo.location}`);
+    }
+    console.log('');
+
+    // Step 2: Initialize Hedera client
+    console.log('2. Initializing Hedera client...');
     const client = createHederaClient();
     console.log('   ✓ Client initialized\n');
 
-    // Step 2: Initialize HCS topics (create if needed)
-    console.log('2. Setting up HCS topics...');
+    // Step 3: Initialize HCS topics (create if needed)
+    console.log('3. Setting up HCS topics...');
     const { consentTopicId, dataTopicId } = await initializeMedipactTopics(client);
     console.log(`   ✓ Consent Topic: ${consentTopicId}`);
     console.log(`   ✓ Data Topic: ${dataTopicId}\n`);
 
-    // Step 3: Read and parse CSV file
-    console.log('3. Reading EHR data...');
+    // Step 4: Read and parse CSV file
+    console.log('4. Reading EHR data...');
     const rawRecords = await parseCSV(INPUT_FILE);
     console.log(`   ✓ Read ${rawRecords.length} records from ${INPUT_FILE}\n`);
 
-    // Step 4: Anonymize data
-    console.log('4. Anonymizing patient data...');
-    const { records: anonymizedRecords, patientMapping } = anonymizeRecords(rawRecords);
+    // Step 5: Anonymize data with demographics
+    console.log('5. Anonymizing patient data with demographics...');
+    const { records: anonymizedRecords, patientMapping } = anonymizeWithDemographics(
+      rawRecords,
+      hospitalInfo
+    );
     console.log(`   ✓ Anonymized ${anonymizedRecords.length} records`);
-    console.log(`   ✓ Mapped ${patientMapping.size} unique patients\n`);
+    console.log(`   ✓ Mapped ${patientMapping.size} unique patients`);
+    console.log(`   ✓ Demographics preserved: Age Range, Country, Gender, Occupation Category\n`);
 
-    // Step 5: Write anonymized data to CSV
-    console.log('5. Writing anonymized data...');
+    // Step 6: Write anonymized data to CSV
+    console.log('6. Writing anonymized data...');
     await writeAnonymizedCSV(anonymizedRecords, OUTPUT_FILE);
     console.log('   ✓ Anonymized data saved\n');
 
-    // Step 6: Process consent proofs (one per unique patient)
-    console.log('6. Processing consent proofs...');
+    // Step 7: Process consent proofs (one per unique patient) - NO original patient ID
+    console.log('7. Processing consent proofs...');
     const consentResults = [];
+    const patientDataHashes = new Map(); // Track data hashes per patient
+    
+    // First, generate data hashes for each patient
     for (const [originalPatientId, anonymousPID] of patientMapping) {
-      const result = await processConsentProof(originalPatientId, anonymousPID, consentTopicId, client);
-      consentResults.push(result);
-      console.log(`   ✓ Consent proof for ${originalPatientId} (${anonymousPID}): ${result.hashScanLink}`);
+      // Find all records for this patient
+      const patientRecords = anonymizedRecords.filter(r => r['Anonymous PID'] === anonymousPID);
+      if (patientRecords.length > 0) {
+        // Generate hash of all records for this patient
+        const dataHash = hashBatch(patientRecords);
+        patientDataHashes.set(anonymousPID, dataHash);
+      }
+    }
+    
+    // Process consent proofs (NO original patient ID)
+    for (const [originalPatientId, anonymousPID] of patientMapping) {
+      const dataHash = patientDataHashes.get(anonymousPID);
+      if (dataHash) {
+        const result = await processConsentProof(anonymousPID, dataHash, consentTopicId, client);
+        consentResults.push(result);
+        console.log(`   ✓ Consent proof for ${anonymousPID}: ${result.hashScanLink}`);
+      }
     }
     console.log('');
 
-    // Step 7: Process data proofs (one per record)
-    console.log('7. Processing data proofs...');
+    // Step 8: Process data proofs (one per record)
+    console.log('8. Processing data proofs...');
     const dataResults = [];
     for (const record of anonymizedRecords) {
       const result = await processPatientRecord(record, dataTopicId, client);
@@ -149,20 +188,21 @@ async function main() {
     }
     console.log('');
 
-    // Step 8: Display summary
+    // Step 9: Display summary
     console.log('=== Processing Complete ===\n');
     console.log('Summary:');
     console.log(`  - Records processed: ${anonymizedRecords.length}`);
+    console.log(`  - Unique patients: ${patientMapping.size}`);
     console.log(`  - Consent proofs: ${consentResults.length}`);
     console.log(`  - Data proofs: ${dataResults.length}`);
     console.log(`  - Output file: ${OUTPUT_FILE}\n`);
 
-    // Step 9: Display topic links
+    // Step 10: Display topic links
     console.log('HCS Topics:');
     console.log(`  Consent Topic: https://hashscan.io/testnet/topic/${consentTopicId}`);
     console.log(`  Data Topic: https://hashscan.io/testnet/topic/${dataTopicId}\n`);
 
-    // Step 10: Payout simulation (placeholder)
+    // Step 11: Payout simulation (placeholder)
     // Note: This is a simulation for demo purposes.
     // In production, this would use actual HBAR transfers via TransferTransaction.
     // Currency conversion rates are example values and should be fetched from:
@@ -234,7 +274,7 @@ async function main() {
     
     console.log(`\nPAYOUT SIMULATED: ${formatCurrency(perPatientShareUsd, 'USD')} per patient (${patientMapping.size} patients)\n`);
 
-    // Step 11: Execute real payout
+    // Step 12: Execute real payout
     // Transfer HBAR to RevenueSplitter contract which will automatically split the revenue
     if (process.env.REVENUE_SPLITTER_ADDRESS) {
       console.log('=== 7. EXECUTE REAL PAYOUT ===');
