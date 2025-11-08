@@ -2,16 +2,6 @@
 
 Thank you for your interest in contributing to MediPact! This document outlines the development workflow and best practices.
 
-## 🛡️ Branch Protection
-
-The `main` branch is protected. **Direct pushes to `main` are not allowed.**
-
-### Why?
-- Ensures code quality through review
-- Prevents accidental breaking changes
-- Maintains clean commit history
-- Enables collaboration and knowledge sharing
-
 ## 📋 Development Workflow
 
 ### 1. Create a Feature Branch
@@ -83,9 +73,12 @@ refactor: Simplify currency conversion logic
 git push origin feature/your-feature-name
 ```
 
-**Note**: If you try to push to `main`, the pre-push hook will block it and guide you.
+Or push directly to main if you prefer:
+```bash
+git push origin main
+```
 
-### 4. Create a Pull Request
+### 4. Create a Pull Request (Optional)
 
 1. Go to: `https://github.com/najuna-brian/medipact`
 2. Click **"New Pull Request"**
