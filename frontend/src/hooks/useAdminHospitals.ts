@@ -45,10 +45,16 @@ export function useApproveHospital() {
   return useMutation({
     mutationFn: ({ hospitalId, adminId }: { hospitalId: string; adminId?: string }) =>
       approveHospitalVerification(hospitalId, adminId),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       // Invalidate and refetch hospitals list
       queryClient.invalidateQueries({ queryKey: ['admin', 'hospitals'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'hospitals', variables.hospitalId] });
+      // Invalidate hospital verification status (used by hospital dashboard and verification page)
+      queryClient.invalidateQueries({ queryKey: ['hospital-verification', variables.hospitalId] });
       queryClient.invalidateQueries({ queryKey: ['hospital-verification'] });
+      // Also invalidate any hospital queries
+      queryClient.invalidateQueries({ queryKey: ['hospital', variables.hospitalId] });
+      queryClient.invalidateQueries({ queryKey: ['hospital'] });
     },
   });
 }
@@ -69,10 +75,16 @@ export function useRejectHospital() {
       reason: string;
       adminId?: string;
     }) => rejectHospitalVerification(hospitalId, reason, adminId),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       // Invalidate and refetch hospitals list
       queryClient.invalidateQueries({ queryKey: ['admin', 'hospitals'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'hospitals', variables.hospitalId] });
+      // Invalidate hospital verification status (used by hospital dashboard and verification page)
+      queryClient.invalidateQueries({ queryKey: ['hospital-verification', variables.hospitalId] });
       queryClient.invalidateQueries({ queryKey: ['hospital-verification'] });
+      // Also invalidate any hospital queries
+      queryClient.invalidateQueries({ queryKey: ['hospital', variables.hospitalId] });
+      queryClient.invalidateQueries({ queryKey: ['hospital'] });
     },
   });
 }

@@ -220,6 +220,8 @@ export function useVerificationStatus(hospitalId: string | null, apiKey: string 
     queryKey: ['hospital-verification', hospitalId],
     queryFn: () => getVerificationStatus(hospitalId!, apiKey!),
     enabled: !!hospitalId && !!apiKey,
+    refetchInterval: 5000, // Refetch every 5 seconds to catch admin updates
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 }
 
