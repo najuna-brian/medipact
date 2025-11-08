@@ -15,10 +15,18 @@ const router = express.Router();
 
 // Middleware for hospital authentication
 async function authenticateHospital(req, res, next) {
-  const hospitalId = req.headers['x-hospital-id'];
-  const apiKey = req.headers['x-api-key'];
+  // Express normalizes headers to lowercase, but check both cases for safety
+  const hospitalId = req.headers['x-hospital-id'] || req.headers['X-Hospital-ID'];
+  const apiKey = req.headers['x-api-key'] || req.headers['X-API-Key'];
   
   if (!hospitalId || !apiKey) {
+    console.error('Missing hospital credentials:', { 
+      'x-hospital-id': req.headers['x-hospital-id'],
+      'X-Hospital-ID': req.headers['X-Hospital-ID'],
+      'x-api-key': req.headers['x-api-key'] ? 'present' : 'missing',
+      'X-API-Key': req.headers['X-API-Key'] ? 'present' : 'missing',
+      allHeaders: Object.keys(req.headers)
+    });
     return res.status(401).json({ error: 'Missing hospital credentials' });
   }
   
@@ -28,6 +36,7 @@ async function authenticateHospital(req, res, next) {
   });
   
   if (!isValid) {
+    console.error('Invalid hospital credentials:', { hospitalId, apiKeyLength: apiKey?.length });
     return res.status(401).json({ error: 'Invalid hospital credentials' });
   }
   
@@ -65,6 +74,7 @@ router.post('/register', async (req, res) => {
     );
     
     // Return hospital with API key (only on creation)
+    // Note: hospital object from registerHospital doesn't include apiKey for security
     res.json({
       message: 'Hospital registered successfully',
       hospital: {

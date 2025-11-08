@@ -60,13 +60,16 @@ export async function registerHospital(hospitalInfo, hospitalExists, hospitalCre
     location: hospitalInfo.location || null,
     fhirEndpoint: hospitalInfo.fhirEndpoint || null,
     contactEmail: hospitalInfo.contactEmail || null,
+    apiKey: hospitalInfo.apiKey || null, // Include API key for hashing
     registeredAt: new Date().toISOString(),
     status: 'active'
   };
 
   await hospitalCreate(hospitalRecord);
   
-  return hospitalRecord;
+  // Return record without API key (for security)
+  const { apiKey, ...recordWithoutKey } = hospitalRecord;
+  return recordWithoutKey;
 }
 
 /**
