@@ -452,6 +452,42 @@ export async function bulkRegisterPatients(
   return response.data;
 }
 
+/**
+ * Get all patients linked to a hospital
+ */
+export interface HospitalPatient {
+  upi: string;
+  hospitalPatientId: string;
+  linkedAt: string;
+  verified: boolean;
+  verificationMethod: string;
+}
+
+export interface HospitalPatientsResponse {
+  hospitalId: string;
+  totalPatients: number;
+  patients: HospitalPatient[];
+}
+
+export async function getHospitalPatients(
+  hospitalId: string,
+  apiKey: string
+): Promise<HospitalPatientsResponse> {
+  const trimmedHospitalId = hospitalId.trim();
+  const trimmedApiKey = apiKey.trim();
+  
+  const response = await patientIdentityClient.get(
+    `/hospital/${trimmedHospitalId}/patients`,
+    {
+      headers: {
+        'X-Hospital-ID': trimmedHospitalId,
+        'X-API-Key': trimmedApiKey,
+      },
+    }
+  );
+  return response.data;
+}
+
 // Health Check
 export async function checkBackendHealth(): Promise<{ status: string; timestamp: string; service: string }> {
   const response = await axios.get(`${BACKEND_API_URL}/health`);

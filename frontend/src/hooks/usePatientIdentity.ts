@@ -22,6 +22,7 @@ import {
   retrieveUPI,
   submitVerificationDocuments,
   getVerificationStatus,
+  getHospitalPatients,
   registerHospitalPatient,
   bulkRegisterPatients,
   type PatientPII,
@@ -124,6 +125,8 @@ export function useLinkHospital() {
       queryClient.invalidateQueries({ queryKey: ['patient-hospitals', variables.upi] });
       queryClient.invalidateQueries({ queryKey: ['patient-history', variables.upi] });
       queryClient.invalidateQueries({ queryKey: ['patient-summary', variables.upi] });
+      // Also invalidate hospital's patient list so it updates immediately
+      queryClient.invalidateQueries({ queryKey: ['hospital', 'patients', variables.hospitalId] });
     },
   });
 }
@@ -225,6 +228,15 @@ export function useVerificationStatus(hospitalId: string | null, apiKey: string 
   });
 }
 
+// Hospital Patients List
+export function useHospitalPatients(hospitalId: string | null, apiKey: string | null) {
+  return useQuery({
+    queryKey: ['hospital', 'patients', hospitalId],
+    queryFn: () => getHospitalPatients(hospitalId!, apiKey!),
+    enabled: !!hospitalId && !!apiKey,
+  });
+}
+
 // Hospital Patient Registration
 export function useRegisterHospitalPatient() {
   const queryClient = useQueryClient();
@@ -246,8 +258,10 @@ export function useRegisterHospitalPatient() {
         hospitalPatientId: string;
       };
     }) => registerHospitalPatient(hospitalId, apiKey, patientData),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['hospital-patients'] });
+      // Invalidate specific hospital's patient list
+      queryClient.invalidateQueries({ queryKey: ['hospital', 'patients', variables.hospitalId] });
     },
   });
 }
@@ -265,8 +279,10 @@ export function useBulkRegisterPatients() {
       apiKey: string;
       request: BulkRegistrationRequest;
     }) => bulkRegisterPatients(hospitalId, apiKey, request),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['hospital-patients'] });
+      // Invalidate specific hospital's patient list
+      queryClient.invalidateQueries({ queryKey: ['hospital', 'patients', variables.hospitalId] });
     },
   });
 }
