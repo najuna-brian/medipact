@@ -18,34 +18,31 @@ import {
 } from '@hashgraph/sdk';
 
 /**
- * Record consent proof on-chain using ConsentManager contract
+ * Record consent proof on-chain using ConsentManager contract (NO PII - only anonymous ID)
  * @param {Client} client - Hedera client
  * @param {string} consentManagerAddress - Contract address (EVM format: 0x...)
- * @param {string} patientId - Original patient ID
- * @param {string} anonymousPatientId - Anonymous patient ID (e.g., PID-001)
+ * @param {string} anonymousPatientId - Anonymous patient ID (e.g., PID-001) - NO original patient ID
  * @param {string} hcsTopicId - HCS topic ID where consent proof is stored
- * @param {string} consentHash - Hash of the consent form
+ * @param {string} dataHash - Hash of the anonymized data
  * @returns {Promise<string>} Transaction ID
  */
 export async function recordConsentOnChain(
   client,
   consentManagerAddress,
-  patientId,
   anonymousPatientId,
   hcsTopicId,
-  consentHash
+  dataHash
 ) {
   try {
     // Convert EVM address to ContractId
     // Hedera EVM addresses use shard=0, realm=0 for testnet/mainnet
     const contractId = ContractId.fromEvmAddress(0, 0, consentManagerAddress);
 
-    // Build contract function parameters
+    // Build contract function parameters (NO patientId - only anonymous ID)
     const functionParameters = new ContractFunctionParameters()
-      .addString(patientId)
       .addString(anonymousPatientId)
       .addString(hcsTopicId)
-      .addString(consentHash);
+      .addString(dataHash);
 
     // Execute contract function
     // Gas limit: 500,000 should be sufficient for storing consent records
