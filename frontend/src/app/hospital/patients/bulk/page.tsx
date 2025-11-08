@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation';
 
 export default function HospitalBulkUploadPage() {
   const router = useRouter();
-  const { hospitalId, apiKey, isAuthenticated } = useHospitalSession();
+  const { hospitalId, apiKey, isAuthenticated, isLoading } = useHospitalSession();
   const [file, setFile] = useState<File | null>(null);
   const [fileContent, setFileContent] = useState<string>('');
   const [format, setFormat] = useState<'csv' | 'json'>('csv');
@@ -30,9 +30,24 @@ export default function HospitalBulkUploadPage() {
 
   const bulkMutation = useBulkRegisterPatients();
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated (use useEffect to avoid render-time navigation)
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/hospital/login');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Show loading state while checking session
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (redirect will happen)
   if (!isAuthenticated) {
-    router.push('/hospital/login');
     return null;
   }
 
@@ -133,7 +148,7 @@ Jane Smith,1985-05-15,+256700234567,jane@example.com,ID234567,PAT-002`;
         {error && (
           <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4">
             <AlertCircle className="h-5 w-5 text-red-600" />
-            <span className="text-red-800 flex-1">{error}</span>
+            <span className="flex-1 text-red-800">{error}</span>
             <button onClick={() => setError(null)}>
               <X className="h-4 w-4 text-red-600" />
             </button>
@@ -143,7 +158,7 @@ Jane Smith,1985-05-15,+256700234567,jane@example.com,ID234567,PAT-002`;
         {success && (
           <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-4">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <span className="text-green-800 flex-1">{success}</span>
+            <span className="flex-1 text-green-800">{success}</span>
             <button onClick={() => setSuccess(null)}>
               <X className="h-4 w-4 text-green-600" />
             </button>
@@ -183,9 +198,9 @@ Jane Smith,1985-05-15,+256700234567,jane@example.com,ID234567,PAT-002`;
                   </div>
                 </div>
 
-                <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                  <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground mb-4">
+                <div className="rounded-lg border-2 border-dashed p-8 text-center">
+                  <Upload className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <p className="mb-4 text-sm text-muted-foreground">
                     {file ? file.name : 'Select a file to upload'}
                   </p>
                   <input
@@ -206,22 +221,16 @@ Jane Smith,1985-05-15,+256700234567,jane@example.com,ID234567,PAT-002`;
 
                 {file && (
                   <div className="rounded-lg border p-4">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="mb-2 flex items-center gap-2">
                       <FileText className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium">{file.name}</span>
                       <Badge variant="info">{(file.size / 1024).toFixed(2)} KB</Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Format: {format.toUpperCase()}
-                    </p>
+                    <p className="text-xs text-muted-foreground">Format: {format.toUpperCase()}</p>
                   </div>
                 )}
 
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={!file || bulkMutation.isPending}
-                >
+                <Button type="submit" className="w-full" disabled={!file || bulkMutation.isPending}>
                   {bulkMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -245,11 +254,11 @@ Jane Smith,1985-05-15,+256700234567,jane@example.com,ID234567,PAT-002`;
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h4 className="font-semibold mb-2">CSV Format</h4>
-                  <p className="text-sm text-muted-foreground mb-2">
+                  <h4 className="mb-2 font-semibold">CSV Format</h4>
+                  <p className="mb-2 text-sm text-muted-foreground">
                     Required columns: name, dateOfBirth, patientId
                   </p>
-                  <p className="text-sm text-muted-foreground mb-2">
+                  <p className="mb-2 text-sm text-muted-foreground">
                     Optional columns: phone, email, nationalId
                   </p>
                   <Button
@@ -265,8 +274,8 @@ Jane Smith,1985-05-15,+256700234567,jane@example.com,ID234567,PAT-002`;
                 </div>
 
                 <div className="border-t pt-4">
-                  <h4 className="font-semibold mb-2">JSON Format</h4>
-                  <p className="text-sm text-muted-foreground mb-2">
+                  <h4 className="mb-2 font-semibold">JSON Format</h4>
+                  <p className="mb-2 text-sm text-muted-foreground">
                     Array of patient objects with fields: name, dateOfBirth, patientId, phone,
                     email, nationalId
                   </p>
@@ -299,10 +308,10 @@ Jane Smith,1985-05-15,+256700234567,jane@example.com,ID234567,PAT-002`;
 
                     {result.errors && result.errors.length > 0 && (
                       <div className="mt-4 border-t pt-4">
-                        <p className="text-sm font-semibold mb-2">Errors:</p>
-                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                        <p className="mb-2 text-sm font-semibold">Errors:</p>
+                        <div className="max-h-48 space-y-2 overflow-y-auto">
                           {result.errors.slice(0, 10).map((err: any, idx: number) => (
-                            <div key={idx} className="text-xs text-red-600 p-2 bg-red-50 rounded">
+                            <div key={idx} className="rounded bg-red-50 p-2 text-xs text-red-600">
                               Row {err.row}: {err.errors.join(', ')}
                             </div>
                           ))}

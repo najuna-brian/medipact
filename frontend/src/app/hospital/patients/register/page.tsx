@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, CheckCircle2, X, UserPlus, FileText } from 'lucide-react';
@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 
 export default function HospitalPatientRegisterPage() {
   const router = useRouter();
-  const { hospitalId, apiKey, isAuthenticated } = useHospitalSession();
+  const { hospitalId, apiKey, isAuthenticated, isLoading } = useHospitalSession();
   const [formData, setFormData] = useState({
     name: '',
     dateOfBirth: '',
@@ -25,9 +25,24 @@ export default function HospitalPatientRegisterPage() {
 
   const registerMutation = useRegisterHospitalPatient();
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated (use useEffect to avoid render-time navigation)
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/hospital/login');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  // Show loading state while checking session
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (redirect will happen)
   if (!isAuthenticated) {
-    router.push('/hospital/login');
     return null;
   }
 
@@ -87,7 +102,7 @@ export default function HospitalPatientRegisterPage() {
         {error && (
           <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4">
             <AlertCircle className="h-5 w-5 text-red-600" />
-            <span className="text-red-800 flex-1">{error}</span>
+            <span className="flex-1 text-red-800">{error}</span>
             <button onClick={() => setError(null)}>
               <X className="h-4 w-4 text-red-600" />
             </button>
@@ -97,7 +112,7 @@ export default function HospitalPatientRegisterPage() {
         {success && (
           <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-4">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <span className="text-green-800 flex-1">{success}</span>
+            <span className="flex-1 text-green-800">{success}</span>
             <button onClick={() => setSuccess(null)}>
               <X className="h-4 w-4 text-green-600" />
             </button>
@@ -223,8 +238,8 @@ export default function HospitalPatientRegisterPage() {
                 <CardContent>
                   <div className="space-y-2">
                     <p className="text-sm text-muted-foreground">Patient UPI:</p>
-                    <p className="font-mono font-semibold text-lg">{registeredUPI}</p>
-                    <p className="text-xs text-muted-foreground mt-4">
+                    <p className="font-mono text-lg font-semibold">{registeredUPI}</p>
+                    <p className="mt-4 text-xs text-muted-foreground">
                       The patient can now use this UPI to access their medical records. Share this
                       UPI securely with the patient.
                     </p>

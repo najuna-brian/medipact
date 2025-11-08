@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import {
   Upload,
@@ -20,10 +21,34 @@ import { useRouter } from 'next/navigation';
 export default function HospitalDashboardPage() {
   const router = useRouter();
   const { hospitalId, apiKey, isAuthenticated, isLoading } = useHospitalSession();
-  const { data: verificationStatus, isLoading: statusLoading } = useVerificationStatus(
-    hospitalId,
-    apiKey
-  );
+  const {
+    data: verificationStatus,
+    isLoading: statusLoading,
+    refetch: refetchVerification,
+  } = useVerificationStatus(hospitalId, apiKey);
+
+  // Listen for hospital verification updates from admin
+  useEffect(() => {
+    const handleVerificationUpdate = () => {
+      // Refetch verification status when admin approves/rejects
+      if (hospitalId) {
+        refetchVerification();
+      }
+    };
+
+    window.addEventListener('hospital-verified', handleVerificationUpdate);
+    // Also poll for updates every 10 seconds (as fallback)
+    const pollInterval = setInterval(() => {
+      if (hospitalId && apiKey) {
+        refetchVerification();
+      }
+    }, 10000);
+
+    return () => {
+      window.removeEventListener('hospital-verified', handleVerificationUpdate);
+      clearInterval(pollInterval);
+    };
+  }, [hospitalId, apiKey, refetchVerification]);
 
   // Show loading state while checking session
   if (isLoading) {
@@ -48,34 +73,37 @@ export default function HospitalDashboardPage() {
         </div>
 
         {/* Verification Status Alert */}
-        {verificationStatus && verificationStatus.verificationStatus !== 'verified' && (
-          <Card className="mb-6 border-yellow-200 bg-yellow-50">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="mt-0.5 h-5 w-5 text-yellow-600" />
-                <div className="flex-1">
-                  <div className="mb-2 flex items-center gap-2">
-                    <p className="font-semibold text-yellow-900">Verification Required</p>
-                    <Badge variant="warning">
-                      {verificationStatus.verificationStatus === 'pending'
-                        ? 'Pending'
-                        : 'Not Verified'}
-                    </Badge>
-                  </div>
-                  <p className="mb-3 text-sm text-yellow-800">
-                    Your hospital account needs to be verified before you can register patients.
-                    Complete verification to access all features.
-                  </p>
-                  <Link href="/hospital/verification">
-                    <Button variant="outline" size="sm">
+        {!statusLoading &&
+          (!verificationStatus || verificationStatus.verificationStatus !== 'verified') && (
+            <Card className="mb-6 border-yellow-200 bg-yellow-50">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="mt-0.5 h-5 w-5 text-yellow-600" />
+                  <div className="flex-1">
+                    <div className="mb-2 flex items-center gap-2">
+                      <p className="font-semibold text-yellow-900">Verification Required</p>
+                      <Badge variant="warning">
+                        {!verificationStatus || verificationStatus.verificationStatus === 'pending'
+                          ? 'Pending'
+                          : 'Not Verified'}
+                      </Badge>
+                    </div>
+                    <p className="mb-3 text-sm text-yellow-800">
+                      Your hospital account needs to be verified before you can register patients.
+                      Complete verification to access all features.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push('/hospital/verification')}
+                    >
                       Complete Verification
                     </Button>
-                  </Link>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
 
         {verificationStatus && verificationStatus.verificationStatus === 'verified' && (
           <Card className="mb-6 border-green-200 bg-green-50">
@@ -149,44 +177,52 @@ export default function HospitalDashboardPage() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Link href="/hospital/upload">
-                <Button variant="outline" className="w-full justify-start">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Data
-                </Button>
-              </Link>
-              <Link href="/hospital/consent">
-                <Button variant="outline" className="w-full justify-start">
-                  <Users className="mr-2 h-4 w-4" />
-                  Manage Consent
-                </Button>
-              </Link>
-              <Link href="/hospital/patients/register">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  disabled={verificationStatus?.verificationStatus !== 'verified'}
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  Register Patient
-                </Button>
-              </Link>
-              <Link href="/hospital/patients/bulk">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  disabled={verificationStatus?.verificationStatus !== 'verified'}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Bulk Upload
-                </Button>
-              </Link>
-              <Link href="/hospital/revenue">
-                <Button variant="outline" className="w-full justify-start">
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  View Revenue
-                </Button>
-              </Link>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => router.push('/hospital/upload')}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Data
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => router.push('/hospital/consent')}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Manage Consent
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                disabled={
+                  !verificationStatus || verificationStatus.verificationStatus !== 'verified'
+                }
+                onClick={() => router.push('/hospital/patients/register')}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Register Patient
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                disabled={
+                  !verificationStatus || verificationStatus.verificationStatus !== 'verified'
+                }
+                onClick={() => router.push('/hospital/patients/bulk')}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Bulk Upload
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => router.push('/hospital/revenue')}
+              >
+                <DollarSign className="mr-2 h-4 w-4" />
+                View Revenue
+              </Button>
             </CardContent>
           </Card>
 

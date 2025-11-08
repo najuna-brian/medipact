@@ -27,10 +27,11 @@ export default function HospitalVerificationPage() {
   });
   const [isSubmittingCredentials, setIsSubmittingCredentials] = useState(false);
 
-  const { data: verificationStatus, isLoading: statusLoading } = useVerificationStatus(
-    hospitalId,
-    apiKey
-  );
+  const {
+    data: verificationStatus,
+    isLoading: statusLoading,
+    refetch: refetchVerification,
+  } = useVerificationStatus(hospitalId, apiKey);
   const submitMutation = useSubmitVerificationDocuments();
 
   // Auto-fill credentials from session when available
@@ -50,11 +51,34 @@ export default function HospitalVerificationPage() {
     }
   }, [isAuthenticated]);
 
+  // Listen for hospital verification updates from admin
+  useEffect(() => {
+    const handleVerificationUpdate = () => {
+      // Refetch verification status when admin approves/rejects
+      if (hospitalId) {
+        refetchVerification();
+      }
+    };
+
+    window.addEventListener('hospital-verified', handleVerificationUpdate);
+    // Also poll for updates every 10 seconds (as fallback)
+    const pollInterval = setInterval(() => {
+      if (hospitalId && apiKey) {
+        refetchVerification();
+      }
+    }, 10000);
+
+    return () => {
+      window.removeEventListener('hospital-verified', handleVerificationUpdate);
+      clearInterval(pollInterval);
+    };
+  }, [hospitalId, apiKey, refetchVerification]);
+
   // Define handler function (not a hook, so can be after hooks)
   const handleCredentialSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     if (!manualCredentials.hospitalId || !manualCredentials.apiKey) {
       setError('Please enter both Hospital ID and API Key');
       return;
@@ -62,7 +86,7 @@ export default function HospitalVerificationPage() {
 
     // Mark as submitting to hide form immediately
     setIsSubmittingCredentials(true);
-    
+
     // Save credentials to session - this will trigger a re-render
     // and isAuthenticated will be true on the next render
     login(manualCredentials.hospitalId.trim(), manualCredentials.apiKey.trim());
@@ -71,7 +95,7 @@ export default function HospitalVerificationPage() {
   // All hooks must be called before any conditional returns
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -89,7 +113,7 @@ export default function HospitalVerificationPage() {
             </p>
           </div>
 
-          <Card className="max-w-md mx-auto">
+          <Card className="mx-auto max-w-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5" />
@@ -103,7 +127,7 @@ export default function HospitalVerificationPage() {
               {error && (
                 <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4">
                   <AlertCircle className="h-5 w-5 text-red-600" />
-                  <span className="text-red-800 flex-1">{error}</span>
+                  <span className="flex-1 text-red-800">{error}</span>
                   <button onClick={() => setError(null)}>
                     <X className="h-4 w-4 text-red-600" />
                   </button>
@@ -194,7 +218,13 @@ export default function HospitalVerificationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!hospitalId || !apiKey) return;
+
+    // Validate credentials are present
+    if (!hospitalId || !apiKey) {
+      setError('Hospital credentials are missing. Please log in again.');
+      console.error('Missing credentials:', { hospitalId: !!hospitalId, apiKey: !!apiKey });
+      return;
+    }
 
     setError(null);
     setSuccess(null);
@@ -214,21 +244,35 @@ export default function HospitalVerificationPage() {
         registrationCertificate = certificateUrl.trim();
       }
 
-      await submitMutation.mutateAsync({
+      console.log('Submitting verification:', {
         hospitalId,
-        apiKey,
+        apiKeyLength: apiKey?.length,
+        hasLicense: !!documents.licenseNumber,
+        hasCertificate: !!registrationCertificate,
+      });
+
+      await submitMutation.mutateAsync({
+        hospitalId: hospitalId.trim(),
+        apiKey: apiKey.trim(),
         documents: {
-          licenseNumber: documents.licenseNumber,
+          licenseNumber: documents.licenseNumber.trim(),
           registrationCertificate,
         },
       });
-      
+
       setSuccess('Verification documents submitted successfully! Awaiting admin approval.');
       setDocuments({ licenseNumber: '', registrationCertificate: '', certificateType: 'upload' });
       setCertificateFile(null);
       setCertificateUrl('');
+
+      // Refresh verification status
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || 'Failed to submit documents');
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to submit documents';
+      setError(errorMessage);
+      console.error('Verification submission error:', err);
     }
   };
 
