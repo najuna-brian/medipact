@@ -271,13 +271,21 @@ export async function submitVerificationDocuments(
   apiKey: string,
   documents: VerificationDocuments
 ): Promise<{ message: string; hospital: Hospital }> {
+  // Ensure credentials are trimmed and valid
+  const trimmedHospitalId = hospitalId?.trim();
+  const trimmedApiKey = apiKey?.trim();
+  
+  if (!trimmedHospitalId || !trimmedApiKey) {
+    throw new Error('Hospital ID and API Key are required');
+  }
+
   const response = await patientIdentityClient.post(
-    `/hospital/${hospitalId}/verify`,
+    `/hospital/${trimmedHospitalId}/verify`,
     { documents },
     {
       headers: {
-        'X-Hospital-ID': hospitalId,
-        'X-API-Key': apiKey,
+        'X-Hospital-ID': trimmedHospitalId,
+        'X-API-Key': trimmedApiKey,
       },
     }
   );
