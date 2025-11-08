@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useHospitalSession } from '@/hooks/useHospitalSession';
-import { useVerificationStatus } from '@/hooks/usePatientIdentity';
+import { useVerificationStatus, useHospitalPatients } from '@/hooks/usePatientIdentity';
 import { useRouter } from 'next/navigation';
 
 export default function HospitalDashboardPage() {
@@ -26,6 +26,10 @@ export default function HospitalDashboardPage() {
     isLoading: statusLoading,
     refetch: refetchVerification,
   } = useVerificationStatus(hospitalId, apiKey);
+  const { data: patientsData, isLoading: patientsLoading } = useHospitalPatients(
+    hospitalId,
+    apiKey
+  );
 
   // Listen for hospital verification updates from admin
   useEffect(() => {
@@ -132,7 +136,9 @@ export default function HospitalDashboardPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">
+                {patientsLoading ? '...' : patientsData?.totalPatients || 0}
+              </div>
               <p className="text-xs text-muted-foreground">Total patients</p>
             </CardContent>
           </Card>
@@ -228,10 +234,38 @@ export default function HospitalDashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
+              <CardTitle>Recent Patients</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">No recent activity</p>
+              {patientsLoading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : patientsData && patientsData.patients.length > 0 ? (
+                <div className="space-y-2">
+                  {patientsData.patients.slice(0, 5).map((patient) => (
+                    <div
+                      key={patient.upi}
+                      className="flex items-center justify-between rounded-lg border p-2"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{patient.hospitalPatientId}</p>
+                        <p className="font-mono text-xs text-muted-foreground">{patient.upi}</p>
+                      </div>
+                      <Badge variant={patient.verified ? 'success' : 'warning'}>
+                        {patient.verified ? 'Verified' : 'Pending'}
+                      </Badge>
+                    </div>
+                  ))}
+                  {patientsData.patients.length > 5 && (
+                    <p className="pt-2 text-center text-xs text-muted-foreground">
+                      +{patientsData.patients.length - 5} more patients
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No patients registered yet</p>
+              )}
             </CardContent>
           </Card>
         </div>
