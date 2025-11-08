@@ -16,7 +16,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Save uploaded file temporarily
-    const adapterPath = process.env.ADAPTER_PATH || path.join(process.cwd(), '../../adapter');
+    // Resolve adapter path: from frontend/, adapter is at ../adapter (one level up)
+    const adapterPath = process.env.ADAPTER_PATH 
+      ? path.resolve(process.env.ADAPTER_PATH)
+      : path.resolve(path.dirname(process.cwd()), 'adapter');
     const dataDir = path.join(adapterPath, 'data');
     const tempFilePath = path.join(dataDir, 'uploaded_data.csv');
 
@@ -30,7 +33,6 @@ export async function POST(request: NextRequest) {
 
     try {
       // Process the file using the adapter
-      const adapterPath = process.env.ADAPTER_PATH || path.join(process.cwd(), '../../adapter');
       const result = await processFile(tempFilePath, adapterPath);
 
       if (!result.success) {

@@ -31,15 +31,43 @@ export interface ProcessingResult {
 }
 
 /**
- * Process a file using the adapter script
- * This calls the adapter's main function via Node.js execution
+ * Get the adapter directory path
+ * In Next.js, process.cwd() returns the project root (frontend/)
+ * So we need to go up one level to get to medipact/, then into adapter/
  */
+function getAdapterDir(): string {
+  // Try environment variable first
+  if (process.env.ADAPTER_PATH) {
+    return path.resolve(process.env.ADAPTER_PATH);
+  }
+  
+  // Get the project root (where package.json is - frontend/)
+  const projectRoot = process.cwd();
+  
+  // Go up one level to medipact/, then into adapter/
+  const parentDir = path.dirname(projectRoot);
+  const adapterDir = path.join(parentDir, 'adapter');
+  
+  return path.resolve(adapterDir);
+}
+
 export async function processFile(
   filePath: string,
   adapterPath?: string
 ): Promise<ProcessingResult> {
-  const adapterDir = adapterPath || path.join(process.cwd(), '../../adapter');
+  // Use provided path or calculate from project root
+  const adapterDir = adapterPath ? path.resolve(adapterPath) : getAdapterDir();
   const adapterScript = path.join(adapterDir, 'src', 'index.js');
+  
+  // Verify the script exists before proceeding
+  try {
+    await fs.access(adapterScript);
+  } catch (error) {
+    console.error(`Adapter script not found at: ${adapterScript}`);
+    console.error(`Resolved adapter directory: ${adapterDir}`);
+    console.error(`Project root (process.cwd()): ${process.cwd()}`);
+    throw new Error(`Adapter script not found at ${adapterScript}. Please check ADAPTER_PATH environment variable.`);
+  }
 
   try {
     // Copy the uploaded file to adapter's data directory

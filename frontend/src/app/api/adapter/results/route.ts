@@ -4,7 +4,10 @@ import path from 'path';
 
 export async function GET() {
   try {
-    const adapterPath = process.env.ADAPTER_PATH || path.join(process.cwd(), '../adapter');
+    // Resolve adapter path: from frontend/, adapter is at ../adapter (one level up)
+    const adapterPath = process.env.ADAPTER_PATH 
+      ? path.resolve(process.env.ADAPTER_PATH)
+      : path.resolve(path.dirname(process.cwd()), 'adapter');
     const outputFile = path.join(adapterPath, 'data', 'anonymized_data.csv');
 
     try {
