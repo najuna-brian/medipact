@@ -29,10 +29,8 @@ export default function ResearcherPurchasesPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Purchase History</h1>
-          <p className="text-muted-foreground">
-            View and download your purchased datasets
-          </p>
+          <h1 className="mb-2 text-3xl font-bold">Purchase History</h1>
+          <p className="text-muted-foreground">View and download your purchased datasets</p>
         </div>
 
         <div className="space-y-4">
@@ -44,11 +42,11 @@ export default function ResearcherPurchasesPage() {
                     <CardTitle className="mb-2">{purchase.datasetName}</CardTitle>
                     <CardDescription className="flex items-center gap-4">
                       <span className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
+                        <Calendar className="h-4 w-4" />
                         {purchase.purchaseDate.toLocaleDateString()}
                       </span>
                       <span className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4" />
+                        <DollarSign className="h-4 w-4" />
                         {purchase.price} {purchase.currency}
                       </span>
                     </CardDescription>
@@ -61,12 +59,12 @@ export default function ResearcherPurchasesPage() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <FileText className="w-4 h-4" />
+                    <FileText className="h-4 w-4" />
                     <span>Dataset files available</span>
                   </div>
                   {purchase.downloadAvailable && (
                     <Button variant="outline" size="sm">
-                      <Download className="w-4 h-4 mr-2" />
+                      <Download className="mr-2 h-4 w-4" />
                       Download
                     </Button>
                   )}
@@ -79,10 +77,10 @@ export default function ResearcherPurchasesPage() {
         {purchases.length === 0 && (
           <Card>
             <CardContent className="py-12 text-center">
-              <FileText className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground mb-4">No purchases yet</p>
-              <Button asChild>
-                <a href="/researcher/catalog">Browse Catalog</a>
+              <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+              <p className="mb-4 text-muted-foreground">No purchases yet</p>
+              <Button as="a" href="/researcher/catalog">
+                Browse Catalog
               </Button>
             </CardContent>
           </Card>

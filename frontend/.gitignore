@@ -38,3 +38,18 @@ next-env.d.ts
 # vitest
 .vitest
 
+# Development documentation and scripts
+*_STATUS*.md
+*_CHECK*.md
+*_CLEANUP*.md
+*_MERGE*.md
+*_ANALYSIS*.md
+*_VERIFICATION*.md
+CREATE_PRS.md
+QUICK_PR_CREATION.md
+UNMERGED_BRANCHES.md
+BRANCH_STATUS_SUMMARY.md
+PROJECT_STATUS_REPORT.md
+STASH_EXPLANATION.md
+*.sh
+
