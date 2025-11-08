@@ -5,7 +5,16 @@
  * medical data and maintaining FHIR structure.
  * 
  * Follows FHIR R4 standard and HIPAA de-identification guidelines.
+ * 
+ * Includes demographic data preservation (Age Range, Country, Gender, Occupation).
  */
+
+import { 
+  calculateAgeRange, 
+  extractCountry, 
+  normalizeGender, 
+  generalizeOccupation 
+} from '../anonymizer/demographic-anonymize.js';
 
 /**
  * Generate anonymous patient ID
@@ -17,14 +26,46 @@ function generateAnonymousPID(index) {
 }
 
 /**
- * Anonymize FHIR Patient resource
+ * Anonymize FHIR Patient resource with demographics
  * @param {Object} fhirPatient - FHIR Patient resource
  * @param {string} anonymousPID - Anonymous patient ID to assign
- * @returns {Object} Anonymized FHIR Patient resource
+ * @param {Object} hospitalInfo - Hospital configuration (REQUIRED for country)
+ * @returns {Object} Anonymized FHIR Patient resource with demographics
  */
-export function anonymizeFHIRPatient(fhirPatient, anonymousPID) {
+export function anonymizeFHIRPatient(fhirPatient, anonymousPID, hospitalInfo) {
   // Create a deep copy to avoid mutating original
   const anonymized = JSON.parse(JSON.stringify(fhirPatient));
+  
+  // Calculate age range (REQUIRED - must have birthDate or age)
+  try {
+    const recordForAge = {
+      'Date of Birth': fhirPatient.birthDate,
+      'Age': fhirPatient.age || (fhirPatient.birthDate ? null : null)
+    };
+    anonymized.ageRange = calculateAgeRange(recordForAge);
+  } catch (error) {
+    throw new Error(`Failed to calculate age range for FHIR patient: ${error.message}`);
+  }
+  
+  // Extract country (REQUIRED - always known via hospital fallback)
+  try {
+    const recordForCountry = {
+      Address: fhirPatient.address?.[0]?.text || 
+               (fhirPatient.address?.[0]?.city ? `${fhirPatient.address[0].city}, ${fhirPatient.address[0].country}` : null)
+    };
+    anonymized.country = extractCountry(recordForCountry, hospitalInfo);
+  } catch (error) {
+    throw new Error(`Failed to extract country for FHIR patient: ${error.message}`);
+  }
+  
+  // Preserve gender (REQUIRED - defaults to "Unknown" if missing)
+  anonymized.gender = normalizeGender(fhirPatient.gender || 'Unknown');
+  
+  // Generalize occupation (OPTIONAL - defaults to "Unknown" if missing)
+  const occupation = fhirPatient.extension?.find(ext => 
+    ext.url === 'http://hl7.org/fhir/StructureDefinition/patient-occupation'
+  )?.valueString;
+  anonymized.occupationCategory = generalizeOccupation(occupation);
   
   // Remove PII fields
   delete anonymized.name;
@@ -33,6 +74,7 @@ export function anonymizeFHIRPatient(fhirPatient, anonymousPID) {
   delete anonymized.birthDate;
   delete anonymized.photo;
   delete anonymized.contact; // Emergency contacts contain PII
+  delete anonymized.age; // Remove age (we have ageRange)
   
   // Remove PII from identifiers (keep only anonymous ID)
   anonymized.identifier = [{
