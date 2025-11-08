@@ -37,6 +37,11 @@ export default function AdminHospitalsPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [hospitalToReject, setHospitalToReject] = useState<string | null>(null);
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
+  const [hospitalToApprove, setHospitalToApprove] = useState<string | null>(null);
+  const [approvalMessage, setApprovalMessage] = useState(
+    'Your hospital verification has been approved. You can now register patients and use all features.'
+  );
 
   const { data, isLoading, error } = useAdminHospitals();
   const { data: hospitalDetail } = useAdminHospitalDetail(selectedHospitalId);
@@ -61,9 +66,27 @@ export default function AdminHospitalsPage() {
     }
   };
 
-  const handleApprove = async (hospitalId: string) => {
+  const openApproveDialog = (hospitalId: string) => {
+    setHospitalToApprove(hospitalId);
+    setApprovalMessage(
+      'Your hospital verification has been approved. You can now register patients and use all features.'
+    );
+    setShowApproveDialog(true);
+  };
+
+  const handleApprove = async () => {
+    if (!hospitalToApprove) return;
+
     try {
-      await approveMutation.mutateAsync({ hospitalId });
+      await approveMutation.mutateAsync({ hospitalId: hospitalToApprove });
+      setShowApproveDialog(false);
+      setHospitalToApprove(null);
+
+      // Force refetch after a short delay to ensure cache is updated
+      setTimeout(() => {
+        // The mutation's onSuccess will handle invalidation, but we can also manually refetch
+        window.dispatchEvent(new Event('hospital-verified'));
+      }, 500);
     } catch (err) {
       console.error('Failed to approve hospital:', err);
     }
@@ -183,9 +206,7 @@ export default function AdminHospitalsPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="mb-2 text-3xl font-bold">Hospital Verification Management</h1>
-          <p className="text-muted-foreground">
-            Review and approve hospital verification requests
-          </p>
+          <p className="text-muted-foreground">Review and approve hospital verification requests</p>
         </div>
 
         {/* Statistics */}
@@ -257,7 +278,7 @@ export default function AdminHospitalsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleApprove(hospital.hospitalId)}
+                          onClick={() => openApproveDialog(hospital.hospitalId)}
                           disabled={approveMutation.isPending}
                           className="border-green-200 text-green-700 hover:bg-green-50"
                         >
@@ -332,7 +353,7 @@ export default function AdminHospitalsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleApprove(hospital.hospitalId)}
+                            onClick={() => openApproveDialog(hospital.hospitalId)}
                             disabled={approveMutation.isPending}
                             className="border-green-200 text-green-700 hover:bg-green-50"
                           >
@@ -369,11 +390,7 @@ export default function AdminHospitalsPage() {
                     <CardTitle>{hospitalDetail.name}</CardTitle>
                     <CardDescription>{hospitalDetail.hospitalId}</CardDescription>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedHospitalId(null)}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedHospitalId(null)}>
                     <XCircle className="h-4 w-4" />
                   </Button>
                 </div>
@@ -408,22 +425,28 @@ export default function AdminHospitalsPage() {
                   </div>
                 </div>
 
-                {hospitalDetail.verificationDocuments && (
+                {hospitalDetail.verificationDocuments ? (
                   <div>
                     <h3 className="mb-2 font-semibold">Verification Documents</h3>
                     <div className="space-y-2 text-sm">
-                      {hospitalDetail.verificationDocuments.licenseNumber && (
+                      {hospitalDetail.verificationDocuments.licenseNumber ? (
                         <div>
                           <span className="font-medium">License Number:</span>{' '}
                           {hospitalDetail.verificationDocuments.licenseNumber}
                         </div>
+                      ) : (
+                        <div className="text-muted-foreground">No license number provided</div>
                       )}
-                      {hospitalDetail.verificationDocuments.registrationCertificate && (
+                      {hospitalDetail.verificationDocuments.registrationCertificate ? (
                         <div>
                           <span className="font-medium">Registration Certificate:</span>
                           {renderCertificate(
                             hospitalDetail.verificationDocuments.registrationCertificate
                           )}
+                        </div>
+                      ) : (
+                        <div className="text-muted-foreground">
+                          No registration certificate provided
                         </div>
                       )}
                       {hospitalDetail.verificationDocuments.rejectionReason && (
@@ -436,6 +459,13 @@ export default function AdminHospitalsPage() {
                       )}
                     </div>
                   </div>
+                ) : (
+                  <div>
+                    <h3 className="mb-2 font-semibold">Verification Documents</h3>
+                    <div className="text-sm text-muted-foreground">
+                      No verification documents submitted yet.
+                    </div>
+                  </div>
                 )}
 
                 <div className="flex justify-end gap-2">
@@ -446,7 +476,7 @@ export default function AdminHospitalsPage() {
                     <>
                       <Button
                         variant="outline"
-                        onClick={() => handleApprove(hospitalDetail.hospitalId)}
+                        onClick={() => openApproveDialog(hospitalDetail.hospitalId)}
                         disabled={approveMutation.isPending}
                         className="border-green-200 text-green-700 hover:bg-green-50"
                       >
@@ -469,6 +499,64 @@ export default function AdminHospitalsPage() {
             </Card>
           </div>
         )}
+
+        {/* Approve Dialog */}
+        <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Approve Hospital Verification</AlertDialogTitle>
+              <AlertDialogDescription>
+                Confirm approval of this hospital's verification. The hospital will be notified and
+                will be able to register patients and use all features.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm font-medium">
+                  Approval Message (Optional)
+                </label>
+                <textarea
+                  value={approvalMessage}
+                  onChange={(e) => setApprovalMessage(e.target.value)}
+                  placeholder="Optional message to include with approval..."
+                  className="w-full rounded-lg border px-3 py-2"
+                  rows={3}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  This message can be used for internal notes or notifications.
+                </p>
+              </div>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() =>
+                  setApprovalMessage(
+                    'Your hospital verification has been approved. You can now register patients and use all features.'
+                  )
+                }
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleApprove}
+                disabled={approveMutation.isPending}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {approveMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Approving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Confirm Approval
+                  </>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Reject Dialog */}
         <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
