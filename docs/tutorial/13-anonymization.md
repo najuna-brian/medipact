@@ -26,14 +26,16 @@ These fields are **completely removed**:
 2. **Patient ID**
    - Example: "ID-12345" → ❌ Removed
 
-3. **Address**
+3. **Address** (specific location details)
    - Example: "123 Main St Kampala" → ❌ Removed
+   - **Note**: Country is preserved (see "What Gets Preserved")
 
 4. **Phone Number**
    - Example: "0771234567" → ❌ Removed
 
-5. **Date of Birth**
+5. **Date of Birth** (exact date)
    - Example: "1990-05-15" → ❌ Removed
+   - **Note**: Age Range is preserved (see "What Gets Preserved")
 
 ### Why These Are Removed
 
@@ -63,12 +65,36 @@ These fields are **preserved** for research:
 5. **Reference Range**
    - Example: "70-100" → ✅ Preserved
 
+### Demographic Data Fields (Generalized)
+
+These fields are **preserved in generalized form** for research:
+
+1. **Age Range** (REQUIRED)
+   - Example: Age 35 or DOB 1990-01-15 → "35-39" (5-year range)
+   - **Note**: Exact age or DOB is removed, only range is kept
+   - **Requirement**: Must have either Age or Date of Birth
+
+2. **Country** (REQUIRED)
+   - Example: "Kampala, Uganda" → "Uganda" (country only)
+   - **Note**: Specific address/city removed, only country preserved
+   - **Fallback**: Uses hospital country if patient location missing
+
+3. **Gender** (REQUIRED)
+   - Example: "Male", "Female", "Other" → ✅ Preserved as-is
+   - **Default**: "Unknown" if missing
+
+4. **Occupation Category** (OPTIONAL)
+   - Example: "doctor" → "Healthcare Worker" (generalized category)
+   - **Categories**: Healthcare Worker, Education Worker, Government Worker, Business Professional, Agriculture Worker, Technology Worker, Service Worker, Student, Not Employed, Other
+   - **Default**: "Unknown" if missing
+
 ### Why These Are Preserved
 
-- **Needed for research**: Medical data is the value
-- **No PII**: Test results don't identify individuals
-- **Aggregated**: Multiple records needed for analysis
-- **Useful**: Researchers need this information
+- **Needed for research**: Medical data and demographics are valuable for analysis
+- **Generalized**: Age ranges and occupation categories prevent re-identification
+- **No PII**: Country-level location and age ranges don't identify individuals
+- **K-Anonymity**: System ensures minimum 5 records per demographic combination
+- **Useful**: Researchers need demographic context for meaningful analysis
 
 ## What Gets Added?
 
@@ -117,27 +143,42 @@ Original ID: ID-12345
 Anonymous ID: PID-001
 ```
 
-#### Step 4: Remove PII
+#### Step 4: Calculate Demographics (Before Removing PII)
+
+```
+Age: 35 → Age Range: "35-39" ✅
+DOB: "1990-05-15" → Age Range: "35-39" ✅ (if age missing)
+Address: "Kampala, Uganda" → Country: "Uganda" ✅
+Gender: "Male" → Gender: "Male" ✅
+Occupation: "doctor" → Occupation Category: "Healthcare Worker" ✅
+```
+
+#### Step 5: Remove PII
 
 ```
 Before:
   Patient Name: "John Doe" ❌
   Patient ID: "ID-12345" ❌
-  Address: "123 Main St" ❌
+  Address: "123 Main St" ❌ (specific location removed)
   Phone: "0771234567" ❌
-  DOB: "1990-05-15" ❌
+  DOB: "1990-05-15" ❌ (exact date removed)
+  Age: "35" ❌ (exact age removed)
 
 After:
-  (All removed)
+  (All removed, but demographics preserved in generalized form)
 ```
 
-#### Step 5: Add Anonymous ID
+#### Step 6: Add Anonymous ID and Demographics
 
 ```
 Anonymous PID: "PID-001" ✅
+Age Range: "35-39" ✅
+Country: "Uganda" ✅
+Gender: "Male" ✅
+Occupation Category: "Healthcare Worker" ✅
 ```
 
-#### Step 6: Preserve Medical Data
+#### Step 7: Preserve Medical Data
 
 ```
 Lab Test: "Blood Glucose" ✅
@@ -147,11 +188,19 @@ Unit: "mg/dL" ✅
 Reference Range: "70-100" ✅
 ```
 
-#### Step 7: Output Anonymized Record
+#### Step 8: Enforce K-Anonymity
+
+```
+Group records by: Country, Age Range, Gender, Occupation Category
+Ensure each group has ≥5 records
+Suppress groups with <5 records (privacy protection)
+```
+
+#### Step 9: Output Anonymized Record
 
 ```csv
-Anonymous PID,Lab Test,Test Date,Result,Unit,Reference Range
-PID-001,Blood Glucose,2024-01-15,95,mg/dL,70-100
+Anonymous PID,Age Range,Country,Gender,Occupation Category,Lab Test,Test Date,Result,Unit,Reference Range
+PID-001,35-39,Uganda,Male,Healthcare Worker,Blood Glucose,2024-01-15,95,mg/dL,70-100
 ```
 
 ## Example: Complete Transformation
@@ -168,10 +217,10 @@ Jane Smith,ID-12346,"456 Oak Ave Entebbe",0772345678,1985-08-22,Blood Glucose,20
 ### After Anonymization
 
 ```csv
-Anonymous PID,Lab Test,Test Date,Result,Unit,Reference Range
-PID-001,Blood Glucose,2024-01-15,95,mg/dL,70-100
-PID-001,Cholesterol,2024-01-20,180,mg/dL,<200
-PID-002,Blood Glucose,2024-01-15,110,mg/dL,70-100
+Anonymous PID,Age Range,Country,Gender,Occupation Category,Lab Test,Test Date,Result,Unit,Reference Range
+PID-001,35-39,Uganda,Male,Healthcare Worker,Blood Glucose,2024-01-15,95,mg/dL,70-100
+PID-001,35-39,Uganda,Male,Healthcare Worker,Cholesterol,2024-01-20,180,mg/dL,<200
+PID-002,40-44,Uganda,Female,Education Worker,Blood Glucose,2024-01-15,110,mg/dL,70-100
 ```
 
 ### What Changed?
@@ -183,16 +232,26 @@ PID-002,Blood Glucose,2024-01-15,110,mg/dL,70-100
 - Units
 - Reference ranges
 - Record relationships (same patient = same PID)
+- **Demographics (generalized)**:
+  - Age Range (5-year ranges, e.g., "35-39")
+  - Country (country-level only)
+  - Gender (Male/Female/Other/Unknown)
+  - Occupation Category (generalized categories)
 
 ❌ **Removed**:
 - Patient names
 - Patient IDs
-- Addresses
+- Specific addresses (city, street)
 - Phone numbers
-- Dates of birth
+- Exact dates of birth
+- Exact age (replaced with age range)
 
 ✅ **Added**:
 - Anonymous patient IDs (PID-001, PID-002)
+- Age Range (generalized to 5-year ranges)
+- Country (extracted from address or hospital fallback)
+- Gender (normalized)
+- Occupation Category (generalized)
 
 ## Patient Mapping
 
@@ -271,6 +330,95 @@ ID-12347 → PID-003
 }
 ```
 
+## Demographic Data Handling
+
+### Age Range Calculation
+
+**Requirements**:
+- Must have either **Age** OR **Date of Birth** (one is required)
+- If both missing → Error (age is required)
+- Always converted to 5-year ranges
+
+**Examples**:
+- Age: 35 → Range: "35-39"
+- DOB: 1990-01-15 → Calculate age → Range: "35-39"
+- Age: 0 → Range: "<1"
+- Age: 90+ → Range: "90+"
+
+### Country Extraction
+
+**Requirements**:
+- Country is **always known** (required)
+- Extracted from patient address if available
+- Uses hospital country as fallback if address missing
+- Hospital country must be configured (HOSPITAL_COUNTRY env variable)
+
+**Examples**:
+- Address: "Kampala, Uganda" → Country: "Uganda"
+- Address: "Unknown" → Country: "Uganda" (hospital fallback)
+- Address: Missing → Country: "Uganda" (hospital fallback)
+
+### Gender Normalization
+
+**Requirements**:
+- Gender is **always known** (required)
+- Preserved as-is: Male, Female, Other
+- Defaults to "Unknown" if missing
+
+**Examples**:
+- "Male" → "Male"
+- "male" → "Male" (normalized)
+- "M" → "Male" (normalized)
+- Missing → "Unknown"
+
+### Occupation Generalization
+
+**Requirements**:
+- Occupation is **optional**
+- Generalized to categories if provided
+- Defaults to "Unknown" if missing
+
+**Categories**:
+- Healthcare Worker (doctor, nurse, medical)
+- Education Worker (teacher, professor)
+- Government Worker (government, civil service)
+- Business Professional (business, entrepreneur)
+- Agriculture Worker (farmer, agriculture)
+- Technology Worker (tech, engineer, developer)
+- Service Worker (service, retail, sales)
+- Student (student, pupil)
+- Not Employed (unemployed, retired)
+- Other (unrecognized occupations)
+
+## K-Anonymity Protection
+
+### What is K-Anonymity?
+
+K-anonymity ensures that each record is indistinguishable from at least **k-1** other records based on demographic attributes.
+
+**In MediPact**:
+- **k = 5** (minimum 5 records per demographic group)
+- Groups defined by: Country, Age Range, Gender, Occupation Category
+- Records in groups with <5 records are suppressed
+
+### Example
+
+```
+Group: Uganda, 35-39, Male, Healthcare Worker
+Records: 3 records ❌ (violates k-anonymity, k=5)
+Action: Suppress these 3 records
+
+Group: Uganda, 35-39, Male, Education Worker
+Records: 8 records ✅ (satisfies k-anonymity, k=5)
+Action: Keep all 8 records
+```
+
+### Why K-Anonymity?
+
+- **Prevents re-identification**: Can't identify individuals from rare combinations
+- **Privacy protection**: Ensures sufficient records per demographic group
+- **Research value**: Maintains data utility while protecting privacy
+
 ## Privacy Guarantees
 
 ### What We Guarantee
@@ -278,7 +426,10 @@ ID-12347 → PID-003
 1. **No PII in Output**: All identifying information removed
 2. **Cannot Identify Individuals**: Anonymous IDs can't be traced
 3. **Medical Data Preserved**: Research value maintained
-4. **Reversible Only with Authorization**: Mapping protected
+4. **Demographics Generalized**: Age ranges, country-level location, occupation categories
+5. **K-Anonymity Enforced**: Minimum 5 records per demographic group
+6. **No Original IDs on Blockchain**: Only anonymous IDs and hashes stored on Hedera
+7. **Reversible Only with Authorization**: Mapping protected
 
 ### What We Don't Guarantee
 
@@ -291,8 +442,11 @@ ID-12347 → PID-003
 - ✅ Remove all PII
 - ✅ Use anonymous IDs
 - ✅ Preserve medical data
+- ✅ Generalize demographics (age ranges, country, occupation categories)
+- ✅ Enforce k-anonymity
 - ✅ Maintain data quality
 - ✅ Follow regulations (HIPAA, GDPR)
+- ✅ Store only hashes on blockchain (no PII)
 
 ## Validation
 
@@ -319,10 +473,13 @@ npm run validate
 
 ## Key Takeaways
 
-- **PII removed**: Name, ID, address, phone, DOB
+- **PII removed**: Name, ID, specific address, phone, exact DOB/age
 - **Medical data preserved**: Tests, results, dates, units
+- **Demographics preserved (generalized)**: Age ranges, country, gender, occupation categories
 - **Anonymous IDs added**: PID-001, PID-002, etc.
-- **Mapping maintained**: For consent and payments
+- **K-Anonymity enforced**: Minimum 5 records per demographic group
+- **No PII on blockchain**: Only anonymous IDs and hashes stored on Hedera
+- **Mapping maintained**: For consent and payments (off-chain, encrypted)
 - **Privacy protected**: Cannot identify individuals
 
 ## Next Steps
