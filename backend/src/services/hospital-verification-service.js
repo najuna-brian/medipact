@@ -75,25 +75,22 @@ export async function getVerificationStatus(hospitalId, hospitalGet) {
   }
   
   let verificationDocuments = null;
-  // Use camelCase field name (getHospital returns camelCase due to SQL aliases)
-  const docsField = hospital.verificationDocuments || hospital.verification_documents;
-  if (docsField) {
+  if (hospital.verificationDocuments) {
     try {
       // Handle both string (JSON) and object formats
-      verificationDocuments = typeof docsField === 'string' 
-        ? JSON.parse(docsField) 
-        : docsField;
+      verificationDocuments = typeof hospital.verificationDocuments === 'string' 
+        ? JSON.parse(hospital.verificationDocuments) 
+        : hospital.verificationDocuments;
     } catch (e) {
-      verificationDocuments = { raw: docsField };
+      verificationDocuments = { raw: hospital.verificationDocuments };
     }
   }
   
   return {
     hospitalId: hospital.hospitalId,
-    // Use camelCase field name (getHospital returns camelCase due to SQL aliases)
-    verificationStatus: hospital.verificationStatus || hospital.verification_status || 'pending',
-    verifiedAt: hospital.verifiedAt || hospital.verified_at,
-    verifiedBy: hospital.verifiedBy || hospital.verified_by,
+    verificationStatus: hospital.verificationStatus || 'pending',
+    verifiedAt: hospital.verifiedAt,
+    verifiedBy: hospital.verifiedBy,
     verificationDocuments: verificationDocuments
   };
 }
@@ -106,8 +103,6 @@ export async function getVerificationStatus(hospitalId, hospitalGet) {
  */
 export async function isHospitalVerified(hospitalId, hospitalGet) {
   const hospital = await hospitalGet(hospitalId);
-  // Use camelCase field name (getHospital returns camelCase due to SQL aliases)
-  const status = hospital?.verificationStatus || hospital?.verification_status;
-  return hospital && status === 'verified';
+  return hospital?.verificationStatus === 'verified';
 }
 

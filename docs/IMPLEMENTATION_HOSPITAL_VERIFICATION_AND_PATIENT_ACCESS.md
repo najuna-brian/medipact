@@ -35,8 +35,13 @@ Stores patient contact information for lookup:
 - `submitVerificationDocuments()` - Submit documents for verification
 - `verifyHospital()` - Admin approve hospital
 - `rejectHospitalVerification()` - Admin reject hospital
-- `getVerificationStatus()` - Get current verification status
-- `isHospitalVerified()` - Check if hospital is verified
+- `getVerificationStatus()` - Get current verification status (uses camelCase fields)
+- `isHospitalVerified()` - Check if hospital is verified (uses camelCase fields)
+
+**Important Notes**:
+- Field names use camelCase (`verificationStatus`, `verifiedAt`, `verifiedBy`) to match database query aliases
+- All database queries use SQL aliases (`verification_status as verificationStatus`) to ensure consistent camelCase
+- No fallback to snake_case needed - database layer always returns camelCase
 
 ### 2. Patient Lookup Service
 **File**: `backend/src/services/patient-lookup-service.js`
@@ -269,9 +274,12 @@ Or JSON:
 
 3. **Admin Verification** ✅ IMPLEMENTED
    - Admin reviews documents via `/admin/hospitals` page
-   - Admin approves/rejects via admin API endpoints
+   - Admin clicks "Approve" → Confirmation dialog with pre-filled message
+   - Admin confirms approval (can edit message)
    - Status updated to `'verified'` or `'rejected'`
-   - Hospital dashboard automatically updates
+   - Hospital dashboard automatically updates (polling + cache invalidation)
+   - Verification page updates automatically
+   - Patient registration buttons become enabled
 
 4. **Access Control**
    - Unverified hospitals cannot register patients

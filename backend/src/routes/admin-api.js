@@ -28,7 +28,10 @@ router.get('/hospitals', async (req, res) => {
       let verificationDocuments = null;
       if (hospital.verificationDocuments) {
         try {
-          verificationDocuments = JSON.parse(hospital.verificationDocuments);
+          // If it's already an object, use it; otherwise parse JSON string
+          verificationDocuments = typeof hospital.verificationDocuments === 'string' 
+            ? JSON.parse(hospital.verificationDocuments) 
+            : hospital.verificationDocuments;
         } catch (e) {
           verificationDocuments = { raw: hospital.verificationDocuments };
         }
@@ -71,7 +74,10 @@ router.get('/hospitals/:hospitalId', async (req, res) => {
     let verificationDocuments = null;
     if (hospital.verificationDocuments) {
       try {
-        verificationDocuments = JSON.parse(hospital.verificationDocuments);
+        // If it's already an object, use it; otherwise parse JSON string
+        verificationDocuments = typeof hospital.verificationDocuments === 'string' 
+          ? JSON.parse(hospital.verificationDocuments) 
+          : hospital.verificationDocuments;
       } catch (e) {
         verificationDocuments = { raw: hospital.verificationDocuments };
       }

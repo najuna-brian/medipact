@@ -11,7 +11,10 @@ The admin hospital verification interface allows platform administrators to revi
 - **Document Review**: View submitted license numbers and registration certificates
 - **Approve Hospitals**: One-click approval to verify hospitals
 - **Reject Hospitals**: Reject with reason for transparency
-- **Real-time Updates**: Status changes reflect immediately across the platform
+- **Real-time Updates**: Status changes reflect automatically across the platform
+  - Automatic polling every 5-10 seconds
+  - Cache invalidation ensures immediate updates
+  - Event system for same-tab updates
 
 ## Access
 
@@ -35,9 +38,13 @@ Navigate to `/admin/hospitals` in the frontend application.
 
 #### Approve
 - Click "Approve" button
+- **Confirmation Dialog**: A dialog opens with a pre-filled approval message
+- Review/edit the approval message (optional)
+- Click "Confirm Approval" to proceed
 - Hospital status changes to `verified`
 - Hospital can now register patients
-- Hospital dashboard shows green "Verified" badge
+- Hospital dashboard automatically updates to show green "Verified" badge (within 5-10 seconds)
+- Verification page updates to show verified status
 
 #### Reject
 - Click "Reject" button
@@ -115,7 +122,12 @@ Rejects hospital verification with reason.
 
 ### Hospital Verification Service
 - **Location**: `backend/src/services/hospital-verification-service.js`
-- **Functions**: `verifyHospital`, `rejectHospitalVerification`
+- **Functions**: 
+  - `verifyHospital()` - Approve hospital verification
+  - `rejectHospitalVerification()` - Reject with reason
+  - `getVerificationStatus()` - Get current status (uses camelCase field names)
+  - `isHospitalVerified()` - Check verification status
+- **Important**: Uses camelCase field names (`verificationStatus`, `verifiedAt`, `verifiedBy`) to match database query aliases. All database queries use SQL aliases to return camelCase consistently.
 
 ### Database
 - **Table**: `hospitals`
@@ -128,8 +140,12 @@ Rejects hospital verification with reason.
 2. Submit verification documents
 3. Navigate to `/admin/hospitals`
 4. View documents
-5. Approve hospital
-6. Verify hospital dashboard updates
+5. Click "Approve" → Confirmation dialog appears
+6. Review/edit approval message (optional)
+7. Click "Confirm Approval"
+8. Verify hospital dashboard updates automatically (within 5-10 seconds)
+9. Verify verification page shows "Verified" status
+10. Verify patient registration buttons are enabled
 
 ### API Testing
 ```bash
