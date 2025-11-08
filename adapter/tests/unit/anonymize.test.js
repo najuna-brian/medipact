@@ -8,6 +8,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { parseCSV, anonymizeRecords, writeAnonymizedCSV } from '../../src/anonymizer/anonymize.js';
+import { 
+  anonymizeWithDemographics,
+  calculateAgeRange,
+  extractCountry,
+  normalizeGender,
+  generalizeOccupation,
+  enforceKAnonymity
+} from '../../src/anonymizer/demographic-anonymize.js';
 import { createTempCSV, cleanupTempFile, createSampleRecords } from '../utils/test-helpers.js';
 
 describe('Anonymizer', () => {
@@ -220,6 +228,227 @@ describe('Anonymizer', () => {
       await writeAnonymizedCSV(anonymized, outputDir);
 
       expect(fs.existsSync(outputDir)).toBe(true);
+    });
+  });
+
+  describe('Demographic Anonymization', () => {
+    const hospitalInfo = {
+      country: 'Uganda',
+      location: 'Kampala, Uganda'
+    };
+
+    describe('calculateAgeRange', () => {
+      it('should calculate age range from Age field', () => {
+        const record = { 'Age': '35' };
+        const ageRange = calculateAgeRange(record);
+        expect(ageRange).toBe('35-39');
+      });
+
+      it('should calculate age range from Date of Birth', () => {
+        const record = { 'Date of Birth': '1990-01-15' };
+        const ageRange = calculateAgeRange(record);
+        expect(ageRange).toMatch(/^\d{2}-\d{2}$/); // Format: XX-XX
+      });
+
+      it('should throw error if both Age and DOB are missing', () => {
+        const record = {};
+        expect(() => calculateAgeRange(record)).toThrow('Age is required');
+      });
+
+      it('should handle age ranges correctly', () => {
+        expect(calculateAgeRange({ 'Age': '0' })).toBe('<1');
+        expect(calculateAgeRange({ 'Age': '1' })).toBe('1-4');
+        expect(calculateAgeRange({ 'Age': '5' })).toBe('5-9');
+        expect(calculateAgeRange({ 'Age': '25' })).toBe('25-29');
+        expect(calculateAgeRange({ 'Age': '35' })).toBe('35-39');
+        expect(calculateAgeRange({ 'Age': '90' })).toBe('90+');
+      });
+    });
+
+    describe('extractCountry', () => {
+      it('should extract country from address', () => {
+        const record = { 'Address': 'Kampala, Uganda' };
+        const country = extractCountry(record, hospitalInfo);
+        expect(country).toBe('Uganda');
+      });
+
+      it('should use hospital country as fallback', () => {
+        const record = { 'Address': 'Unknown Location' };
+        const country = extractCountry(record, hospitalInfo);
+        expect(country).toBe('Uganda');
+      });
+
+      it('should throw error if hospital country not set', () => {
+        const record = { 'Address': 'Unknown' };
+        expect(() => extractCountry(record, {})).toThrow('HOSPITAL_COUNTRY');
+      });
+    });
+
+    describe('normalizeGender', () => {
+      it('should normalize gender values', () => {
+        expect(normalizeGender('Male')).toBe('Male');
+        expect(normalizeGender('male')).toBe('Male');
+        expect(normalizeGender('M')).toBe('Male');
+        expect(normalizeGender('Female')).toBe('Female');
+        expect(normalizeGender('female')).toBe('Female');
+        expect(normalizeGender('F')).toBe('Female');
+        expect(normalizeGender('Other')).toBe('Other');
+      });
+
+      it('should default to Unknown if missing', () => {
+        expect(normalizeGender('')).toBe('Unknown');
+        expect(normalizeGender(null)).toBe('Unknown');
+        expect(normalizeGender(undefined)).toBe('Unknown');
+      });
+    });
+
+    describe('generalizeOccupation', () => {
+      it('should categorize occupations', () => {
+        expect(generalizeOccupation('doctor')).toBe('Healthcare Worker');
+        expect(generalizeOccupation('nurse')).toBe('Healthcare Worker');
+        expect(generalizeOccupation('teacher')).toBe('Education Worker');
+        expect(generalizeOccupation('farmer')).toBe('Agriculture Worker');
+        expect(generalizeOccupation('engineer')).toBe('Technology Worker');
+      });
+
+      it('should return Unknown if occupation missing', () => {
+        expect(generalizeOccupation('')).toBe('Unknown');
+        expect(generalizeOccupation(null)).toBe('Unknown');
+        expect(generalizeOccupation(undefined)).toBe('Unknown');
+      });
+    });
+
+    describe('anonymizeWithDemographics', () => {
+      it('should anonymize with demographics preserved', () => {
+        const records = [
+          {
+            'Patient ID': 'ID-12345',
+            'Patient Name': 'John Doe',
+            'Age': '35',
+            'Gender': 'Male',
+            'Address': 'Kampala, Uganda',
+            'Occupation': 'doctor',
+            'Lab Test': 'Blood Test',
+            'Result': '100'
+          }
+        ];
+
+        const { records: anonymized } = anonymizeWithDemographics(records, hospitalInfo);
+
+        expect(anonymized.length).toBe(1);
+        expect(anonymized[0]['Age Range']).toBe('35-39');
+        expect(anonymized[0]['Country']).toBe('Uganda');
+        expect(anonymized[0]['Gender']).toBe('Male');
+        expect(anonymized[0]['Occupation Category']).toBe('Healthcare Worker');
+        expect(anonymized[0]).not.toHaveProperty('Patient Name');
+        expect(anonymized[0]).not.toHaveProperty('Address');
+      });
+
+      it('should calculate age from DOB if Age missing', () => {
+        const records = [
+          {
+            'Patient ID': 'ID-12345',
+            'Date of Birth': '1990-01-15',
+            'Gender': 'Male',
+            'Address': 'Kampala, Uganda',
+            'Lab Test': 'Blood Test'
+          }
+        ];
+
+        const { records: anonymized } = anonymizeWithDemographics(records, hospitalInfo);
+
+        expect(anonymized[0]['Age Range']).toBeDefined();
+        expect(anonymized[0]['Age Range']).toMatch(/^\d{2}-\d{2}$/);
+      });
+
+      it('should throw error if both Age and DOB missing', () => {
+        const records = [
+          {
+            'Patient ID': 'ID-12345',
+            'Gender': 'Male',
+            'Address': 'Kampala, Uganda',
+            'Lab Test': 'Blood Test'
+          }
+        ];
+
+        expect(() => anonymizeWithDemographics(records, hospitalInfo)).toThrow('Age is required');
+      });
+
+      it('should use hospital country if address missing', () => {
+        const records = [
+          {
+            'Patient ID': 'ID-12345',
+            'Age': '35',
+            'Gender': 'Male',
+            'Lab Test': 'Blood Test'
+          }
+        ];
+
+        const { records: anonymized } = anonymizeWithDemographics(records, hospitalInfo);
+
+        expect(anonymized[0]['Country']).toBe('Uganda');
+      });
+
+      it('should default gender to Unknown if missing', () => {
+        const records = [
+          {
+            'Patient ID': 'ID-12345',
+            'Age': '35',
+            'Address': 'Kampala, Uganda',
+            'Lab Test': 'Blood Test'
+          }
+        ];
+
+        const { records: anonymized } = anonymizeWithDemographics(records, hospitalInfo);
+
+        expect(anonymized[0]['Gender']).toBe('Unknown');
+      });
+
+      it('should default occupation to Unknown if missing', () => {
+        const records = [
+          {
+            'Patient ID': 'ID-12345',
+            'Age': '35',
+            'Gender': 'Male',
+            'Address': 'Kampala, Uganda',
+            'Lab Test': 'Blood Test'
+          }
+        ];
+
+        const { records: anonymized } = anonymizeWithDemographics(records, hospitalInfo);
+
+        expect(anonymized[0]['Occupation Category']).toBe('Unknown');
+      });
+    });
+
+    describe('enforceKAnonymity', () => {
+      it('should pass when k-anonymity is satisfied', () => {
+        const records = Array(10).fill(null).map((_, i) => ({
+          'Anonymous PID': `PID-${String(i + 1).padStart(3, '0')}`,
+          'Country': 'Uganda',
+          'Age Range': '35-39',
+          'Gender': 'Male',
+          'Occupation Category': 'Healthcare Worker',
+          'Lab Test': 'Blood Test'
+        }));
+
+        const result = enforceKAnonymity(records, 5);
+        expect(result.length).toBe(10);
+      });
+
+      it('should suppress records when k-anonymity violated', () => {
+        const records = Array(3).fill(null).map((_, i) => ({
+          'Anonymous PID': `PID-${String(i + 1).padStart(3, '0')}`,
+          'Country': 'Uganda',
+          'Age Range': '35-39',
+          'Gender': 'Male',
+          'Occupation Category': 'Healthcare Worker',
+          'Lab Test': 'Blood Test'
+        }));
+
+        const result = enforceKAnonymity(records, 5);
+        expect(result.length).toBeLessThan(3); // Some records suppressed
+      });
     });
   });
 });

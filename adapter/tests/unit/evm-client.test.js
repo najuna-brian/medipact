@@ -87,22 +87,20 @@ describe('EVM Client', () => {
   });
 
   describe('recordConsentOnChain', () => {
-    it('should record consent on-chain successfully', async () => {
+    it('should record consent on-chain successfully (NO original patient ID)', async () => {
       const { ContractId } = await import('@hashgraph/sdk');
       
       const consentManagerAddress = '0xAB0BA2b7ec5dD4a32E6eA576A58f73F1E782A25F';
-      const patientId = 'ID-12345';
       const anonymousPatientId = 'PID-001';
       const hcsTopicId = '0.0.1234568';
-      const consentHash = 'abc123def456';
+      const dataHash = 'abc123def456';
 
       const txId = await recordConsentOnChain(
         mockClient,
         consentManagerAddress,
-        patientId,
         anonymousPatientId,
         hcsTopicId,
-        consentHash
+        dataHash
       );
 
       expect(ContractId.fromEvmAddress).toHaveBeenCalledWith(0, 0, consentManagerAddress);
@@ -110,13 +108,12 @@ describe('EVM Client', () => {
       expect(typeof txId).toBe('string');
     });
 
-    it('should handle different consent parameters', async () => {
+    it('should handle different consent parameters (NO original patient ID)', async () => {
       const consentManagerAddress = '0xAB0BA2b7ec5dD4a32E6eA576A58f73F1E782A25F';
       
       const txId1 = await recordConsentOnChain(
         mockClient,
         consentManagerAddress,
-        'ID-12345',
         'PID-001',
         '0.0.1234568',
         'hash123'
@@ -125,7 +122,6 @@ describe('EVM Client', () => {
       const txId2 = await recordConsentOnChain(
         mockClient,
         consentManagerAddress,
-        'ID-67890',
         'PID-002',
         '0.0.1234569',
         'hash456'
