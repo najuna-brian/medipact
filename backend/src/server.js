@@ -11,6 +11,9 @@ import hospitalRoutes from './routes/hospital-api.js';
 import hospitalPatientsRoutes from './routes/hospital-patients-api.js';
 import adminRoutes from './routes/admin-api.js';
 import adminAuthRoutes from './routes/admin-auth-api.js';
+import researcherRoutes from './routes/researcher-api.js';
+import marketplaceRoutes from './routes/marketplace-api.js';
+import revenueRoutes from './routes/revenue-api.js';
 import { initDatabase, closeDatabase } from './db/database.js';
 
 const app = express();
@@ -37,6 +40,9 @@ app.use('/api/hospital', hospitalRoutes);
 app.use('/api/hospital', hospitalPatientsRoutes); // Hospital patient management routes
 app.use('/api/admin/auth', adminAuthRoutes); // Admin authentication routes (public)
 app.use('/api/admin', adminRoutes); // Admin routes (protected)
+app.use('/api/researcher', researcherRoutes); // Researcher routes
+app.use('/api/marketplace', marketplaceRoutes); // Data marketplace routes
+app.use('/api/revenue', revenueRoutes); // Revenue distribution routes
 
 // 404 handler
 app.use((req, res) => {
@@ -66,6 +72,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         console.log(`👤 Patient API: http://localhost:${PORT}/api/patient`);
         console.log(`🏥 Hospital API: http://localhost:${PORT}/api/hospital`);
         console.log(`👨‍💼 Admin API: http://localhost:${PORT}/api/admin`);
+        console.log(`🔬 Researcher API: http://localhost:${PORT}/api/researcher`);
+        console.log(`🛒 Marketplace API: http://localhost:${PORT}/api/marketplace`);
+        console.log(`💰 Revenue API: http://localhost:${PORT}/api/revenue`);
       }).on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
           console.error(`\n❌ Port ${PORT} is already in use.`);

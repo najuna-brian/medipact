@@ -8,6 +8,8 @@
 import express from 'express';
 import { getHospital, getAllHospitals, updateHospital } from '../db/hospital-db.js';
 import { verifyHospital, rejectHospitalVerification } from '../services/hospital-verification-service.js';
+import { getAllResearchers, getResearcher, updateResearcher } from '../db/researcher-db.js';
+import { verifyResearcher, rejectResearcherVerification } from '../services/researcher-registry-service.js';
 import { verifyAdminToken, extractTokenFromHeader } from '../services/admin-auth-service.js';
 
 const router = express.Router();
@@ -203,6 +205,132 @@ router.post('/hospitals/:hospitalId/reject', async (req, res) => {
   } catch (error) {
     console.error('Error rejecting hospital:', error);
     res.status(500).json({ error: error.message || 'Failed to reject hospital' });
+  }
+});
+
+/**
+ * GET /api/admin/researchers
+ * List all researchers with verification status
+ */
+router.get('/researchers', async (req, res) => {
+  try {
+    const researchers = await getAllResearchers();
+    
+    const formattedResearchers = researchers.map(r => ({
+      researcherId: r.researcherId,
+      hederaAccountId: r.hederaAccountId,
+      email: r.email,
+      organizationName: r.organizationName,
+      contactName: r.contactName,
+      country: r.country,
+      verificationStatus: r.verificationStatus,
+      accessLevel: r.accessLevel,
+      verifiedAt: r.verifiedAt,
+      verifiedBy: r.verifiedBy,
+      registeredAt: r.registeredAt
+    }));
+    
+    res.json({ researchers: formattedResearchers });
+  } catch (error) {
+    console.error('Error fetching researchers:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch researchers' });
+  }
+});
+
+/**
+ * GET /api/admin/researchers/:researcherId
+ * Get detailed researcher information
+ */
+router.get('/researchers/:researcherId', async (req, res) => {
+  try {
+    const { researcherId } = req.params;
+    const researcher = await getResearcher(researcherId);
+    
+    if (!researcher) {
+      return res.status(404).json({ error: 'Researcher not found' });
+    }
+    
+    let verificationDocuments = null;
+    if (researcher.verificationDocuments) {
+      try {
+        verificationDocuments = typeof researcher.verificationDocuments === 'string' 
+          ? JSON.parse(researcher.verificationDocuments) 
+          : researcher.verificationDocuments;
+      } catch (e) {
+        verificationDocuments = { raw: researcher.verificationDocuments };
+      }
+    }
+    
+    res.json({
+      ...researcher,
+      verificationDocuments: verificationDocuments
+    });
+  } catch (error) {
+    console.error('Error fetching researcher:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch researcher' });
+  }
+});
+
+/**
+ * POST /api/admin/researchers/:researcherId/verify
+ * Approve researcher verification
+ */
+router.post('/researchers/:researcherId/verify', async (req, res) => {
+  try {
+    const { researcherId } = req.params;
+    const adminId = req.admin.username;
+    
+    const researcher = await verifyResearcher(
+      researcherId,
+      adminId,
+      async (id, updates) => {
+        return await updateResearcher(id, updates);
+      }
+    );
+    
+    res.json({
+      message: 'Researcher verified successfully',
+      researcher: {
+        ...researcher,
+        verificationPrompt: false
+      }
+    });
+  } catch (error) {
+    console.error('Error verifying researcher:', error);
+    res.status(500).json({ error: error.message || 'Failed to verify researcher' });
+  }
+});
+
+/**
+ * POST /api/admin/researchers/:researcherId/reject
+ * Reject researcher verification
+ */
+router.post('/researchers/:researcherId/reject', async (req, res) => {
+  try {
+    const { researcherId } = req.params;
+    const { reason } = req.body;
+    const adminId = req.admin.username;
+    
+    const researcher = await rejectResearcherVerification(
+      researcherId,
+      adminId,
+      reason || 'Verification documents did not meet requirements',
+      async (id, updates) => {
+        return await updateResearcher(id, updates);
+      }
+    );
+    
+    res.json({
+      message: 'Researcher verification rejected',
+      researcher: {
+        ...researcher,
+        verificationPrompt: true,
+        verificationMessage: 'Your verification was rejected. Please submit new documents.'
+      }
+    });
+  } catch (error) {
+    console.error('Error rejecting researcher:', error);
+    res.status(500).json({ error: error.message || 'Failed to reject researcher' });
   }
 });
 

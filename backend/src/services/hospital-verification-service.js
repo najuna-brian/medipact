@@ -16,6 +16,23 @@
  * @returns {Promise<Object>} Updated hospital record
  */
 export async function submitVerificationDocuments(hospitalId, documents, hospitalUpdate) {
+  // Validate license number
+  if (!documents.licenseNumber || documents.licenseNumber.trim() === '') {
+    throw new Error('License number is required');
+  }
+  
+  // Validate that registration certificate is provided (either file or URL)
+  const hasCertificateFile = documents.registrationCertificate && 
+    documents.registrationCertificate.startsWith('data:');
+  
+  const hasCertificateUrl = documents.registrationCertificate && 
+    (documents.registrationCertificate.startsWith('http://') || 
+     documents.registrationCertificate.startsWith('https://'));
+  
+  if (!hasCertificateFile && !hasCertificateUrl) {
+    throw new Error('Registration certificate is required. Please provide either a file upload or a URL link to the certificate.');
+  }
+  
   const verificationDocuments = JSON.stringify(documents);
   
   const updates = {
