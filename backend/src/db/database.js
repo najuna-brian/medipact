@@ -163,6 +163,29 @@ async function createTables() {
     )
   `);
 
+  // Researchers Table
+  await run(`
+    CREATE TABLE IF NOT EXISTS researchers (
+      researcher_id VARCHAR(32) PRIMARY KEY,
+      hedera_account_id VARCHAR(20) UNIQUE,
+      encrypted_private_key TEXT,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      organization_name VARCHAR(255) NOT NULL,
+      contact_name VARCHAR(255),
+      country VARCHAR(100),
+      verification_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      verification_documents TEXT,
+      verified_at TIMESTAMP,
+      verified_by VARCHAR(255),
+      access_level VARCHAR(20) NOT NULL DEFAULT 'basic',
+      registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      status VARCHAR(20) NOT NULL DEFAULT 'active',
+      CHECK (status IN ('active', 'suspended', 'deleted')),
+      CHECK (verification_status IN ('pending', 'verified', 'rejected')),
+      CHECK (access_level IN ('basic', 'verified', 'anonymous'))
+    )
+  `);
+
   // Create indexes
   await run(`CREATE INDEX IF NOT EXISTS idx_linkages_upi ON hospital_linkages(upi)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_linkages_hospital_id ON hospital_linkages(hospital_id)`);
@@ -174,6 +197,9 @@ async function createTables() {
   await run(`CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_patients_hedera_account ON patient_identities(hedera_account_id)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_hospitals_hedera_account ON hospitals(hedera_account_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_researchers_email ON researchers(email)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_researchers_hedera_account ON researchers(hedera_account_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_researchers_verification_status ON researchers(verification_status)`);
   
   // Add Hedera account columns to existing tables (for migration)
   try {
@@ -193,6 +219,18 @@ async function createTables() {
   }
   try {
     await run(`ALTER TABLE hospitals ADD COLUMN encrypted_private_key TEXT`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
+  // Add Hedera account columns to researchers table (for migration)
+  try {
+    await run(`ALTER TABLE researchers ADD COLUMN hedera_account_id VARCHAR(20) UNIQUE`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE researchers ADD COLUMN encrypted_private_key TEXT`);
   } catch (e) {
     // Column already exists, ignore
   }
