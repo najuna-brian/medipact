@@ -86,7 +86,7 @@ npm run dev
 ### Register a Hospital
 
 ```bash
-curl -X POST http://localhost:3000/api/hospital/register \
+curl -X POST http://localhost:3002/api/hospital/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "City General Hospital",
@@ -99,7 +99,7 @@ curl -X POST http://localhost:3000/api/hospital/register \
 ### Register a Patient
 
 ```bash
-curl -X POST http://localhost:3000/api/patient/register \
+curl -X POST http://localhost:3002/api/patient/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -111,7 +111,7 @@ curl -X POST http://localhost:3000/api/patient/register \
 ### Match Patient to UPI
 
 ```bash
-curl -X POST http://localhost:3000/api/patient/match \
+curl -X POST http://localhost:3002/api/patient/match \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -123,7 +123,7 @@ curl -X POST http://localhost:3000/api/patient/match \
 ### Link Hospital to Patient
 
 ```bash
-curl -X POST http://localhost:3000/api/patient/UPI-ABC123DEF4567890/link-hospital \
+curl -X POST http://localhost:3002/api/patient/UPI-ABC123DEF4567890/link-hospital \
   -H "Content-Type: application/json" \
   -H "X-Hospital-ID: HOSP-001234567890" \
   -H "X-API-Key: hospital-api-key" \
@@ -136,7 +136,7 @@ curl -X POST http://localhost:3000/api/patient/UPI-ABC123DEF4567890/link-hospita
 ### Get Patient Medical History
 
 ```bash
-curl http://localhost:3000/api/patient/UPI-ABC123DEF4567890/history \
+curl http://localhost:3002/api/patient/UPI-ABC123DEF4567890/history \
   -H "Authorization: Bearer patient-token"
 ```
 
@@ -188,12 +188,22 @@ See `src/models/patient-identity-model.js` for the schema definition.
 
 ## Authentication
 
-Currently, authentication is placeholder. You need to implement:
+### Hospital Authentication
+- **Method**: API Key authentication
+- **Headers**: `X-Hospital-ID` and `X-API-Key`
+- **Implementation**: `authenticateHospital` middleware in `src/routes/hospital-api.js`
+- Hospitals receive API key upon registration
 
-1. **Patient Authentication**: JWT tokens or OAuth
-2. **Hospital Authentication**: API key validation
+### Admin Authentication
+- **Method**: JWT token authentication
+- **Endpoint**: `POST /api/admin/auth/login`
+- **Implementation**: `authenticateAdmin` middleware in `src/routes/admin-api.js`
+- Admin accounts created via `npm run setup-admin`
 
-See `src/routes/patient-api.js` and `src/routes/hospital-api.js` for authentication middleware placeholders.
+### Patient Authentication
+- **Method**: UPI-based (for API access)
+- **Future**: JWT tokens or OAuth for web application
+- Current implementation uses UPI in URL path for patient endpoints
 
 ## Integration with Adapter
 
@@ -212,7 +222,7 @@ const upiOptions = {
   enabled: true,
   getUPI: async (record) => {
     // Call backend API to get/create UPI
-    const response = await fetch('http://localhost:3000/api/patient/match', {
+    const response = await fetch('http://localhost:3002/api/patient/match', {
       method: 'POST',
       body: JSON.stringify({
         name: record['Patient Name'],

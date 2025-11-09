@@ -2,27 +2,39 @@
 
 ## Overview
 
-MediPact now uses **native Hedera Account IDs** as primary identifiers for all users and hospitals. Every patient and hospital automatically receives a Hedera account (0.0.xxxxx) when they register, making the platform fully native to the Hedera ecosystem.
+MediPact now integrates **native Hedera Account IDs** alongside existing identifiers. Every patient and hospital automatically receives a Hedera account (0.0.xxxxx) when they register, making the platform fully native to the Hedera ecosystem. 
+
+**Important**: Hedera Account IDs complement (not replace) existing identifiers:
+- **Hospitals**: Still use Hospital ID + API Key for authentication
+- **Patients**: Still use UPI for medical record access
+- **Hedera Account IDs**: Used for blockchain operations, smart contracts, and future transactions
 
 ## Architecture
 
 ### Hybrid Approach
 
-- **Hedera Account IDs**: Primary identifier (0.0.xxxxx)
-- **JWT Authentication**: Web application login (username/password)
+- **Hedera Account IDs**: Native Hedera identifier (0.0.xxxxx) for blockchain operations
+- **Hospital ID + API Key**: Primary authentication for web application (unchanged)
+- **UPI**: Primary patient identifier for medical records (unchanged)
 - **Platform-Managed Keys**: Encrypted private keys stored securely
-- **Native Integration**: All operations use Hedera Account IDs
+- **Dual Identity System**: 
+  - Web app uses Hospital ID/UPI for authentication
+  - Blockchain uses Hedera Account IDs for transactions
 
 ### Account Creation Flow
 
 ```
 User Registration:
 1. User fills registration form
-2. Backend creates Hedera Account → Gets Account ID (0.0.1234567)
-3. Backend encrypts private key → Stores in database
-4. Backend stores Account ID with user record
-5. User receives Account ID in response
-6. All future operations use Account ID
+2. Backend creates primary identifier (Hospital ID or UPI)
+3. Backend creates Hedera Account → Gets Account ID (0.0.1234567)
+4. Backend encrypts private key → Stores in database
+5. Backend stores Account ID with user record
+6. User receives both identifiers in response:
+   - Primary ID (Hospital ID/UPI) for authentication
+   - Hedera Account ID for blockchain operations
+7. Authentication continues using primary ID
+8. Blockchain operations use Hedera Account ID
 ```
 
 ## Implementation Details

@@ -215,7 +215,7 @@ All registration endpoints now return `hederaAccountId`:
 - `backend/src/routes/hospital-api.js` (UPDATED)
 - `backend/src/routes/hospital-patients-api.js` (UPDATED)
 - `backend/package.json` (UPDATED)
-- `backend/.env.example` (NEW)
+- `backend/ENV_SETUP.md` (NEW - environment setup guide)
 
 ### Frontend
 - `frontend/src/components/HederaAccountId/HederaAccountId.tsx` (NEW)
