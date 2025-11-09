@@ -119,7 +119,11 @@ export default function PatientLoginPage() {
         nationalId: registerForm.nationalId || undefined,
       });
 
-      setSuccess('Registration successful! Your UPI has been generated.');
+      setSuccess(
+        `Registration successful! Your UPI has been generated.${
+          result.hederaAccountId ? ' A Hedera account has been created for you.' : ''
+        }`
+      );
       setFoundUPI(result.upi);
       // Auto-login after registration
       setTimeout(() => {

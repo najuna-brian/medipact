@@ -2,9 +2,12 @@
  * Patient Lookup Service
  * 
  * Enables patients to find their UPI using email, phone, or national ID.
+ * Creates Hedera accounts for new patients.
  */
 
 import { generateUPI } from './patient-identity-service.js';
+import { createHederaAccount } from './hedera-account-service.js';
+import { encrypt } from './encryption-service.js';
 
 /**
  * Lookup patient UPI by contact information
@@ -71,8 +74,25 @@ export async function registerPatientWithContact(
     nationalId: patientInfo.nationalId
   });
   
-  // Create patient identity
+  // Create Hedera account for patient
+  let hederaAccount = null;
+  let encryptedPrivateKey = null;
+  
+  try {
+    console.log(`Creating Hedera account for patient: ${upi}`);
+    hederaAccount = await createHederaAccount(0); // Platform pays for account creation
+    encryptedPrivateKey = encrypt(hederaAccount.privateKey);
+    console.log(`✅ Hedera account created: ${hederaAccount.accountId}`);
+  } catch (error) {
+    console.error('Failed to create Hedera account for patient:', error);
+    // Continue registration even if Hedera account creation fails
+    // Account can be created later if needed
+  }
+  
+  // Create patient identity with Hedera account
   await createPatient(upi, {
+    hederaAccountId: hederaAccount?.accountId || null,
+    encryptedPrivateKey: encryptedPrivateKey || null,
     name: patientInfo.name,
     dateOfBirth: patientInfo.dateOfBirth,
     phone: patientInfo.phone,
@@ -90,6 +110,7 @@ export async function registerPatientWithContact(
   
   return {
     upi,
+    hederaAccountId: hederaAccount?.accountId || null,
     message: 'Patient registered successfully',
     createdAt: new Date().toISOString()
   };

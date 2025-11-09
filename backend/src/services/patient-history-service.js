@@ -127,10 +127,22 @@ export async function getHospitalMedicalHistory(
  * 
  * @param {string} upi - Unique Patient Identity
  * @param {Function} getHistory - Function to get complete history
+ * @param {Function} getPatient - Function to get patient record (optional, for Hedera Account ID)
  * @returns {Promise<Object>} Summary statistics
  */
-export async function getPatientSummary(upi, getHistory) {
+export async function getPatientSummary(upi, getHistory, getPatient = null) {
   const history = await getHistory(upi);
+  
+  // Get patient record for Hedera Account ID
+  let hederaAccountId = null;
+  if (getPatient) {
+    try {
+      const patient = await getPatient(upi);
+      hederaAccountId = patient?.hederaAccountId || null;
+    } catch (error) {
+      // Ignore errors - account ID may not exist
+    }
+  }
   
   // Group records by test type
   const testTypes = new Map();
@@ -141,6 +153,7 @@ export async function getPatientSummary(upi, getHistory) {
   
   return {
     upi,
+    hederaAccountId,
     totalRecords: history.totalRecords,
     hospitalCount: history.hospitalCount,
     testTypes: Object.fromEntries(testTypes),

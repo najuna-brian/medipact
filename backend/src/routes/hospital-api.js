@@ -79,7 +79,8 @@ router.post('/register', async (req, res) => {
       message: 'Hospital registered successfully',
       hospital: {
         ...hospital,
-        apiKey // Only returned on creation - hospital should save this securely
+        apiKey, // Only returned on creation - hospital should save this securely
+        hederaAccountId: hospital.hederaAccountId // Include Hedera Account ID
       }
     });
   } catch (error) {

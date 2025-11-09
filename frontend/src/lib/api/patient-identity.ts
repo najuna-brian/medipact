@@ -27,6 +27,7 @@ export interface PatientPII {
 
 export interface Patient {
   upi: string;
+  hederaAccountId?: string;
   message?: string;
   createdAt?: string;
 }
@@ -41,6 +42,7 @@ export interface HospitalInfo {
 
 export interface Hospital {
   hospitalId: string;
+  hederaAccountId?: string;
   name: string;
   country: string;
   location?: string;
@@ -84,6 +86,7 @@ export interface PatientHistory {
 
 export interface PatientSummary {
   upi: string;
+  hederaAccountId?: string;
   totalRecords: number;
   hospitalCount: number;
   testTypes: Record<string, number>;
@@ -340,16 +343,24 @@ export interface AdminHospitalDetail extends AdminHospital {
 /**
  * Get all hospitals (admin only)
  */
-export async function getAllHospitals(): Promise<AdminHospitalsResponse> {
-  const response = await patientIdentityClient.get('/admin/hospitals');
+export async function getAllHospitals(token: string): Promise<AdminHospitalsResponse> {
+  const response = await patientIdentityClient.get('/admin/hospitals', {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
   return response.data;
 }
 
 /**
  * Get hospital details (admin only)
  */
-export async function getAdminHospitalDetail(hospitalId: string): Promise<AdminHospitalDetail> {
-  const response = await patientIdentityClient.get(`/admin/hospitals/${hospitalId}`);
+export async function getAdminHospitalDetail(hospitalId: string, token: string): Promise<AdminHospitalDetail> {
+  const response = await patientIdentityClient.get(`/admin/hospitals/${hospitalId}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
   return response.data;
 }
 
@@ -358,11 +369,18 @@ export async function getAdminHospitalDetail(hospitalId: string): Promise<AdminH
  */
 export async function approveHospitalVerification(
   hospitalId: string,
+  token: string,
   adminId?: string
 ): Promise<{ success: boolean; hospital: AdminHospital }> {
-  const response = await patientIdentityClient.post(`/admin/hospitals/${hospitalId}/verify`, {
-    adminId: adminId || 'admin',
-  });
+  const response = await patientIdentityClient.post(
+    `/admin/hospitals/${hospitalId}/verify`,
+    { adminId: adminId || 'admin' },
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    }
+  );
   return response.data;
 }
 
@@ -372,12 +390,18 @@ export async function approveHospitalVerification(
 export async function rejectHospitalVerification(
   hospitalId: string,
   reason: string,
+  token: string,
   adminId?: string
 ): Promise<{ success: boolean; hospital: AdminHospital }> {
-  const response = await patientIdentityClient.post(`/admin/hospitals/${hospitalId}/reject`, {
-    reason,
-    adminId: adminId || 'admin',
-  });
+  const response = await patientIdentityClient.post(
+    `/admin/hospitals/${hospitalId}/reject`,
+    { reason, adminId: adminId || 'admin' },
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    }
+  );
   return response.data;
 }
 

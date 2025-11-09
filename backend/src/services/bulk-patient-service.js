@@ -3,9 +3,12 @@
  * 
  * Handles bulk registration of patients from CSV/JSON files.
  * Supports batch processing with progress tracking.
+ * Creates Hedera accounts for each patient.
  */
 
 import { generateUPI, getOrCreateUPI } from './patient-identity-service.js';
+import { createHederaAccount } from './hedera-account-service.js';
+import { encrypt } from './encryption-service.js';
 
 /**
  * Parse CSV data
@@ -75,6 +78,7 @@ function normalizePatientRecord(record) {
  * @param {Function} patientExists - Function to check if patient exists
  * @param {Function} createPatient - Function to create patient
  * @param {Function} createLinkage - Function to create hospital linkage
+ * @param {Function} getPatient - Function to get patient by UPI (optional, for retrieving Account ID)
  * @returns {Promise<Object>} Bulk registration result
  */
 export async function processBulkRegistration(
@@ -82,7 +86,8 @@ export async function processBulkRegistration(
   hospitalId,
   patientExists,
   createPatient,
-  createLinkage
+  createLinkage,
+  getPatient = null
 ) {
   // Parse data if CSV string
   let records = data;
@@ -122,10 +127,38 @@ export async function processBulkRegistration(
         normalized,
         patientExists,
         async (upi, patientData) => {
+          // Create Hedera account for new patient
+          let hederaAccount = null;
+          let encryptedPrivateKey = null;
+          
+          try {
+            hederaAccount = await createHederaAccount(0); // Platform pays
+            encryptedPrivateKey = encrypt(hederaAccount.privateKey);
+          } catch (error) {
+            console.error(`Failed to create Hedera account for patient ${upi}:`, error);
+            // Continue without Hedera account - can be created later
+          }
+          
           // Include all normalized data (including email/phone/nationalId) for contact creation
-          await createPatient(upi, normalized);
+          // Also include Hedera account info
+          await createPatient(upi, {
+            ...normalized,
+            hederaAccountId: hederaAccount?.accountId || null,
+            encryptedPrivateKey: encryptedPrivateKey || null
+          });
         }
       );
+      
+      // Get patient to retrieve Hedera Account ID if it exists
+      let hederaAccountId = null;
+      if (getPatient) {
+        try {
+          const patient = await getPatient(upi);
+          hederaAccountId = patient?.hederaAccountId || null;
+        } catch (error) {
+          // Ignore errors - account ID may not exist yet
+        }
+      }
       
       // Create hospital linkage
       const hospitalPatientId = record.patientid || record['patient id'] || record.id || `PAT-${i + 1}`;
@@ -140,6 +173,7 @@ export async function processBulkRegistration(
       results.successful++;
       results.patients.push({
         upi,
+        hederaAccountId,
         hospitalPatientId,
         name: normalized.name
       });

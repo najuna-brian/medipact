@@ -2,18 +2,45 @@
  * Admin API Routes
  * 
  * Admin-only routes for managing hospitals, verifications, etc.
- * Note: In production, these routes should be protected with proper admin authentication.
+ * Protected with JWT authentication.
  */
 
 import express from 'express';
 import { getHospital, getAllHospitals, updateHospital } from '../db/hospital-db.js';
 import { verifyHospital, rejectHospitalVerification } from '../services/hospital-verification-service.js';
+import { verifyAdminToken, extractTokenFromHeader } from '../services/admin-auth-service.js';
 
 const router = express.Router();
 
-// TODO: Add admin authentication middleware
-// For now, this is open - in production, add proper admin auth
-// async function authenticateAdmin(req, res, next) { ... }
+/**
+ * Admin authentication middleware
+ */
+async function authenticateAdmin(req, res, next) {
+  try {
+    const authHeader = req.headers.authorization || req.headers['x-admin-token'];
+    const token = extractTokenFromHeader(authHeader);
+    
+    if (!token) {
+      return res.status(401).json({ 
+        error: 'Authentication required',
+        message: 'Please provide a valid admin token'
+      });
+    }
+    
+    const admin = await verifyAdminToken(token);
+    req.admin = admin;
+    next();
+  } catch (error) {
+    console.error('Admin authentication error:', error);
+    res.status(401).json({ 
+      error: 'Invalid or expired token',
+      message: error.message 
+    });
+  }
+}
+
+// Apply authentication middleware to all admin routes
+router.use(authenticateAdmin);
 
 /**
  * GET /api/admin/hospitals
@@ -109,7 +136,7 @@ router.get('/hospitals/:hospitalId', async (req, res) => {
 router.post('/hospitals/:hospitalId/verify', async (req, res) => {
   try {
     const { hospitalId } = req.params;
-    const adminId = req.body.adminId || 'admin'; // TODO: Get from authenticated admin session
+    const adminId = req.admin.username; // Get from authenticated admin session
 
     const hospital = await getHospital(hospitalId);
     if (!hospital) {
@@ -146,7 +173,7 @@ router.post('/hospitals/:hospitalId/reject', async (req, res) => {
   try {
     const { hospitalId } = req.params;
     const { reason } = req.body;
-    const adminId = req.body.adminId || 'admin'; // TODO: Get from authenticated admin session
+    const adminId = req.admin.username; // Get from authenticated admin session
 
     if (!reason || reason.trim().length === 0) {
       return res.status(400).json({ error: 'Rejection reason is required' });

@@ -14,14 +14,18 @@ import {
   type AdminHospitalsResponse,
   type AdminHospitalDetail,
 } from '@/lib/api/patient-identity';
+import { useAdminSession } from './useAdminSession';
 
 /**
  * Get all hospitals (admin)
  */
 export function useAdminHospitals() {
+  const { token } = useAdminSession();
+  
   return useQuery<AdminHospitalsResponse>({
     queryKey: ['admin', 'hospitals'],
-    queryFn: getAllHospitals,
+    queryFn: () => getAllHospitals(token!),
+    enabled: !!token,
   });
 }
 
@@ -29,10 +33,12 @@ export function useAdminHospitals() {
  * Get hospital detail (admin)
  */
 export function useAdminHospitalDetail(hospitalId: string | null) {
+  const { token } = useAdminSession();
+  
   return useQuery<AdminHospitalDetail>({
     queryKey: ['admin', 'hospitals', hospitalId],
-    queryFn: () => getAdminHospitalDetail(hospitalId!),
-    enabled: !!hospitalId,
+    queryFn: () => getAdminHospitalDetail(hospitalId!, token!),
+    enabled: !!hospitalId && !!token,
   });
 }
 
@@ -41,10 +47,11 @@ export function useAdminHospitalDetail(hospitalId: string | null) {
  */
 export function useApproveHospital() {
   const queryClient = useQueryClient();
+  const { token } = useAdminSession();
 
   return useMutation({
     mutationFn: ({ hospitalId, adminId }: { hospitalId: string; adminId?: string }) =>
-      approveHospitalVerification(hospitalId, adminId),
+      approveHospitalVerification(hospitalId, token!, adminId),
     onSuccess: (data, variables) => {
       // Invalidate and refetch hospitals list
       queryClient.invalidateQueries({ queryKey: ['admin', 'hospitals'] });
@@ -64,6 +71,7 @@ export function useApproveHospital() {
  */
 export function useRejectHospital() {
   const queryClient = useQueryClient();
+  const { token } = useAdminSession();
 
   return useMutation({
     mutationFn: ({
@@ -74,7 +82,7 @@ export function useRejectHospital() {
       hospitalId: string;
       reason: string;
       adminId?: string;
-    }) => rejectHospitalVerification(hospitalId, reason, adminId),
+    }) => rejectHospitalVerification(hospitalId, reason, token!, adminId),
     onSuccess: (data, variables) => {
       // Invalidate and refetch hospitals list
       queryClient.invalidateQueries({ queryKey: ['admin', 'hospitals'] });

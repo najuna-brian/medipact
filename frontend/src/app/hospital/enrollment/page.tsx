@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRegisterHospital } from '@/hooks/usePatientIdentity';
 import { useHospitalSession } from '@/hooks/useHospitalSession';
+import { HederaAccountId } from '@/components/HederaAccountId/HederaAccountId';
 
 export default function HospitalEnrollmentPage() {
   const [formData, setFormData] = useState({
@@ -224,6 +225,12 @@ export default function HospitalEnrollmentPage() {
                       </Button>
                     </div>
                   </div>
+
+                  {registeredHospital.hederaAccountId && (
+                    <div>
+                      <HederaAccountId accountId={registeredHospital.hederaAccountId} />
+                    </div>
+                  )}
 
                   <div>
                     <p className="mb-1 text-sm text-muted-foreground">API Key</p>

@@ -60,6 +60,8 @@ async function createTables() {
   await run(`
     CREATE TABLE IF NOT EXISTS patient_identities (
       upi VARCHAR(64) PRIMARY KEY,
+      hedera_account_id VARCHAR(20) UNIQUE,
+      encrypted_private_key TEXT,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       status VARCHAR(20) NOT NULL DEFAULT 'active',
@@ -71,6 +73,8 @@ async function createTables() {
   await run(`
     CREATE TABLE IF NOT EXISTS hospitals (
       hospital_id VARCHAR(32) PRIMARY KEY,
+      hedera_account_id VARCHAR(20) UNIQUE,
+      encrypted_private_key TEXT,
       name VARCHAR(255) NOT NULL,
       country VARCHAR(100) NOT NULL,
       location VARCHAR(255),
@@ -144,6 +148,21 @@ async function createTables() {
     )
   `);
 
+  // Admins Table
+  await run(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username VARCHAR(100) NOT NULL UNIQUE,
+      password_hash VARCHAR(255) NOT NULL,
+      role VARCHAR(50) NOT NULL DEFAULT 'admin',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_login TIMESTAMP,
+      status VARCHAR(20) NOT NULL DEFAULT 'active',
+      CHECK (status IN ('active', 'suspended', 'deleted')),
+      CHECK (role IN ('admin', 'super_admin'))
+    )
+  `);
+
   // Create indexes
   await run(`CREATE INDEX IF NOT EXISTS idx_linkages_upi ON hospital_linkages(upi)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_linkages_hospital_id ON hospital_linkages(hospital_id)`);
@@ -152,6 +171,31 @@ async function createTables() {
   await run(`CREATE INDEX IF NOT EXISTS idx_contacts_email ON patient_contacts(email)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_contacts_phone ON patient_contacts(phone)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_contacts_national_id ON patient_contacts(national_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_patients_hedera_account ON patient_identities(hedera_account_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_hospitals_hedera_account ON hospitals(hedera_account_id)`);
+  
+  // Add Hedera account columns to existing tables (for migration)
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN hedera_account_id VARCHAR(20) UNIQUE`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN encrypted_private_key TEXT`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN hedera_account_id VARCHAR(20) UNIQUE`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN encrypted_private_key TEXT`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
 
   console.log('✅ Database tables created');
 }

@@ -2,10 +2,12 @@
  * Hospital Registry Service
  * 
  * Manages hospital accounts and registration.
- * Each hospital gets a unique hospital ID for linking patient records.
+ * Each hospital gets a unique hospital ID and Hedera Account ID.
  */
 
 import crypto from 'crypto';
+import { createHederaAccount } from './hedera-account-service.js';
+import { encrypt } from './encryption-service.js';
 
 /**
  * Generate unique hospital ID
@@ -53,8 +55,25 @@ export async function registerHospital(hospitalInfo, hospitalExists, hospitalCre
     );
   }
   
+  // Create Hedera account for hospital
+  let hederaAccount = null;
+  let encryptedPrivateKey = null;
+  
+  try {
+    console.log(`Creating Hedera account for hospital: ${hospitalId}`);
+    hederaAccount = await createHederaAccount(0); // Platform pays for account creation
+    encryptedPrivateKey = encrypt(hederaAccount.privateKey);
+    console.log(`✅ Hedera account created: ${hederaAccount.accountId}`);
+  } catch (error) {
+    console.error('Failed to create Hedera account for hospital:', error);
+    // Continue registration even if Hedera account creation fails
+    // Account can be created later if needed
+  }
+  
   const hospitalRecord = {
     hospitalId,
+    hederaAccountId: hederaAccount?.accountId || null,
+    encryptedPrivateKey: encryptedPrivateKey || null,
     name: hospitalInfo.name,
     country: hospitalInfo.country,
     location: hospitalInfo.location || null,
@@ -67,9 +86,9 @@ export async function registerHospital(hospitalInfo, hospitalExists, hospitalCre
 
   await hospitalCreate(hospitalRecord);
   
-  // Return record without API key (for security)
-  const { apiKey, ...recordWithoutKey } = hospitalRecord;
-  return recordWithoutKey;
+  // Return record without API key and private key (for security)
+  const { apiKey, encryptedPrivateKey: _, ...recordWithoutKeys } = hospitalRecord;
+  return recordWithoutKeys;
 }
 
 /**

@@ -8,7 +8,7 @@ import express from 'express';
 import { processBulkRegistration } from '../services/bulk-patient-service.js';
 import { generateUPI, getOrCreateUPI } from '../services/patient-identity-service.js';
 import { linkHospitalToUPI } from '../services/hospital-linkage-service.js';
-import { createPatient, patientExists } from '../db/patient-db.js';
+import { createPatient, patientExists, getPatient } from '../db/patient-db.js';
 import { createLinkage, getLinkagesByHospital } from '../db/linkage-db.js';
 import { upsertPatientContact } from '../db/patient-contacts-db.js';
 import { verifyHospitalApiKey, getHospital as getHospitalFromDB } from '../db/hospital-db.js';
@@ -76,6 +76,9 @@ router.post('/:hospitalId/patients/bulk', authenticateHospital, async (req, res)
       },
       async (linkage) => {
         await createLinkage(linkage);
+      },
+      async (upi) => {
+        return await getPatient(upi);
       }
     );
     
@@ -143,15 +146,40 @@ router.post('/:hospitalId/patients', authenticateHospital, async (req, res) => {
     }
     
     // Generate or get UPI
+    let hederaAccountId = null;
     const upi = await getOrCreateUPI(
       { name, dateOfBirth, phone, nationalId },
       async (upi) => {
         return await patientExists(upi);
       },
       async (upi, patientData) => {
-        await createPatient(upi, patientData);
+        // Create Hedera account for new patient
+        const { createHederaAccount } = await import('../services/hedera-account-service.js');
+        const { encrypt } = await import('../services/encryption-service.js');
+        
+        try {
+          const hederaAccount = await createHederaAccount(0); // Platform pays
+          hederaAccountId = hederaAccount.accountId;
+          const encryptedPrivateKey = encrypt(hederaAccount.privateKey);
+          
+          await createPatient(upi, {
+            ...patientData,
+            hederaAccountId,
+            encryptedPrivateKey
+          });
+        } catch (error) {
+          console.error('Failed to create Hedera account for patient:', error);
+          // Continue without Hedera account
+          await createPatient(upi, patientData);
+        }
       }
     );
+    
+    // If patient already existed, get their Hedera Account ID
+    if (!hederaAccountId) {
+      const patient = await getPatient(upi);
+      hederaAccountId = patient?.hederaAccountId || null;
+    }
     
     // Create/update contact information
     if (email || phone || nationalId) {
@@ -175,6 +203,7 @@ router.post('/:hospitalId/patients', authenticateHospital, async (req, res) => {
     res.json({
       message: 'Patient registered successfully',
       upi,
+      hederaAccountId,
       hospitalPatientId
     });
   } catch (error) {

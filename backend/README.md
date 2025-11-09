@@ -4,11 +4,13 @@ Backend API for patient identity management and hospital registry. Enables patie
 
 ## Features
 
+- **Native Hedera Accounts**: Every patient and hospital has a Hedera Account ID (0.0.xxxxx)
 - **Unique Patient Identity (UPI)**: Deterministic hash-based patient identifiers
-- **Hospital Registry**: Register and manage hospital accounts
+- **Hospital Registry**: Register and manage hospital accounts with Hedera accounts
 - **Hospital Linkage**: Link hospital-specific patient IDs to UPIs
 - **Patient History**: Aggregate medical records from all linked hospitals
 - **Cross-Hospital Access**: Patients can access records from all hospitals
+- **Secure Key Management**: Encrypted private key storage for Hedera accounts
 
 ## Setup
 
@@ -19,13 +21,27 @@ npm install
 
 2. Configure environment variables (create `.env` file):
 ```env
-PORT=3000
+# Hedera Configuration (Required for account creation)
+OPERATOR_ID="0.0.xxxxx"
+OPERATOR_KEY="0x..."
+HEDERA_NETWORK="testnet"
+
+# Encryption Key (Required - generate: openssl rand -hex 32)
+ENCRYPTION_KEY="your-32-byte-hex-encryption-key"
+
+# Server Configuration
+PORT=3002
 NODE_ENV=development
-# Database configuration (adapt to your database)
-DATABASE_URL=postgresql://user:password@localhost:5432/medipact
-# JWT secret for authentication (generate a secure random string)
+
+# Database (SQLite for dev, PostgreSQL for prod)
+DATABASE_PATH="./data/medipact.db"
+
+# JWT Configuration
 JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN="24h"
 ```
+
+Get free Hedera testnet account at: https://portal.hedera.com/dashboard
 
 3. Start the server:
 ```bash

@@ -31,8 +31,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { AdminProtectedRoute } from '@/components/AdminProtectedRoute/AdminProtectedRoute';
 
-export default function AdminHospitalsPage() {
+function AdminHospitalsPageContent() {
   const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -602,6 +603,14 @@ export default function AdminHospitalsPage() {
         </AlertDialog>
       </div>
     </div>
+  );
+}
+
+export default function AdminHospitalsPage() {
+  return (
+    <AdminProtectedRoute>
+      <AdminHospitalsPageContent />
+    </AdminProtectedRoute>
   );
 }
 

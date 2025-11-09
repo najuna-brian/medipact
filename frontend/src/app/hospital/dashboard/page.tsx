@@ -15,8 +15,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useHospitalSession } from '@/hooks/useHospitalSession';
-import { useVerificationStatus, useHospitalPatients } from '@/hooks/usePatientIdentity';
+import {
+  useVerificationStatus,
+  useHospitalPatients,
+  useHospital,
+} from '@/hooks/usePatientIdentity';
 import { useRouter } from 'next/navigation';
+import { HederaAccountId } from '@/components/HederaAccountId/HederaAccountId';
 
 export default function HospitalDashboardPage() {
   const router = useRouter();
@@ -30,6 +35,7 @@ export default function HospitalDashboardPage() {
     hospitalId,
     apiKey
   );
+  const { data: hospitalData } = useHospital(hospitalId, apiKey);
 
   // Listen for hospital verification updates from admin
   useEffect(() => {
@@ -72,8 +78,23 @@ export default function HospitalDashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold">Hospital Dashboard</h1>
-          <p className="text-muted-foreground">Manage patient data and revenue</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="mb-2 text-3xl font-bold">Hospital Dashboard</h1>
+              <p className="text-muted-foreground">Manage patient data and revenue</p>
+            </div>
+            {hospitalId && (
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Hospital ID</p>
+                <p className="font-mono font-semibold">{hospitalId}</p>
+              </div>
+            )}
+          </div>
+          {hospitalData?.hederaAccountId && (
+            <div className="mt-4">
+              <HederaAccountId accountId={hospitalData.hederaAccountId} />
+            </div>
+          )}
         </div>
 
         {/* Verification Status Alert */}

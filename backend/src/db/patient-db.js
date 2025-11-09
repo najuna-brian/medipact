@@ -17,11 +17,16 @@ const all = (query, params) => promisify(getDb().all.bind(getDb()))(query, param
  */
 export async function createPatient(upi, patientData = {}) {
   await run(
-    `INSERT INTO patient_identities (upi, created_at, last_updated, status)
-     VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'active')`,
-    [upi]
+    `INSERT INTO patient_identities (upi, hedera_account_id, encrypted_private_key, created_at, last_updated, status)
+     VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'active')`,
+    [upi, patientData.hederaAccountId || null, patientData.encryptedPrivateKey || null]
   );
-  return { upi, ...patientData, createdAt: new Date().toISOString() };
+  return { 
+    upi, 
+    hederaAccountId: patientData.hederaAccountId,
+    ...patientData, 
+    createdAt: new Date().toISOString() 
+  };
 }
 
 /**
@@ -39,10 +44,36 @@ export async function patientExists(upi) {
  * Get patient by UPI
  */
 export async function getPatient(upi) {
-  return await get(
-    `SELECT * FROM patient_identities WHERE upi = ? AND status = 'active'`,
+  const patient = await get(
+    `SELECT 
+      upi,
+      hedera_account_id as hederaAccountId,
+      created_at as createdAt,
+      last_updated as lastUpdated,
+      status
+     FROM patient_identities 
+     WHERE upi = ? AND status = 'active'`,
     [upi]
   );
+  return patient;
+}
+
+/**
+ * Get patient by Hedera Account ID
+ */
+export async function getPatientByHederaAccount(hederaAccountId) {
+  const patient = await get(
+    `SELECT 
+      upi,
+      hedera_account_id as hederaAccountId,
+      created_at as createdAt,
+      last_updated as lastUpdated,
+      status
+     FROM patient_identities 
+     WHERE hedera_account_id = ? AND status = 'active'`,
+    [hederaAccountId]
+  );
+  return patient;
 }
 
 /**
@@ -55,6 +86,16 @@ export async function updatePatient(upi, updates) {
   if (updates.status) {
     fields.push('status = ?');
     values.push(updates.status);
+  }
+
+  if (updates.hederaAccountId) {
+    fields.push('hedera_account_id = ?');
+    values.push(updates.hederaAccountId);
+  }
+
+  if (updates.encryptedPrivateKey) {
+    fields.push('encrypted_private_key = ?');
+    values.push(updates.encryptedPrivateKey);
   }
 
   if (fields.length > 0) {

@@ -7,13 +7,15 @@
 Our MVP demonstrates the "In-Person Bridge" - a hospital adapter that anonymizes patient data, submits cryptographic proof hashes to HCS, and enables verifiable data sharing. Patients receive 60% of revenue via HBAR micropayments, hospitals get 25%, and the platform takes 15%.
 
 **Key Features:**
+- **Native Hedera Integration**: Every patient and hospital has a Hedera Account ID (0.0.xxxxx)
 - FHIR R4 compliant data processing
 - Automatic PII removal with anonymous ID generation
-- Immutable consent and data proofs on Hedera
+- Immutable consent and data proofs on Hedera HCS
 - Automated revenue distribution via smart contracts
 - Full audit trail on HashScan
+- Platform-managed Hedera accounts for seamless UX
 
-**Tech Stack:** Hedera HCS, Hedera EVM, Solidity, Node.js, FHIR R4
+**Tech Stack:** Hedera HCS, Hedera EVM, Hedera Account IDs, Solidity, Node.js, FHIR R4
 
 ---
 

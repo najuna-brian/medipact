@@ -7,11 +7,16 @@ import { Button } from '@/components/ui/button';
 import { usePatientSummary, usePatientHospitals } from '@/hooks/usePatientIdentity';
 import { usePatientSession } from '@/hooks/usePatientSession';
 import { PatientProtectedRoute } from '@/components/PatientProtectedRoute/PatientProtectedRoute';
+import { HederaAccountId } from '@/components/HederaAccountId/HederaAccountId';
 
 function PatientDashboardContent() {
   const { upi } = usePatientSession();
   const { data: summary, isLoading: summaryLoading } = usePatientSummary(upi);
   const { data: hospitalsData } = usePatientHospitals(upi);
+
+  // Get Hedera Account ID from patient data (if available)
+  // Note: This might come from a separate patient info endpoint
+  const hederaAccountId = summary?.hederaAccountId;
 
   const connectedHospitals = hospitalsData?.hospitals || [];
 
@@ -26,13 +31,16 @@ function PatientDashboardContent() {
         {/* Current UPI Display */}
         {upi && (
           <Card className="mb-6">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Your Patient Identity</p>
-                  <p className="font-mono font-semibold">{upi}</p>
-                </div>
+            <CardContent className="space-y-4 pt-6">
+              <div>
+                <p className="text-sm text-muted-foreground">Your Patient Identity (UPI)</p>
+                <p className="font-mono font-semibold">{upi}</p>
               </div>
+              {summary?.hederaAccountId && (
+                <div>
+                  <HederaAccountId accountId={summary.hederaAccountId} />
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

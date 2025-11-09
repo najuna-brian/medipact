@@ -229,8 +229,14 @@ router.get('/:upi/summary', authenticatePatient, async (req, res) => {
       }
     );
     
-    // Get summary from history
-    const summary = await getPatientSummary(upi, async () => history);
+    // Get summary from history (include patient record for Hedera Account ID)
+    const summary = await getPatientSummary(
+      upi, 
+      async () => history,
+      async (upi) => {
+        return await getPatient(upi);
+      }
+    );
     
     res.json(summary);
   } catch (error) {

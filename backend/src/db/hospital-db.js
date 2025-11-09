@@ -30,11 +30,13 @@ export async function createHospital(hospitalData) {
 
   await run(
     `INSERT INTO hospitals (
-      hospital_id, name, country, location, fhir_endpoint, 
+      hospital_id, hedera_account_id, encrypted_private_key, name, country, location, fhir_endpoint, 
       contact_email, api_key_hash, registered_at, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
     [
       hospitalData.hospitalId,
+      hospitalData.hederaAccountId || null,
+      hospitalData.encryptedPrivateKey || null,
       hospitalData.name,
       hospitalData.country,
       hospitalData.location || null,
@@ -69,6 +71,7 @@ export async function getHospital(hospitalId) {
   return await get(
     `SELECT 
       hospital_id as hospitalId,
+      hedera_account_id as hederaAccountId,
       name,
       country,
       location,
@@ -83,6 +86,31 @@ export async function getHospital(hospitalId) {
     FROM hospitals 
     WHERE hospital_id = ? AND status = 'active'`,
     [hospitalId]
+  );
+}
+
+/**
+ * Get hospital by Hedera Account ID
+ */
+export async function getHospitalByHederaAccount(hederaAccountId) {
+  return await get(
+    `SELECT 
+      hospital_id as hospitalId,
+      hedera_account_id as hederaAccountId,
+      name,
+      country,
+      location,
+      fhir_endpoint as fhirEndpoint,
+      contact_email as contactEmail,
+      registered_at as registeredAt,
+      status,
+      verification_status as verificationStatus,
+      verification_documents as verificationDocuments,
+      verified_at as verifiedAt,
+      verified_by as verifiedBy
+    FROM hospitals 
+    WHERE hedera_account_id = ? AND status = 'active'`,
+    [hederaAccountId]
   );
 }
 
@@ -147,6 +175,14 @@ export async function updateHospital(hospitalId, updates) {
     fields.push('verified_by = ?');
     values.push(updates.verified_by);
   }
+  if (updates.hederaAccountId !== undefined) {
+    fields.push('hedera_account_id = ?');
+    values.push(updates.hederaAccountId);
+  }
+  if (updates.encryptedPrivateKey !== undefined) {
+    fields.push('encrypted_private_key = ?');
+    values.push(updates.encryptedPrivateKey);
+  }
 
   if (fields.length > 0) {
     values.push(hospitalId);
@@ -166,6 +202,7 @@ export async function getAllHospitals() {
   return await all(
     `SELECT 
       hospital_id as hospitalId,
+      hedera_account_id as hederaAccountId,
       name,
       country,
       location,

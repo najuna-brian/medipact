@@ -10,6 +10,7 @@ import patientRoutes from './routes/patient-api.js';
 import hospitalRoutes from './routes/hospital-api.js';
 import hospitalPatientsRoutes from './routes/hospital-patients-api.js';
 import adminRoutes from './routes/admin-api.js';
+import adminAuthRoutes from './routes/admin-auth-api.js';
 import { initDatabase, closeDatabase } from './db/database.js';
 
 const app = express();
@@ -34,7 +35,8 @@ app.get('/health', (req, res) => {
 app.use('/api/patient', patientRoutes);
 app.use('/api/hospital', hospitalRoutes);
 app.use('/api/hospital', hospitalPatientsRoutes); // Hospital patient management routes
-app.use('/api/admin', adminRoutes); // Admin routes
+app.use('/api/admin/auth', adminAuthRoutes); // Admin authentication routes (public)
+app.use('/api/admin', adminRoutes); // Admin routes (protected)
 
 // 404 handler
 app.use((req, res) => {
