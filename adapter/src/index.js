@@ -22,6 +22,7 @@ import {
   recordConsentOnChain,
   executeRealPayout
 } from './hedera/evm-client.js';
+import { distributeRevenueAfterProcessing } from './services/revenue-integration.js';
 import { Hbar } from '@hashgraph/sdk';
 
 dotenv.config();
@@ -135,12 +136,16 @@ async function main() {
 
     // Step 5: Anonymize data with demographics
     console.log('5. Anonymizing patient data with demographics...');
-    const { records: anonymizedRecords, patientMapping } = anonymizeWithDemographics(
+    const anonymizationResult = anonymizeWithDemographics(
       rawRecords,
       hospitalInfo
     );
+    const { records: anonymizedRecords, patientMapping, upiMapping } = anonymizationResult;
     console.log(`   ✓ Anonymized ${anonymizedRecords.length} records`);
     console.log(`   ✓ Mapped ${patientMapping.size} unique patients`);
+    if (upiMapping) {
+      console.log(`   ✓ UPI mapping: ${upiMapping.size} patients with UPI`);
+    }
     console.log(`   ✓ Demographics preserved: Age Range, Country, Gender, Occupation Category\n`);
 
     // Step 6: Write anonymized data to CSV
@@ -274,10 +279,72 @@ async function main() {
     
     console.log(`\nPAYOUT SIMULATED: ${formatCurrency(perPatientShareUsd, 'USD')} per patient (${patientMapping.size} patients)\n`);
 
-    // Step 12: Execute real payout
+    // Step 12: Execute real revenue distribution using backend API
+    // This uses Hedera Account IDs for direct HBAR transfers
+    const hospitalId = process.env.HOSPITAL_ID;
+    const backendApiUrl = process.env.BACKEND_API_URL || 'http://localhost:3002';
+    
+    if (hospitalId && backendApiUrl) {
+      console.log('=== 7. EXECUTE REVENUE DISTRIBUTION ===');
+      try {
+        // Calculate records per patient for proportional distribution
+        const recordsPerPatient = new Map();
+        for (const [originalPatientId, anonymousPID] of patientMapping) {
+          const patientRecords = anonymizedRecords.filter(r => r['Anonymous PID'] === anonymousPID);
+          recordsPerPatient.set(originalPatientId, patientRecords.length);
+        }
+
+        // Convert total HBAR to tinybars
+        const totalTinybars = Math.floor(totalHbar * 100000000);
+
+        // Distribute revenue using backend API
+        const distributionResult = await distributeRevenueAfterProcessing({
+          patientMapping,
+          upiMapping: upiMapping || null,
+          rawRecords: rawRecords, // Pass raw records for UPI lookup
+          hospitalId,
+          totalRevenue: totalTinybars,
+          recordsPerPatient
+        });
+
+        if (distributionResult.success) {
+          console.log(`   ✓ Revenue distribution successful!`);
+          console.log(`   ✓ Total patients: ${distributionResult.total}`);
+          console.log(`   ✓ Successful: ${distributionResult.successful}`);
+          console.log(`   ✓ Failed: ${distributionResult.failed}`);
+          
+          // Show transaction IDs
+          if (distributionResult.results && distributionResult.results.length > 0) {
+            console.log(`\n   Transaction Details:`);
+            distributionResult.results.forEach((result, index) => {
+              if (result.success && result.distribution) {
+                console.log(`     Patient ${index + 1}: ${result.distribution.transactionId}`);
+                if (result.distribution.transfers) {
+                  console.log(`       Patient: ${result.distribution.transfers.patient.amount}`);
+                  console.log(`       Hospital: ${result.distribution.transfers.hospital.amount}`);
+                }
+              }
+            });
+          }
+          console.log('');
+        } else if (distributionResult.skipped) {
+          console.log(`   ⚠️  Revenue distribution skipped: ${distributionResult.reason}\n`);
+        } else {
+          console.error(`   ⚠️  Revenue distribution failed: ${distributionResult.error}\n`);
+        }
+      } catch (error) {
+        console.error(`   ⚠️  Failed to execute revenue distribution: ${error.message}`);
+        console.log(`   Continuing with simulation-only mode...\n`);
+      }
+    } else {
+      console.log('⚠️  HOSPITAL_ID or BACKEND_API_URL not configured. Skipping revenue distribution.');
+      console.log('   Set HOSPITAL_ID and BACKEND_API_URL in .env to enable revenue distribution.\n');
+    }
+
+    // Step 13: Legacy RevenueSplitter contract support (optional)
     // Transfer HBAR to RevenueSplitter contract which will automatically split the revenue
-    if (process.env.REVENUE_SPLITTER_ADDRESS) {
-      console.log('=== 7. EXECUTE REAL PAYOUT ===');
+    if (process.env.REVENUE_SPLITTER_ADDRESS && !hospitalId) {
+      console.log('=== 8. EXECUTE LEGACY PAYOUT (RevenueSplitter Contract) ===');
       try {
         const totalHbarPayout = new Hbar(totalHbar);
         const payoutTxId = await executeRealPayout(
@@ -296,8 +363,6 @@ async function main() {
         console.error(`   ⚠️  Failed to execute real payout: ${error.message}`);
         console.log(`   Continuing with simulation-only mode...\n`);
       }
-    } else {
-      console.log('⚠️  REVENUE_SPLITTER_ADDRESS not configured. Skipping real payout.\n');
     }
 
     // Close client
