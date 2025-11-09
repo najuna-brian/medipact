@@ -518,3 +518,220 @@ export async function checkBackendHealth(): Promise<{ status: string; timestamp:
   return response.data;
 }
 
+// Researcher Types and API
+export interface ResearcherInfo {
+  email: string;
+  organizationName: string;
+  contactName?: string;
+  country?: string;
+}
+
+export interface Researcher {
+  researcherId: string;
+  hederaAccountId?: string;
+  email: string;
+  organizationName: string;
+  contactName?: string;
+  country?: string;
+  verificationStatus: 'pending' | 'verified' | 'rejected';
+  accessLevel: 'basic' | 'verified' | 'anonymous';
+  verifiedAt?: string;
+  verifiedBy?: string;
+  registeredAt: string;
+  verificationPrompt?: boolean;
+  verificationMessage?: string;
+}
+
+export interface ResearcherVerificationStatus {
+  researcherId: string;
+  verificationStatus: 'pending' | 'verified' | 'rejected';
+  accessLevel: 'basic' | 'verified' | 'anonymous';
+  verifiedAt: string | null;
+  verifiedBy: string | null;
+  verificationDocuments: any | null;
+  verificationPrompt: boolean;
+  verificationMessage: string | null;
+}
+
+/**
+ * Register a new researcher
+ */
+export async function registerResearcher(researcherInfo: ResearcherInfo): Promise<{ message: string; researcher: Researcher }> {
+  const response = await patientIdentityClient.post('/researcher/register', researcherInfo);
+  return response.data;
+}
+
+/**
+ * Get researcher by ID
+ */
+export async function getResearcher(researcherId: string): Promise<Researcher> {
+  const response = await patientIdentityClient.get(`/researcher/${researcherId}`);
+  return response.data;
+}
+
+/**
+ * Get researcher by email
+ */
+export async function getResearcherByEmail(email: string): Promise<Researcher> {
+  const response = await patientIdentityClient.get(`/researcher/email/${email}`);
+  return response.data;
+}
+
+/**
+ * Submit verification documents
+ */
+export async function submitResearcherVerification(
+  researcherId: string,
+  documents: any
+): Promise<{ message: string; researcherId: string; verificationStatus: string }> {
+  const response = await patientIdentityClient.post(`/researcher/${researcherId}/verify`, { documents });
+  return response.data;
+}
+
+/**
+ * Get verification status
+ */
+export async function getResearcherVerificationStatus(researcherId: string): Promise<ResearcherVerificationStatus> {
+  const response = await patientIdentityClient.get(`/researcher/${researcherId}/verification-status`);
+  return response.data;
+}
+
+// Admin Researcher Management
+export interface AdminResearcher {
+  researcherId: string;
+  hederaAccountId?: string;
+  email: string;
+  organizationName: string;
+  contactName?: string;
+  country?: string;
+  verificationStatus: 'pending' | 'verified' | 'rejected';
+  accessLevel: 'basic' | 'verified' | 'anonymous';
+  verifiedAt?: string;
+  verifiedBy?: string;
+  registeredAt: string;
+  verificationPrompt?: boolean;
+}
+
+export interface AdminResearchersResponse {
+  total: number;
+  researchers: AdminResearcher[];
+}
+
+export interface AdminResearcherDetail extends AdminResearcher {
+  verificationDocuments: any | null;
+}
+
+/**
+ * Get all researchers (admin only)
+ */
+export async function getAllResearchers(token: string): Promise<AdminResearchersResponse> {
+  const response = await patientIdentityClient.get('/researcher/admin/researchers', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return response.data;
+}
+
+/**
+ * Get researcher detail (admin only)
+ */
+export async function getAdminResearcherDetail(researcherId: string, token: string): Promise<AdminResearcherDetail> {
+  const response = await patientIdentityClient.get(`/researcher/admin/researchers/${researcherId}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return response.data;
+}
+
+/**
+ * Approve researcher verification (admin only)
+ */
+export async function approveResearcherVerification(researcherId: string, token: string): Promise<{ message: string; researcher: Researcher }> {
+  const response = await patientIdentityClient.post(`/researcher/admin/researchers/${researcherId}/verify`, {}, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return response.data;
+}
+
+/**
+ * Reject researcher verification (admin only)
+ */
+export async function rejectResearcherVerification(
+  researcherId: string,
+  reason: string,
+  token: string
+): Promise<{ message: string; researcher: Researcher }> {
+  const response = await patientIdentityClient.post(`/researcher/admin/researchers/${researcherId}/reject`, { reason }, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return response.data;
+}
+
+// Marketplace API
+export interface Dataset {
+  id: string;
+  name: string;
+  description: string;
+  price: number; // in tinybars
+  recordCount: number;
+  demographics: {
+    ageRanges: string[];
+    countries: string[];
+    genders: string[];
+  };
+}
+
+export interface PurchaseRequest {
+  researcherId: string;
+  datasetId: string;
+  patientUPI?: string;
+  hospitalId?: string;
+  amount: number; // in tinybars
+}
+
+export interface PurchaseResponse {
+  message: string;
+  purchaseId: string;
+  datasetId: string;
+  amount: string;
+  revenueDistribution: any;
+  accessGranted: boolean;
+}
+
+/**
+ * Browse available datasets
+ */
+export async function browseDatasets(): Promise<{ datasets: Dataset[] }> {
+  const response = await patientIdentityClient.get('/marketplace/datasets');
+  return response.data;
+}
+
+/**
+ * Purchase dataset
+ */
+export async function purchaseDataset(purchaseRequest: PurchaseRequest): Promise<PurchaseResponse> {
+  const response = await patientIdentityClient.post('/marketplace/purchase', purchaseRequest);
+  return response.data;
+}
+
+/**
+ * Get researcher status
+ */
+export async function getResearcherStatus(researcherId: string): Promise<{
+  researcherId: string;
+  verificationStatus: string;
+  accessLevel: string;
+  verificationPrompt: boolean;
+  verificationMessage: string | null;
+  canPurchase: boolean;
+}> {
+  const response = await patientIdentityClient.get(`/marketplace/researcher/${researcherId}/status`);
+  return response.data;
+}
+
