@@ -4,13 +4,7 @@
  * CRUD operations for patient identities.
  */
 
-import { getDatabase } from './database.js';
-import { promisify } from 'util';
-
-const getDb = () => getDatabase();
-const run = (query, params) => promisify(getDb().run.bind(getDb()))(query, params);
-const get = (query, params) => promisify(getDb().get.bind(getDb()))(query, params);
-const all = (query, params) => promisify(getDb().all.bind(getDb()))(query, params);
+import { run, get, all } from './database.js';
 
 /**
  * Create patient identity

@@ -19,8 +19,16 @@ import { initDatabase, closeDatabase } from './db/database.js';
 const app = express();
 const PORT = process.env.PORT || 3002; // Default to 3002 to avoid conflicts
 
-// Middleware
-app.use(cors());
+// Middleware - CORS configuration
+const corsOptions = {
+  origin: process.env.FRONTEND_URL 
+    ? [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:3001']
+    : ['http://localhost:3000', 'http://localhost:3001'],
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 // Increase body size limit to handle base64-encoded documents (50mb allows ~37mb original files)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
