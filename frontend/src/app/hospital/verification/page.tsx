@@ -234,6 +234,17 @@ export default function HospitalVerificationPage() {
       return;
     }
 
+    // Validate that registration certificate is provided (either file or URL)
+    if (documents.certificateType === 'upload' && !certificateFile) {
+      setError('Please upload a registration certificate file or switch to URL input');
+      return;
+    }
+
+    if (documents.certificateType === 'url' && (!certificateUrl || certificateUrl.trim() === '')) {
+      setError('Please provide a registration certificate URL or switch to file upload');
+      return;
+    }
+
     try {
       let registrationCertificate: string | undefined;
 
@@ -242,6 +253,14 @@ export default function HospitalVerificationPage() {
         registrationCertificate = await convertFileToBase64(certificateFile);
       } else if (documents.certificateType === 'url' && certificateUrl.trim()) {
         registrationCertificate = certificateUrl.trim();
+      }
+
+      // Final check - ensure we have a certificate
+      if (!registrationCertificate) {
+        setError(
+          'Registration certificate is required. Please provide either a file upload or a URL link.'
+        );
+        return;
       }
 
       console.log('Submitting verification:', {
@@ -315,10 +334,10 @@ export default function HospitalVerificationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Current Status</p>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="mt-1 flex items-center gap-2">
                     {getStatusBadge(verificationStatus.verificationStatus)}
                     <span className="text-sm text-muted-foreground">
                       {verificationStatus.hospitalId}
@@ -330,16 +349,17 @@ export default function HospitalVerificationPage() {
               {verificationStatus.verificationStatus === 'verified' && (
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                   <div className="flex items-start gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600" />
                     <div>
                       <p className="font-semibold text-green-900">Verification Complete</p>
-                      <p className="text-sm text-green-800 mt-1">
+                      <p className="mt-1 text-sm text-green-800">
                         Your hospital has been verified. You can now register patients and use all
                         features.
                       </p>
                       {verificationStatus.verifiedAt && (
-                        <p className="text-xs text-green-700 mt-2">
-                          Verified on: {new Date(verificationStatus.verifiedAt).toLocaleDateString()}
+                        <p className="mt-2 text-xs text-green-700">
+                          Verified on:{' '}
+                          {new Date(verificationStatus.verifiedAt).toLocaleDateString()}
                         </p>
                       )}
                     </div>
@@ -350,10 +370,10 @@ export default function HospitalVerificationPage() {
               {verificationStatus.verificationStatus === 'rejected' && (
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                    <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
                     <div>
                       <p className="font-semibold text-red-900">Verification Rejected</p>
-                      <p className="text-sm text-red-800 mt-1">
+                      <p className="mt-1 text-sm text-red-800">
                         Your verification was rejected. Please review and resubmit your documents.
                       </p>
                     </div>
@@ -364,10 +384,10 @@ export default function HospitalVerificationPage() {
               {verificationStatus.verificationStatus === 'pending' && (
                 <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                    <AlertCircle className="mt-0.5 h-5 w-5 text-yellow-600" />
                     <div>
                       <p className="font-semibold text-yellow-900">Verification Pending</p>
-                      <p className="text-sm text-yellow-800 mt-1">
+                      <p className="mt-1 text-sm text-yellow-800">
                         Your documents are under review. You'll be notified once verification is
                         complete.
                       </p>
@@ -383,7 +403,7 @@ export default function HospitalVerificationPage() {
         {error && (
           <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4">
             <AlertCircle className="h-5 w-5 text-red-600" />
-            <span className="text-red-800 flex-1">{error}</span>
+            <span className="flex-1 text-red-800">{error}</span>
             <button onClick={() => setError(null)}>
               <X className="h-4 w-4 text-red-600" />
             </button>
@@ -393,7 +413,7 @@ export default function HospitalVerificationPage() {
         {success && (
           <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-4">
             <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <span className="text-green-800 flex-1">{success}</span>
+            <span className="flex-1 text-green-800">{success}</span>
             <button onClick={() => setSuccess(null)}>
               <X className="h-4 w-4 text-green-600" />
             </button>
@@ -422,9 +442,7 @@ export default function HospitalVerificationPage() {
                   <input
                     type="text"
                     value={documents.licenseNumber}
-                    onChange={(e) =>
-                      setDocuments({ ...documents, licenseNumber: e.target.value })
-                    }
+                    onChange={(e) => setDocuments({ ...documents, licenseNumber: e.target.value })}
                     placeholder="e.g., HOSP-LIC-2024-00123"
                     className="w-full rounded-lg border px-3 py-2"
                     required
@@ -436,7 +454,7 @@ export default function HospitalVerificationPage() {
                   <label className="mb-2 block text-sm font-medium">
                     Registration Certificate (Optional)
                   </label>
-                  
+
                   {/* Toggle between upload and URL */}
                   <div className="mb-3 flex gap-2">
                     <Button
@@ -468,7 +486,7 @@ export default function HospitalVerificationPage() {
                   {/* File Upload Option */}
                   {documents.certificateType === 'upload' && (
                     <div className="space-y-2">
-                      <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                      <div className="rounded-lg border-2 border-dashed p-6 text-center">
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg,.png"
@@ -477,8 +495,8 @@ export default function HospitalVerificationPage() {
                           id="certificate-upload"
                         />
                         <label htmlFor="certificate-upload" className="cursor-pointer">
-                          <Upload className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                          <p className="text-sm text-muted-foreground mb-1">
+                          <Upload className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                          <p className="mb-1 text-sm text-muted-foreground">
                             Click to upload or drag and drop
                           </p>
                           <p className="text-xs text-muted-foreground">
@@ -525,7 +543,12 @@ export default function HospitalVerificationPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={submitMutation.isPending}
+                  disabled={
+                    submitMutation.isPending ||
+                    !documents.licenseNumber ||
+                    (documents.certificateType === 'upload' && !certificateFile) ||
+                    (documents.certificateType === 'url' && !certificateUrl?.trim())
+                  }
                 >
                   {submitMutation.isPending ? (
                     <>
