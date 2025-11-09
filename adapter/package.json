@@ -26,6 +26,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@hashgraph/sdk": "^2.68.0",
+    "axios": "^1.7.9",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {

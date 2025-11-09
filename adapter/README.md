@@ -20,7 +20,11 @@ HEDERA_NETWORK="testnet"
 HOSPITAL_COUNTRY="Uganda"  # REQUIRED: Used as fallback when patient location missing
 HOSPITAL_LOCATION="Kampala, Uganda"  # Optional: Used for country inference if needed
 
-# Smart Contract Addresses (Optional)
+# Backend Integration (Required for Revenue Distribution)
+HOSPITAL_ID="HOSP-XXXXXXXX"  # Your hospital ID from backend registration
+BACKEND_API_URL="http://localhost:3002"  # Backend API URL
+
+# Smart Contract Addresses (Optional - Legacy)
 CONSENT_MANAGER_ADDRESS="0x..."
 REVENUE_SPLITTER_ADDRESS="0x..."
 ```
@@ -58,7 +62,23 @@ The adapter will:
 8. **Record consent proofs on-chain** using ConsentManager smart contract (NO original patient IDs stored)
 9. Display HashScan links for all transactions
 10. Show payout simulation (USD + optional local currency)
-11. **Execute real payouts** via RevenueSplitter smart contract (if configured)
+11. **Execute real revenue distribution** via backend API using Hedera Account IDs (if configured)
+12. **Legacy: Execute real payouts** via RevenueSplitter smart contract (if configured, optional)
+
+### Revenue Distribution
+
+The adapter can automatically distribute revenue to patients and hospitals after processing data. This requires:
+
+1. **Hospital Registration**: Register your hospital in the backend to get a `HOSPITAL_ID`
+2. **Patient Registration**: Ensure patients are registered in the backend with contact info
+3. **Environment Configuration**: Set `HOSPITAL_ID` and `BACKEND_API_URL` in `.env`
+
+When revenue distribution is enabled, the adapter will:
+- Look up patient UPI from backend using contact info (email, phone, national ID)
+- Call backend API to distribute revenue using Hedera Account IDs
+- Split revenue: 60% patient, 25% hospital, 15% platform
+
+See [ADAPTER_BACKEND_INTEGRATION.md](../docs/ADAPTER_BACKEND_INTEGRATION.md) for detailed documentation.
 
 ### UPI Integration (Optional)
 
