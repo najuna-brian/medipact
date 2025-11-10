@@ -9,7 +9,6 @@ import {
   usePatientHospitals,
   useLinkHospital,
   useRemoveHospitalLinkage,
-  useRegisterHospital,
 } from '@/hooks/usePatientIdentity';
 import { usePatientSession } from '@/hooks/usePatientSession';
 import { PatientProtectedRoute } from '@/components/PatientProtectedRoute/PatientProtectedRoute';

@@ -2,7 +2,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, Calendar, CheckCircle2, Clock } from 'lucide-react';
-import type { AnonymizedRecord } from '@/types/adapter';
 
 export default function HospitalProcessingPage() {
   // Mock processing history
