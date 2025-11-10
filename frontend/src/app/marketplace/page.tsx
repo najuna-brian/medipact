@@ -106,7 +106,7 @@ export default function MarketplacePage() {
                     </div>
                     <div>
                       <p className="text-gray-500 mb-1">Status</p>
-                      <Badge variant="outline" className="text-green-600 border-green-600">
+                      <Badge variant="default" className="text-green-600 border-green-600">
                         {dataset.status}
                       </Badge>
                     </div>
