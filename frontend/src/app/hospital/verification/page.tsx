@@ -7,10 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertCircle, CheckCircle2, X, Upload, FileText, Building2, Link as LinkIcon, Key } from 'lucide-react';
 import { useHospitalSession } from '@/hooks/useHospitalSession';
 import { useSubmitVerificationDocuments, useVerificationStatus } from '@/hooks/usePatientIdentity';
-import { useRouter } from 'next/navigation';
-
 export default function HospitalVerificationPage() {
-  const router = useRouter();
   const { hospitalId, apiKey, isAuthenticated, isLoading, login } = useHospitalSession();
   const [documents, setDocuments] = useState({
     licenseNumber: '',

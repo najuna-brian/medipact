@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, CheckCircle2, X, UserPlus, FileText } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, X, UserPlus } from 'lucide-react';
 import { useHospitalSession } from '@/hooks/useHospitalSession';
 import { useRegisterHospitalPatient } from '@/hooks/usePatientIdentity';
 import { useRouter } from 'next/navigation';

@@ -2,7 +2,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, Calendar, CheckCircle2, Clock } from 'lucide-react';
-import DataViewer from '@/components/DataViewer/DataViewer';
 import type { AnonymizedRecord } from '@/types/adapter';
 
 export default function HospitalProcessingPage() {
@@ -38,22 +37,22 @@ export default function HospitalProcessingPage() {
   ];
 
   // Mock anonymized data
-  const mockRecords: AnonymizedRecord[] = [
-    {
-      'Anonymous PID': 'PID-001',
-      'Test Type': 'Blood Glucose',
-      'Result': '95',
-      'Unit': 'mg/dL',
-      'Date': '2024-01-15',
-    },
-    {
-      'Anonymous PID': 'PID-002',
-      'Test Type': 'Cholesterol',
-      'Result': '180',
-      'Unit': 'mg/dL',
-      'Date': '2024-01-15',
-    },
-  ];
+  // const mockRecords: AnonymizedRecord[] = [
+  //   {
+  //     'Anonymous PID': 'PID-001',
+  //     'Test Type': 'Blood Glucose',
+  //     'Result': '95',
+  //     'Unit': 'mg/dL',
+  //     'Date': '2024-01-15',
+  //   },
+  //   {
+  //     'Anonymous PID': 'PID-002',
+  //     'Test Type': 'Cholesterol',
+  //     'Result': '180',
+  //     'Unit': 'mg/dL',
+  //     'Date': '2024-01-15',
+  //   },
+  // ];
 
   return (
     <div className="min-h-screen bg-gray-50">

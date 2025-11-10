@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TrendingUp, Database, DollarSign, FileDown } from 'lucide-react';
 
 export default function ResearcherAnalyticsPage() {

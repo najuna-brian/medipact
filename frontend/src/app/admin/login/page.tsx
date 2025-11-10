@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, Shield, ArrowRight } from 'lucide-react';
 import { useAdminLogin } from '@/hooks/useAdminAuth';
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [formData, setFormData] = useState({
     username: '',
     password: '',

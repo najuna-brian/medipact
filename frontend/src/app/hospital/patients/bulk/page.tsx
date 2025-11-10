@@ -92,7 +92,7 @@ export default function HospitalBulkUploadPage() {
       if (format === 'json') {
         try {
           data = JSON.parse(fileContent);
-        } catch (e) {
+        } catch {
           setError('Invalid JSON format. Please check your file.');
           return;
         }

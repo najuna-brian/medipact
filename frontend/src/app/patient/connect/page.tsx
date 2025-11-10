@@ -11,7 +11,6 @@ import {
   useRemoveHospitalLinkage,
   useRegisterHospital,
 } from '@/hooks/usePatientIdentity';
-import { useQueryClient } from '@tanstack/react-query';
 import { usePatientSession } from '@/hooks/usePatientSession';
 import { PatientProtectedRoute } from '@/components/PatientProtectedRoute/PatientProtectedRoute';
 
@@ -26,11 +25,9 @@ function PatientConnectContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const queryClient = useQueryClient();
   const { data: hospitalsData, isLoading, error: hospitalsError } = usePatientHospitals(upi);
   const linkHospitalMutation = useLinkHospital();
   const removeLinkageMutation = useRemoveHospitalLinkage();
-  const registerHospitalMutation = useRegisterHospital();
 
   const handleLinkHospital = async (e: React.FormEvent) => {
     e.preventDefault();

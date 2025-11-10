@@ -16,7 +16,7 @@ function PatientDashboardContent() {
 
   // Get Hedera Account ID from patient data (if available)
   // Note: This might come from a separate patient info endpoint
-  const hederaAccountId = summary?.hederaAccountId;
+  // const hederaAccountId = summary?.hederaAccountId;
 
   const connectedHospitals = hospitalsData?.hospitals || [];
 

@@ -123,7 +123,7 @@ function AdminHospitalsPageContent() {
   const isBase64 = (str: string) => {
     try {
       return btoa(atob(str)) === str;
-    } catch (err) {
+    } catch {
       return false;
     }
   };

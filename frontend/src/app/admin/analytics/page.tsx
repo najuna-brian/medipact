@@ -1,5 +1,5 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { TrendingUp, Users, DollarSign, Database, Activity } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Users, DollarSign, Database, Activity } from 'lucide-react';
 
 export default function AdminAnalyticsPage() {
   return (

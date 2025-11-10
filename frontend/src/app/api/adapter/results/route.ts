@@ -27,7 +27,7 @@ export async function GET() {
         records,
         total: records.length,
       });
-    } catch (error) {
+    } catch {
       return NextResponse.json(
         { error: 'No results found' },
         { status: 404 }

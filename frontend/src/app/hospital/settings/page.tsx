@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Settings, Key, Database, Bell } from 'lucide-react';
+import { Key, Database, Bell } from 'lucide-react';
 
 export default function HospitalSettingsPage() {
   return (

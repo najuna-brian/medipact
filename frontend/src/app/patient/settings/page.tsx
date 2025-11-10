@@ -1,7 +1,6 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Bell, Shield, User, Mail } from 'lucide-react';
+import { Bell, Shield, User } from 'lucide-react';
 
 export default function PatientSettingsPage() {
   return (

@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle2, AlertCircle, Upload, FileText } from 'lucide-react';
 import { useSubmitResearcherVerification, useResearcherVerificationStatus } from '@/hooks/useResearcher';
-import { VerificationPrompt } from '@/components/VerificationPrompt/VerificationPrompt';
 
 export default function ResearcherVerifyPage() {
   const params = useParams();
@@ -20,7 +19,7 @@ export default function ResearcherVerifyPage() {
   });
 
   const [filePreviews, setFilePreviews] = useState<Record<string, string>>({});
-  const [uploadMethod, setUploadMethod] = useState<'file' | 'url'>('file');
+  // const [uploadMethod, setUploadMethod] = useState<'file' | 'url'>('file');
   const [error, setError] = useState<string | null>(null);
 
   const verificationStatus = useResearcherVerificationStatus(researcherId);

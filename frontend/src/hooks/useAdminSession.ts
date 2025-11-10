@@ -28,7 +28,7 @@ export function useAdminSession() {
       setToken(storedToken);
       try {
         setAdmin(JSON.parse(storedAdmin));
-      } catch (e) {
+      } catch {
         // Invalid JSON, clear storage
         sessionStorage.removeItem(ADMIN_TOKEN_KEY);
         sessionStorage.removeItem(ADMIN_USER_KEY);

@@ -2,7 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, Calendar, Upload, Loader2, AlertCircle, Building2 } from 'lucide-react';
+import { Calendar, Upload, Loader2, AlertCircle, Building2 } from 'lucide-react';
 import {
   usePatientHistory,
   usePatientSummary,

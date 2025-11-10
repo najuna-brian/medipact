@@ -10,7 +10,6 @@ import {
   getAdminHospitalDetail,
   approveHospitalVerification,
   rejectHospitalVerification,
-  type AdminHospital,
   type AdminHospitalsResponse,
   type AdminHospitalDetail,
 } from '@/lib/api/patient-identity';

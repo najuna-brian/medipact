@@ -62,7 +62,7 @@ export async function processFile(
   // Verify the script exists before proceeding
   try {
     await fs.access(adapterScript);
-  } catch (error) {
+  } catch {
     console.error(`Adapter script not found at: ${adapterScript}`);
     console.error(`Resolved adapter directory: ${adapterDir}`);
     console.error(`Project root (process.cwd()): ${process.cwd()}`);
@@ -91,7 +91,7 @@ export async function processFile(
     };
 
     // Run the adapter script
-    const { stdout, stderr } = await execAsync(
+    const { stdout } = await execAsync(
       `cd "${adapterDir}" && node "${adapterScript}"`,
       {
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer
@@ -107,7 +107,7 @@ export async function processFile(
       const outputContent = await fs.readFile(outputFile, 'utf-8');
       const lines = outputContent.split('\n').filter((line) => line.trim());
       recordsProcessed = Math.max(0, lines.length - 1); // Subtract header
-    } catch (error) {
+    } catch {
       // Output file might not exist yet
     }
 
