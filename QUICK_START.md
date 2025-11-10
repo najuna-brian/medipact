@@ -8,7 +8,7 @@ Get up and running with MediPact in 5 minutes!
 - Hedera testnet account (get free at https://portal.hedera.com/dashboard)
 - Git
 
-## Quick Setup (6 Steps)
+## Quick Setup (Full Stack)
 
 ### 1. Clone Repository
 
@@ -24,19 +24,48 @@ cd medipact
 cd adapter
 npm install
 
-# Install contract dependencies (for smart contract deployment)
+# Install backend dependencies
+cd ../backend
+npm install
+
+# Install frontend dependencies
+cd ../frontend
+npm install
+
+# Install contract dependencies (optional, for smart contract deployment)
 cd ../contracts
 npm install
 ```
 
 ### 3. Configure Environment
 
+#### Adapter Configuration
 Create `.env` file in `adapter/` directory:
 
 ```env
 OPERATOR_ID="0.0.xxxxx"
 OPERATOR_KEY="0x..."
 HEDERA_NETWORK="testnet"
+```
+
+#### Backend Configuration
+Create `.env` file in `backend/` directory:
+
+```env
+OPERATOR_ID="0.0.xxxxx"
+OPERATOR_KEY="0x..."
+HEDERA_NETWORK="testnet"
+ENCRYPTION_KEY="your-32-byte-hex-key"
+PORT=3002
+JWT_SECRET="your-jwt-secret"
+```
+
+#### Frontend Configuration
+Create `.env.local` file in `frontend/` directory:
+
+```env
+NEXT_PUBLIC_API_URL="http://localhost:3002"
+NEXT_PUBLIC_HEDERA_NETWORK="testnet"
 ```
 
 Get your credentials from: https://portal.hedera.com/dashboard
@@ -57,20 +86,44 @@ CONSENT_MANAGER_ADDRESS="0x..."  # From deployment output
 REVENUE_SPLITTER_ADDRESS="0x..."  # From deployment output
 ```
 
-### 5. Run the Adapter
+### 5. Start Services
 
+#### Start Backend API
 ```bash
-cd ../adapter
+cd backend
+npm start
+# Server runs on http://localhost:3002
+# API docs at http://localhost:3002/api-docs
+```
+
+#### Start Frontend (in new terminal)
+```bash
+cd frontend
+npm run dev
+# Frontend runs on http://localhost:3000
+```
+
+#### Run Adapter (optional, for data processing)
+```bash
+cd adapter
 npm start
 ```
 
-### 6. Verify Results
+### 6. Access the Application
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:3002
+- **API Documentation**: http://localhost:3002/api-docs
+- **Health Check**: http://localhost:3002/health
+
+### 7. Verify Results
 
 ```bash
-# Check anonymized output
-cat data/anonymized_data.csv
+# Check anonymized output (if adapter was run)
+cat adapter/data/anonymized_data.csv
 
-# Validate output
+# Validate adapter output
+cd adapter
 npm run validate
 
 # Visit HashScan links from console output

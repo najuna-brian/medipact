@@ -91,10 +91,28 @@ Our hackathon MVP demonstrates the core "In-Person Bridge" flow:
   - Hedera Agent Kit JS for HCS topic management and message submission
   - HBAR for micropayments
   - Smart Contracts (Solidity) for revenue distribution
-- **Backend/Adapter**: Node.js / JavaScript
-- **Frontend**: (Optional for demo) React/Next.js
+- **Backend**: Node.js / Express.js
+  - RESTful API with Swagger UI documentation
+  - Patient identity management (UPI system)
+  - Hospital registry and verification
+  - Researcher marketplace
+  - Revenue distribution service
+  - SQLite (dev) / PostgreSQL (prod)
+- **Frontend**: Next.js 15 with TypeScript
+  - App Router architecture
+  - Tailwind CSS for styling
+  - TanStack Query for data fetching
+  - Role-based navigation and access control
+  - Public pages (marketplace, for-patients, for-hospitals, for-researchers)
+  - Dashboard sidebars for each role
+- **Adapter**: Node.js / JavaScript
+  - FHIR R4 and CSV data processing
+  - Data anonymization engine
+  - HCS integration
+  - Smart contract integration
 - **Integration**: **FHIR R4 API** (global healthcare standard), Mobile Money APIs (simulated)
 - **Data Standards**: FHIR (Fast Healthcare Interoperability Resources) R4 compliant
+- **API Documentation**: Swagger UI at `/api-docs`
 
 ## Repository Structure
 
@@ -123,24 +141,42 @@ medipact/
 │   ├── scripts/                # Deployment scripts
 │   └── test/                   # Contract tests
 │
-├── frontend/                   # Demo UI (optional)
-│   ├── public/
-│   │   └── mockups/            # Design mockups
+├── frontend/                   # Next.js Frontend Application
 │   ├── src/
-│   │   ├── app/                # App routing (if using Next.js)
-│   │   ├── components/        # React components
-│   │   │   ├── AdapterDemo/   # Main demo component
-│   │   │   ├── ConsentForm/   # Consent form component
-│   │   │   └── HashScanLink/  # HashScan link component
-│   │   ├── lib/               # Utility libraries
+│   │   ├── app/                # Next.js App Router pages
+│   │   │   ├── patient/        # Patient portal pages
+│   │   │   ├── hospital/       # Hospital portal pages
+│   │   │   ├── researcher/     # Researcher portal pages
+│   │   │   ├── admin/          # Admin portal pages
+│   │   │   ├── marketplace/    # Public marketplace page
+│   │   │   ├── for-patients/   # Public patient info page
+│   │   │   ├── for-hospitals/  # Public hospital info page
+│   │   │   ├── for-researchers/# Public researcher info page
+│   │   │   └── api/            # API routes
+│   │   ├── components/         # React components
+│   │   │   ├── ui/            # Reusable UI components
+│   │   │   ├── Sidebar/       # Role-based sidebar navigation
+│   │   │   ├── Navigation/    # Main navigation bar
+│   │   │   └── DataViewer/    # Data display components
+│   │   ├── hooks/             # Custom React hooks
+│   │   ├── lib/               # Utility libraries and API clients
 │   │   └── types/             # TypeScript type definitions
 │   └── tests/                 # Frontend tests
 │
-├── backend/                    # API server (if needed)
+├── backend/                    # Express.js Backend API
 │   ├── src/
-│   │   ├── routes/            # API routes
+│   │   ├── routes/            # API route handlers
+│   │   │   ├── patient-api.js
+│   │   │   ├── hospital-api.js
+│   │   │   ├── researcher-api.js
+│   │   │   ├── marketplace-api.js
+│   │   │   └── revenue-api.js
 │   │   ├── services/          # Business logic services
-│   │   └── utils/             # Backend utilities
+│   │   ├── db/                # Database operations
+│   │   ├── models/            # Data models and schemas
+│   │   ├── config/            # Configuration (Swagger, etc.)
+│   │   └── server.js          # Express server setup
+│   ├── data/                  # SQLite database (dev)
 │   └── tests/                 # Backend tests
 │
 ├── docs/                       # Documentation
@@ -248,6 +284,7 @@ See `adapter/SETUP.md` for detailed setup instructions.
 
 ## Development Status
 
+### Core Features ✅
 - [x] Project setup and repository structure
 - [x] README and documentation
 - [x] Hedera HCS integration (topic creation, message submission)
@@ -262,8 +299,32 @@ See `adapter/SETUP.md` for detailed setup instructions.
 - [x] EVM integration in adapter (ConsentManager, RevenueSplitter)
 - [x] On-chain consent registry
 - [x] Real HBAR payout execution
+
+### Backend API ✅
+- [x] Patient identity management (UPI system)
+- [x] Hospital registry and verification
+- [x] Researcher registration and verification
+- [x] Marketplace API endpoints
+- [x] Revenue distribution API
+- [x] Swagger UI API documentation
+- [x] Role-based authentication
+
+### Frontend Application ✅
+- [x] Next.js 15 application setup
+- [x] Patient portal (dashboard, wallet, earnings)
+- [x] Hospital portal (dashboard, upload, consent, revenue)
+- [x] Researcher portal (dashboard, catalog, purchases)
+- [x] Admin portal (dashboard, verification, analytics)
+- [x] Public pages (marketplace, for-patients, for-hospitals, for-researchers)
+- [x] Role-based navigation and access control
+- [x] Sidebar navigation for each role
+- [x] Data viewer components
+
+### In Progress
+- [ ] Dataset management system (backend + frontend)
+- [ ] Purchase flow implementation
+- [ ] Enhanced data display and filtering
 - [ ] End-to-end testing
-- [ ] Demo UI (optional)
 - [ ] Demo video and pitch deck
 
 ## Hackathon Submission Requirements

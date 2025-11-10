@@ -14,20 +14,36 @@
 
 ## Backend & Runtime
 - **Node.js** - JavaScript runtime environment
+- **Express.js** - Web application framework
 - **@hashgraph/sdk** (v2.76.0) - Official Hedera JavaScript SDK
 - **FHIR R4** - Fast Healthcare Interoperability Resources standard
 - **SHA-256** - Cryptographic hashing algorithm
+- **SQLite** - Development database
+- **PostgreSQL** - Production database (planned)
+- **Swagger UI** - Interactive API documentation
+- **swagger-jsdoc** - OpenAPI documentation from JSDoc comments
 
 ## Data Formats
 - **CSV** - Legacy hospital data format (supported)
 - **FHIR Bundle** - Modern healthcare data standard in JSON format
 - **JSON** - Configuration and structured data
 
+## Frontend
+- **Next.js 15** - React framework with App Router
+- **TypeScript** - Type-safe JavaScript
+- **Tailwind CSS** - Utility-first CSS framework
+- **TanStack Query** - Data fetching and state management
+- **shadcn/ui** - Reusable UI component library
+- **Lucide React** - Icon library
+- **React Hook Form** - Form management
+
 ## Development Tools
 - **Git** - Version control
 - **npm** - Package management
 - **Vitest** - Testing framework
 - **dotenv** - Environment variable management
+- **ESLint** - Code linting
+- **Prettier** - Code formatting
 
 ## Infrastructure & Services
 - **GitHub** - Code repository hosting

@@ -4,12 +4,33 @@ Modern, production-ready frontend for MediPact built with Next.js 15, TypeScript
 
 ## Features
 
-- **Patient Portal**: Health wallet, earnings dashboard, active studies
-- **Hospital Portal**: Data upload, consent management, revenue tracking
-- **Researcher Portal**: Data catalog, purchase management, analytics
-- **Admin Dashboard**: Platform-wide analytics and management
+### User Portals
+- **Patient Portal**: Health wallet, earnings dashboard, active studies, marketplace settings
+- **Hospital Portal**: Data upload, consent management, patient enrollment, revenue tracking, processing history
+- **Researcher Portal**: Data catalog, dataset browsing, purchase management, projects, analytics
+- **Admin Dashboard**: Platform-wide analytics, hospital verification, management tools
+
+### Public Pages
+- **Homepage**: Enterprise-grade landing page with dual value proposition
+- **Marketplace**: Public data catalog preview (registration required for details)
+- **For Patients**: Information page for patients
+- **For Hospitals**: Information page for hospitals
+- **For Researchers**: Unified information page for all buyer types
+- **Privacy**: Privacy and compliance information
+- **Revenue**: Revenue sharing model explanation
+- **About**: Platform overview and stakeholder benefits
+
+### Navigation & Access Control
+- **Role-Based Navigation**: Shows only relevant links based on user role
+- **Sidebar Navigation**: Dedicated sidebars for Patient, Hospital, and Researcher dashboards
+- **Authentication**: Session management for each role type
+- **Protected Routes**: Role-based route protection
+
+### Technical Features
 - **Hedera Integration**: HCS transactions, smart contract interactions, HashScan links
 - **Real-time Processing**: Adapter integration with status updates
+- **Data Display**: DataViewer component for anonymized data
+- **API Integration**: TanStack Query for efficient data fetching
 
 ## Tech Stack
 

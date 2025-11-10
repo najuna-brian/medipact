@@ -4,12 +4,16 @@ Backend API for patient identity management and hospital registry. Enables patie
 
 ## Features
 
-- **Native Hedera Accounts**: Every patient and hospital has a Hedera Account ID (0.0.xxxxx)
+- **Native Hedera Accounts**: Every patient, hospital, and researcher has a Hedera Account ID (0.0.xxxxx)
 - **Unique Patient Identity (UPI)**: Deterministic hash-based patient identifiers
 - **Hospital Registry**: Register and manage hospital accounts with Hedera accounts
+- **Researcher Registry**: Register and verify researcher accounts
 - **Hospital Linkage**: Link hospital-specific patient IDs to UPIs
 - **Patient History**: Aggregate medical records from all linked hospitals
 - **Cross-Hospital Access**: Patients can access records from all hospitals
+- **Marketplace API**: Dataset browsing and purchase endpoints
+- **Revenue Distribution**: Automated revenue splitting via Hedera smart contracts
+- **Swagger UI**: Interactive API documentation at `/api-docs`
 - **Secure Key Management**: Encrypted private key storage for Hedera accounts
 
 ## Setup
@@ -55,11 +59,15 @@ npm run dev
 
 ## API Endpoints
 
+### API Documentation
+- `GET /api-docs` - Interactive Swagger UI documentation
+
 ### Health Check
 - `GET /health` - Server health status
 
 ### Patient Endpoints
 - `POST /api/patient/register` - Register new patient
+- `POST /api/patient/lookup` - Lookup patient UPI by contact info
 - `POST /api/patient/match` - Match patient to existing UPI
 - `GET /api/patient/:upi/history` - Get complete medical history
 - `GET /api/patient/:upi/history/:hospitalId` - Get history from specific hospital
@@ -74,12 +82,32 @@ npm run dev
 - `PUT /api/hospital/:hospitalId` - Update hospital information
 - `POST /api/hospital/:hospitalId/verify` - Submit verification documents
 - `GET /api/hospital/:hospitalId/verification-status` - Get verification status
+- `POST /api/hospital/:hospitalId/patients` - Register patient at hospital
+- `GET /api/hospital/:hospitalId/patients` - List hospital patients
+
+### Researcher Endpoints
+- `POST /api/researcher/register` - Register new researcher
+- `GET /api/researcher/:researcherId` - Get researcher information
+- `GET /api/researcher/email/:email` - Get researcher by email
+
+### Marketplace Endpoints
+- `GET /api/marketplace/datasets` - Browse available datasets
+- `POST /api/marketplace/purchase` - Purchase dataset
+- `GET /api/marketplace/researcher/:researcherId/status` - Get researcher marketplace status
+
+### Revenue Endpoints
+- `POST /api/revenue/distribute` - Distribute revenue from sale
+- `POST /api/revenue/distribute-bulk` - Distribute revenue for multiple sales
 
 ### Admin Endpoints
+- `POST /api/admin/auth/login` - Admin login
 - `GET /api/admin/hospitals` - List all hospitals with verification status
 - `GET /api/admin/hospitals/:hospitalId` - Get detailed hospital information
 - `POST /api/admin/hospitals/:hospitalId/verify` - Approve hospital verification
 - `POST /api/admin/hospitals/:hospitalId/reject` - Reject hospital verification
+- `GET /api/admin/researchers` - List all researchers
+- `POST /api/admin/researchers/:researcherId/verify` - Verify researcher
+- `POST /api/admin/researchers/:researcherId/reject` - Reject researcher verification
 
 ## Usage Examples
 
@@ -320,9 +348,21 @@ const upi = await getOrCreateUPI(patientPII, upiLookup, upiCreate);
 npm test
 ```
 
+## API Documentation
+
+The backend includes comprehensive Swagger UI documentation:
+
+1. Start the server: `npm start`
+2. Navigate to: http://localhost:3002/api-docs
+3. Browse all endpoints, test requests, and view schemas
+
+See `SWAGGER_SETUP.md` for details on the Swagger integration.
+
 ## Documentation
 
-See `../docs/PATIENT_IDENTITY_MANAGEMENT.md` for complete documentation.
+- **API Documentation**: See `SWAGGER_SETUP.md` for Swagger UI setup
+- **Patient Identity**: See `../docs/PATIENT_IDENTITY_MANAGEMENT.md` for complete documentation
+- **Database Migration**: See `docs/DATABASE_MIGRATION.md` for PostgreSQL migration guide
 
 ## License
 

@@ -27,27 +27,84 @@ medipact/
 │   ├── scripts/                # Deployment scripts
 │   └── test/                   # Contract tests
 │
-├── frontend/                   # Demo UI (optional)
-│   ├── public/
-│   │   └── mockups/            # Design mockups
+├── frontend/                   # Next.js 15 Frontend Application
 │   ├── src/
-│   │   ├── app/                # App routing (if using Next.js)
+│   │   ├── app/                # Next.js App Router pages
+│   │   │   ├── patient/        # Patient portal
+│   │   │   │   ├── dashboard/  # Patient dashboard
+│   │   │   │   ├── wallet/     # Health wallet
+│   │   │   │   ├── earnings/   # Earnings dashboard
+│   │   │   │   └── studies/    # Active studies
+│   │   │   ├── hospital/        # Hospital portal
+│   │   │   │   ├── dashboard/  # Hospital dashboard
+│   │   │   │   ├── upload/     # Data upload
+│   │   │   │   ├── consent/    # Consent management
+│   │   │   │   ├── enrollment/ # Patient enrollment
+│   │   │   │   ├── revenue/    # Revenue tracking
+│   │   │   │   └── processing/ # Processing history
+│   │   │   ├── researcher/      # Researcher portal
+│   │   │   │   ├── dashboard/  # Researcher dashboard
+│   │   │   │   ├── catalog/    # Data catalog
+│   │   │   │   ├── dataset/    # Dataset details
+│   │   │   │   ├── projects/   # Research projects
+│   │   │   │   └── purchases/  # Purchase history
+│   │   │   ├── admin/          # Admin portal
+│   │   │   │   └── dashboard/  # Admin dashboard
+│   │   │   ├── marketplace/    # Public marketplace
+│   │   │   ├── for-patients/   # Public patient info
+│   │   │   ├── for-hospitals/  # Public hospital info
+│   │   │   ├── for-researchers/# Public researcher info
+│   │   │   ├── privacy/        # Privacy page
+│   │   │   ├── revenue/         # Revenue info page
+│   │   │   └── api/            # API routes
 │   │   ├── components/         # React components
-│   │   │   ├── AdapterDemo/    # Main demo component
-│   │   │   │   └── AdapterDemo.tsx
-│   │   │   ├── ConsentForm/    # Consent form component
-│   │   │   │   └── ConsentForm.tsx
-│   │   │   └── HashScanLink/   # HashScan link component
-│   │   │       └── HashScanLink.tsx
-│   │   ├── lib/                # Utility libraries
-│   │   └── types/              # TypeScript type definitions
+│   │   │   ├── ui/             # Reusable UI components
+│   │   │   ├── Sidebar/        # Role-based sidebars
+│   │   │   │   ├── PatientSidebar.tsx
+│   │   │   │   ├── HospitalSidebar.tsx
+│   │   │   │   └── ResearcherSidebar.tsx
+│   │   │   ├── Navigation/     # Main navigation
+│   │   │   │   └── Navigation.tsx
+│   │   │   ├── DataViewer/     # Data display
+│   │   │   │   └── DataViewer.tsx
+│   │   │   └── ...             # Other components
+│   │   ├── hooks/              # Custom React hooks
+│   │   │   ├── usePatientSession.ts
+│   │   │   ├── useHospitalSession.ts
+│   │   │   ├── useAdminSession.ts
+│   │   │   └── useResearcher.ts
+│   │   ├── lib/                # Utilities and API clients
+│   │   │   ├── api/            # API client functions
+│   │   │   └── utils.ts        # Utility functions
+│   │   └── types/              # TypeScript definitions
 │   └── tests/                  # Frontend tests
 │
-├── backend/                    # API server (if needed)
+├── backend/                    # Express.js Backend API
 │   ├── src/
-│   │   ├── routes/             # API routes
+│   │   ├── routes/             # API route handlers
+│   │   │   ├── patient-api.js  # Patient endpoints
+│   │   │   ├── hospital-api.js # Hospital endpoints
+│   │   │   ├── researcher-api.js # Researcher endpoints
+│   │   │   ├── marketplace-api.js # Marketplace endpoints
+│   │   │   ├── revenue-api.js  # Revenue endpoints
+│   │   │   └── admin-api.js   # Admin endpoints
 │   │   ├── services/           # Business logic services
-│   │   └── utils/              # Backend utilities
+│   │   │   ├── patient-identity-service.js
+│   │   │   ├── hospital-registry-service.js
+│   │   │   ├── researcher-registry-service.js
+│   │   │   └── revenue-distribution-service.js
+│   │   ├── db/                 # Database operations
+│   │   │   ├── database.js     # DB initialization
+│   │   │   ├── patient-db.js   # Patient CRUD
+│   │   │   ├── hospital-db.js  # Hospital CRUD
+│   │   │   └── researcher-db.js # Researcher CRUD
+│   │   ├── models/             # Data models
+│   │   │   └── patient-identity-model.js
+│   │   ├── config/             # Configuration
+│   │   │   └── swagger.js     # Swagger/OpenAPI config
+│   │   └── server.js           # Express server setup
+│   ├── data/                   # SQLite database (dev)
+│   │   └── medipact.db
 │   └── tests/                  # Backend tests
 │
 ├── docs/                       # Documentation
@@ -96,14 +153,30 @@ Smart contracts for revenue distribution and consent management:
 - **`REVIEW.md`**: Comprehensive code review against Hedera standards (Grade: A+)
 
 ### Frontend (`frontend/`)
-Optional demo UI components:
-- **`AdapterDemo`**: Shows the adapter workflow
-- **`ConsentForm`**: Displays consent information
-- **`HashScanLink`**: Links to Hedera transactions on HashScan
+Next.js 15 application with TypeScript:
+- **App Router**: Next.js 15 App Router architecture
+- **Patient Portal**: Dashboard, health wallet, earnings, studies
+- **Hospital Portal**: Dashboard, data upload, consent management, revenue tracking
+- **Researcher Portal**: Dashboard, data catalog, projects, purchases
+- **Admin Portal**: Dashboard, verification, analytics
+- **Public Pages**: Marketplace, info pages for each role
+- **Role-Based Navigation**: Conditional rendering based on authentication
+- **Sidebar Navigation**: Dedicated sidebars for each role
+- **Data Components**: DataViewer, dataset cards, purchase modals
+- **API Integration**: TanStack Query hooks for data fetching
+- **Styling**: Tailwind CSS with shadcn/ui components
 
 ### Backend (`backend/`)
-API server for future integrations (optional for MVP):
-- Routes, services, and utilities for API endpoints
+Express.js RESTful API server:
+- **Patient API**: UPI generation, medical history, hospital linkage
+- **Hospital API**: Registration, verification, patient management
+- **Researcher API**: Registration, verification, marketplace access
+- **Marketplace API**: Dataset browsing, purchase flow
+- **Revenue API**: Revenue distribution via Hedera smart contracts
+- **Admin API**: Hospital verification, platform management
+- **Swagger UI**: Interactive API documentation at `/api-docs`
+- **Database**: SQLite (dev) / PostgreSQL (prod)
+- **Authentication**: Role-based auth (JWT, API keys, UPI)
 
 ## File Naming Conventions
 
