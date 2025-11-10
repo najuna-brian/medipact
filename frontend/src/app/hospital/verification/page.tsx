@@ -322,7 +322,7 @@ export default function HospitalVerificationPage() {
               </div>
             </CardContent>
           </Card>
-        ) : verificationStatus ? (
+        ) : verificationStatus && verificationStatus.verificationDocuments ? (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
