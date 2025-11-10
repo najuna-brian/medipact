@@ -12,10 +12,7 @@ import {
   getResearcherStatus,
   browseDatasets,
   purchaseDataset,
-  // type Researcher,
-  // type ResearcherInfo,
-  // type ResearcherVerificationStatus,
-  // type Dataset,
+  type ResearcherInfo,
   type PurchaseRequest
 } from '@/lib/api/patient-identity';
 
