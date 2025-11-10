@@ -52,7 +52,10 @@ function AdminHospitalsPageContent() {
   const hospitals = data?.hospitals || [];
 
   // Group hospitals by verification status
-  const pendingHospitals = hospitals.filter((h) => h.verificationStatus === 'pending');
+  // Only show pending hospitals that have actually submitted documents
+  const pendingHospitals = hospitals.filter(
+    (h) => h.verificationStatus === 'pending' && h.verificationDocuments
+  );
   const verifiedHospitals = hospitals.filter((h) => h.verificationStatus === 'verified');
   const rejectedHospitals = hospitals.filter((h) => h.verificationStatus === 'rejected');
 
