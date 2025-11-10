@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Toggle } from '@/components/ui/toggle';
 import { Shield, Settings, Info } from 'lucide-react';
 
 export default function PatientMarketplacePage() {

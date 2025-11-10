@@ -1,7 +1,6 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, TrendingUp, Calendar, Download } from 'lucide-react';
-import RevenueSplit from '@/components/RevenueSplit/RevenueSplit';
+import { DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import type { RevenueSplit as RevenueSplitType } from '@/types/adapter';
 
 export default function PatientEarningsPage() {

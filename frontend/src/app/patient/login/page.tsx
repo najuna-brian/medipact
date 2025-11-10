@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertCircle, CheckCircle2, Mail, Phone, User, Key, ArrowRight } from 'lucide-react';
 import { useLookupPatient, useRetrieveUPI, useRegisterPatient } from '@/hooks/usePatientIdentity';
 import { usePatientSession } from '@/hooks/usePatientSession';
@@ -363,7 +362,7 @@ export default function PatientLoginPage() {
                       onClick={() => setLoginMethod('lookup')}
                       className="text-sm text-primary hover:underline"
                     >
-                      Don't know your UPI? Lookup by contact info
+                      Don&apos;t know your UPI? Lookup by contact info
                     </button>
                   </div>
                 </form>
@@ -464,7 +463,7 @@ export default function PatientLoginPage() {
                     <p className="text-sm font-semibold text-green-900 mb-2">Your UPI:</p>
                     <p className="font-mono text-lg font-bold text-green-800 mb-2">{foundUPI}</p>
                     <p className="text-xs text-green-700">
-                      Save this UPI securely. You'll be redirected to your dashboard shortly...
+                      Save this UPI securely. You&apos;ll be redirected to your dashboard shortly...
                     </p>
                   </div>
                 )}
