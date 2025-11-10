@@ -127,6 +127,31 @@ cd adapter
 npm run validate
 
 # Visit HashScan links from console output
+
+# Test backend API
+cd backend
+./scripts/test-endpoints.sh
+
+# Test data handling (requires test data setup)
+./scripts/setup-test-data.sh
+./scripts/full-test.sh
+```
+
+### 8. Test Data Handling System
+
+```bash
+# Setup test data (creates hospital, researcher, FHIR data, consents)
+cd backend
+./scripts/setup-test-data.sh
+
+# Run full integration test
+./scripts/full-test.sh
+
+# Test query with consent validation
+curl -X POST http://localhost:3002/api/marketplace/query \
+  -H "Content-Type: application/json" \
+  -H "x-researcher-id: RES-TEST001" \
+  -d '{"country": "Uganda", "preview": true}'
 ```
 
 ## What Happens

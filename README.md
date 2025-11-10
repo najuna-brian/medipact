@@ -97,6 +97,8 @@ Our hackathon MVP demonstrates the core "In-Person Bridge" flow:
   - Hospital registry and verification
   - Researcher marketplace
   - Revenue distribution service
+  - Data handling system (FHIR storage, query engine, dataset management)
+  - Consent validation system (automatic filtering in queries)
   - SQLite (dev) / PostgreSQL (prod)
 - **Frontend**: Next.js 15 with TypeScript
   - App Router architecture
@@ -320,12 +322,20 @@ See `adapter/SETUP.md` for detailed setup instructions.
 - [x] Sidebar navigation for each role
 - [x] Data viewer components
 
+### Data Handling & Consent ✅
+- [x] FHIR resource storage (patients, conditions, observations)
+- [x] Dataset management with metadata
+- [x] Multi-dimensional query filtering
+- [x] Consent validation in queries (automatic filtering)
+- [x] Dataset browsing and search
+- [x] Purchase flow integration
+- [x] Export functionality (FHIR, CSV, JSON)
+- [x] HCS audit logging for queries and datasets
+
 ### In Progress
-- [ ] Dataset management system (backend + frontend)
-- [ ] Purchase flow implementation
-- [ ] Enhanced data display and filtering
-- [ ] End-to-end testing
+- [ ] End-to-end testing with real data
 - [ ] Demo video and pitch deck
+- [ ] Production deployment
 
 ## Hackathon Submission Requirements
 

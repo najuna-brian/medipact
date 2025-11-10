@@ -321,12 +321,14 @@ struct ConsentRecord {
 **Location**: MediPact Platform
 
 **What Happens**:
-1. Researcher requests data access
-2. System checks:
+1. Researcher requests data access via query API
+2. System automatically checks:
    - Researcher authentication
    - Access permissions
-   - Consent validity (via smart contract)
-3. Researcher receives anonymized data
+   - **Consent validation** (database-level filtering - only active consents)
+   - Consent validity (via database and smart contract)
+3. Query results automatically filtered to only include patients with active consent
+4. Researcher receives anonymized data (only from consented patients)
 
 **What Researcher Receives**:
 ```csv

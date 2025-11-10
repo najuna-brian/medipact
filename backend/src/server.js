@@ -16,6 +16,7 @@ import adminAuthRoutes from './routes/admin-auth-api.js';
 import researcherRoutes from './routes/researcher-api.js';
 import marketplaceRoutes from './routes/marketplace-api.js';
 import revenueRoutes from './routes/revenue-api.js';
+import adapterRoutes from './routes/adapter-api.js';
 import { initDatabase, closeDatabase } from './db/database.js';
 
 const app = express();
@@ -91,6 +92,7 @@ app.use('/api/admin', adminRoutes); // Admin routes (protected)
 app.use('/api/researcher', researcherRoutes); // Researcher routes
 app.use('/api/marketplace', marketplaceRoutes); // Data marketplace routes
 app.use('/api/revenue', revenueRoutes); // Revenue distribution routes
+app.use('/api/adapter', adapterRoutes); // Adapter integration routes
 
 // 404 handler
 app.use((req, res) => {

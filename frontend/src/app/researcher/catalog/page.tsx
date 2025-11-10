@@ -1,72 +1,92 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+'use client';
+
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Database, Search, Filter } from 'lucide-react';
+import { Database, Search, Filter, Loader2 } from 'lucide-react';
+import { DatasetCard } from '@/components/DatasetCard/DatasetCard';
+import { useDatasets } from '@/hooks/useDatasets';
+import { useState } from 'react';
 
 export default function ResearcherCatalogPage() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [countryFilter, setCountryFilter] = useState<string | undefined>();
+
+  const { data, isLoading, error } = useDatasets({
+    country: countryFilter,
+  });
+
+  // Filter datasets by search query
+  const filteredDatasets = data?.datasets?.filter((dataset) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      dataset.name.toLowerCase().includes(query) ||
+      dataset.description.toLowerCase().includes(query) ||
+      dataset.country.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Data Catalog</h1>
-          <p className="text-muted-foreground">
-            Browse anonymized medical datasets for research
-          </p>
+          <h1 className="mb-2 text-3xl font-bold">Data Catalog</h1>
+          <p className="text-muted-foreground">Browse anonymized medical datasets for research</p>
         </div>
 
         <div className="mb-6 flex gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
             <input
               type="text"
               placeholder="Search datasets..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-lg border py-2 pl-10 pr-4"
             />
           </div>
-          <Button variant="outline">
-            <Filter className="w-4 h-4 mr-2" />
+          <Button variant="outline" onClick={() => setCountryFilter(undefined)}>
+            <Filter className="mr-2 h-4 w-4" />
             Filters
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Placeholder dataset cards */}
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Dataset {i}</CardTitle>
-                  <Badge variant="info">Available</Badge>
-                </div>
-                <CardDescription>
-                  Medical records dataset for research
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Records</p>
-                  <p className="font-semibold">1,000+</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Price</p>
-                  <p className="font-semibold">10 HBAR</p>
-                </div>
-                <Button className="w-full">View Details</Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <span className="ml-2 text-muted-foreground">Loading datasets...</span>
+          </div>
+        )}
 
-        {[1, 2, 3, 4, 5, 6].length === 0 && (
+        {error && (
           <Card>
             <CardContent className="py-12 text-center">
-              <Database className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No datasets available</p>
+              <p className="text-red-600">Error loading datasets: {error.message}</p>
             </CardContent>
           </Card>
+        )}
+
+        {!isLoading && !error && (
+          <>
+            {filteredDatasets && filteredDatasets.length > 0 ? (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {filteredDatasets.map((dataset) => (
+                  <DatasetCard key={dataset.id} dataset={dataset} />
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <Database className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <p className="text-muted-foreground">
+                    {searchQuery ? 'No datasets match your search' : 'No datasets available'}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
       </div>
     </div>
   );
 }
-

@@ -9,6 +9,9 @@ import { getResearcher, getResearcherByEmail } from '../db/researcher-db.js';
 import { distributeRevenue } from '../services/revenue-distribution-service.js';
 import { getPatient } from '../db/patient-db.js';
 import { getHospital } from '../db/hospital-db.js';
+import { getAllDatasets, getDataset } from '../db/dataset-db.js';
+import { executeQuery, getFilterOptions } from '../services/query-service.js';
+import { getDatasetWithPreview, exportDataset } from '../services/dataset-service.js';
 import { Hbar } from '@hashgraph/sdk';
 
 const router = express.Router();
@@ -66,15 +69,243 @@ async function checkResearcherVerification(req, res, next) {
  */
 router.get('/datasets', async (req, res) => {
   try {
-    // TODO: Implement dataset catalog from anonymized data
-    // For now, return mock data structure
+    const filters = {
+      country: req.query.country,
+      hospitalId: req.query.hospitalId
+    };
+    
+    const datasets = await getAllDatasets(filters);
+    
     res.json({
-      datasets: [],
-      message: 'Dataset catalog coming soon',
-      note: 'Researchers can browse and purchase anonymized medical data here'
+      datasets,
+      count: datasets.length
     });
   } catch (error) {
     console.error('Error fetching datasets:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/marketplace/datasets/{datasetId}:
+ *   get:
+ *     summary: Get dataset details
+ *     description: Get detailed information about a specific dataset, including optional preview
+ *     tags: [Marketplace]
+ *     parameters:
+ *       - in: path
+ *         name: datasetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Dataset ID
+ *       - in: query
+ *         name: includePreview
+ *         schema:
+ *           type: boolean
+ *         description: Include preview data (limited records)
+ *     responses:
+ *       200:
+ *         description: Dataset details
+ *       404:
+ *         description: Dataset not found
+ */
+router.get('/datasets/:datasetId', async (req, res) => {
+  try {
+    const { datasetId } = req.params;
+    const includePreview = req.query.includePreview === 'true';
+    
+    const dataset = await getDatasetWithPreview(datasetId, {
+      includePreview,
+      previewLimit: 10
+    });
+    
+    if (!dataset) {
+      return res.status(404).json({ error: 'Dataset not found' });
+    }
+    
+    res.json(dataset);
+  } catch (error) {
+    console.error('Error fetching dataset:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/marketplace/query:
+ *   post:
+ *     summary: Query FHIR resources with filters
+ *     description: Execute a query on anonymized FHIR resources with filters (country, date, condition, etc.). Returns preview by default.
+ *     tags: [Marketplace]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               country:
+ *                 type: string
+ *                 example: "Uganda"
+ *               startDate:
+ *                 type: string
+ *                 format: date
+ *                 example: "2020-01-01"
+ *               endDate:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-12-31"
+ *               conditionCode:
+ *                 type: string
+ *                 example: "E11"
+ *               conditionName:
+ *                 type: string
+ *                 example: "Diabetes"
+ *               observationCode:
+ *                 type: string
+ *                 example: "4548-4"
+ *               observationName:
+ *                 type: string
+ *                 example: "HbA1c"
+ *               ageRange:
+ *                 type: string
+ *                 example: "35-39"
+ *               gender:
+ *                 type: string
+ *                 enum: [Male, Female, Other, Unknown]
+ *               hospitalId:
+ *                 type: string
+ *               preview:
+ *                 type: boolean
+ *                 default: true
+ *                 description: If true, only return count. If false, return full data (requires purchase)
+ *     responses:
+ *       200:
+ *         description: Query results
+ *       400:
+ *         description: Invalid filters
+ */
+router.post('/query', async (req, res) => {
+  try {
+    const filters = req.body;
+    const researcherId = req.body.researcherId || req.headers['x-researcher-id'];
+    
+    if (!researcherId) {
+      return res.status(400).json({ 
+        error: 'Researcher ID required. Provide in body or x-researcher-id header.' 
+      });
+    }
+    
+    // Check if researcher exists
+    const researcher = await getResearcher(researcherId);
+    if (!researcher) {
+      return res.status(404).json({ error: 'Researcher not found' });
+    }
+    
+    const result = await executeQuery(filters, researcherId, {
+      preview: filters.preview !== false, // Default to preview
+      limit: filters.limit || 1000
+    });
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error executing query:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/marketplace/filter-options:
+ *   get:
+ *     summary: Get available filter options
+ *     description: Get list of available countries, conditions, observation types, etc. for query builder UI
+ *     tags: [Marketplace]
+ *     responses:
+ *       200:
+ *         description: Available filter options
+ */
+router.get('/filter-options', async (req, res) => {
+  try {
+    const options = await getFilterOptions();
+    res.json(options);
+  } catch (error) {
+    console.error('Error fetching filter options:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/marketplace/datasets/{datasetId}/export:
+ *   post:
+ *     summary: Export dataset
+ *     description: Export purchased dataset in specified format (FHIR, CSV, or JSON)
+ *     tags: [Marketplace]
+ *     parameters:
+ *       - in: path
+ *         name: datasetId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               format:
+ *                 type: string
+ *                 enum: [fhir, csv, json]
+ *                 default: fhir
+ *               researcherId:
+ *                 type: string
+ *                 required: true
+ *     responses:
+ *       200:
+ *         description: Dataset export
+ *       403:
+ *         description: Access denied - dataset not purchased
+ *       404:
+ *         description: Dataset not found
+ */
+router.post('/datasets/:datasetId/export', async (req, res) => {
+  try {
+    const { datasetId } = req.params;
+    const { format = 'fhir', researcherId } = req.body;
+    
+    if (!researcherId) {
+      return res.status(400).json({ error: 'Researcher ID required' });
+    }
+    
+    // TODO: Verify researcher has purchased this dataset
+    // For now, allow export if researcher is verified
+    const researcher = await getResearcher(researcherId);
+    if (!researcher || researcher.verificationStatus !== 'verified') {
+      return res.status(403).json({ 
+        error: 'Access denied. Dataset must be purchased and researcher must be verified.' 
+      });
+    }
+    
+    const exportData = await exportDataset(datasetId, format);
+    
+    // Set appropriate content type
+    if (format === 'csv') {
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="dataset-${datasetId}.csv"`);
+      res.send(exportData.data);
+    } else if (format === 'json') {
+      res.json(exportData);
+    } else {
+      // FHIR
+      res.setHeader('Content-Type', 'application/fhir+json');
+      res.json(exportData.data);
+    }
+  } catch (error) {
+    console.error('Error exporting dataset:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -207,8 +438,16 @@ router.post('/purchase', async (req, res) => {
       revenueSplitterAddress: process.env.REVENUE_SPLITTER_ADDRESS || null
     });
     
-    // TODO: Grant researcher access to purchased dataset
+    // Verify dataset exists
+    if (datasetId) {
+      const dataset = await getDataset(datasetId);
+      if (!dataset) {
+        return res.status(404).json({ error: 'Dataset not found' });
+      }
+    }
+    
     // TODO: Record purchase in database
+    // TODO: Grant researcher access to purchased dataset
     
     res.json({
       message: 'Purchase successful',
@@ -216,7 +455,8 @@ router.post('/purchase', async (req, res) => {
       datasetId,
       amount: hbarAmount.toString(),
       revenueDistribution: distributionResult,
-      accessGranted: true
+      accessGranted: true,
+      downloadUrl: datasetId ? `/api/marketplace/datasets/${datasetId}/export` : null
     });
   } catch (error) {
     console.error('Error processing purchase:', error);

@@ -160,6 +160,45 @@
 - `frontend/src/hooks/**/*.ts`
 - `frontend/src/lib/**/*.ts`
 
+### Phase 11: Data Handling System ✅
+- FHIR resource storage (patients, conditions, observations)
+- Dataset management with metadata
+- Multi-dimensional query filtering (country, date, condition, demographics)
+- Query service with preview and full query modes
+- Dataset browsing and search
+- Purchase flow integration
+- Export functionality (FHIR, CSV, JSON)
+- HCS audit logging for queries and datasets
+
+**Key Files**:
+- `backend/src/db/fhir-db.js`
+- `backend/src/db/dataset-db.js`
+- `backend/src/db/query-db.js`
+- `backend/src/services/query-service.js`
+- `backend/src/services/dataset-service.js`
+- `backend/src/routes/marketplace-api.js`
+- `backend/src/routes/adapter-api.js`
+- `frontend/src/lib/api/marketplace.ts`
+- `frontend/src/hooks/useDatasets.ts`
+- `frontend/src/components/DatasetCard/`
+
+### Phase 12: Consent Validation ✅
+- Patient consent database schema (`patient_consents` table)
+- Consent lifecycle management (active, revoked, expired)
+- Automatic consent record creation on data submission
+- Database-level consent filtering in all queries
+- Support for multiple consent types (individual, hospital_verified, bulk)
+- Consent expiration handling
+- Consent revocation support
+
+**Key Files**:
+- `backend/src/db/consent-db.js`
+- `backend/src/db/database.js` (consent table schema)
+- `backend/src/db/fhir-db.js` (consent filtering)
+- `backend/src/services/query-service.js` (consent validation)
+- `backend/src/routes/adapter-api.js` (consent creation)
+- `CONSENT_VALIDATION_IMPLEMENTATION.md`
+
 ---
 
 ## 📊 Current Status Summary
@@ -187,6 +226,8 @@
 | Testing Tools | ✅ Complete | Validation script, test scripts |
 | Documentation | ✅ Complete | All docs updated |
 | Demo Script | ✅ Complete | Ready for video recording |
+| Data Handling System | ✅ Complete | Query engine, dataset management, filtering |
+| Consent Validation | ✅ Complete | Automatic filtering in queries, consent lifecycle |
 
 ### Code Quality
 

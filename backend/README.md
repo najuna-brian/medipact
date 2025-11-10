@@ -11,7 +11,9 @@ Backend API for patient identity management and hospital registry. Enables patie
 - **Hospital Linkage**: Link hospital-specific patient IDs to UPIs
 - **Patient History**: Aggregate medical records from all linked hospitals
 - **Cross-Hospital Access**: Patients can access records from all hospitals
-- **Marketplace API**: Dataset browsing and purchase endpoints
+- **Marketplace API**: Dataset browsing, querying, purchase, and export endpoints
+- **Data Handling System**: FHIR resource storage, query engine, dataset management
+- **Consent Validation**: Automatic filtering in all queries (database-level enforcement)
 - **Revenue Distribution**: Automated revenue splitting via Hedera smart contracts
 - **Swagger UI**: Interactive API documentation at `/api-docs`
 - **Secure Key Management**: Encrypted private key storage for Hedera accounts
@@ -92,8 +94,16 @@ npm run dev
 
 ### Marketplace Endpoints
 - `GET /api/marketplace/datasets` - Browse available datasets
+- `GET /api/marketplace/datasets/:id` - Get dataset details with preview
+- `POST /api/marketplace/query` - Execute query with filters (consent-validated)
+- `GET /api/marketplace/filter-options` - Get available filter options
 - `POST /api/marketplace/purchase` - Purchase dataset
+- `POST /api/marketplace/datasets/:id/export` - Export dataset (FHIR, CSV, JSON)
 - `GET /api/marketplace/researcher/:researcherId/status` - Get researcher marketplace status
+
+### Adapter Endpoints
+- `POST /api/adapter/submit-fhir-resources` - Submit anonymized FHIR resources (creates consent automatically)
+- `POST /api/adapter/create-dataset` - Create dataset from processed data
 
 ### Revenue Endpoints
 - `POST /api/revenue/distribute` - Distribute revenue from sale
@@ -357,6 +367,29 @@ The backend includes comprehensive Swagger UI documentation:
 3. Browse all endpoints, test requests, and view schemas
 
 See `SWAGGER_SETUP.md` for details on the Swagger integration.
+
+## Consent Validation
+
+The backend automatically validates patient consent for all queries. When data is submitted via the adapter API, consent records are automatically created. All queries filter out patients without active consent.
+
+### Consent Types
+
+- **`individual`** - Patient provided individual consent
+- **`hospital_verified`** - Hospital verified consent on behalf of patient
+- **`bulk`** - Bulk consent for historical data
+
+### Consent Status
+
+- **`active`** - Consent is valid, data can be queried
+- **`revoked`** - Consent revoked, data excluded from queries
+- **`expired`** - Consent expired, data excluded from queries
+
+### Implementation
+
+- Consent validation happens at the database level via SQL `INNER JOIN`
+- Only patients with `status = 'active'` and non-expired consent are returned
+- Consent records are automatically created when submitting FHIR data
+- See `CONSENT_VALIDATION_IMPLEMENTATION.md` for full details
 
 ## Documentation
 

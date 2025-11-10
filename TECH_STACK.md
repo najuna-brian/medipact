@@ -22,6 +22,8 @@
 - **PostgreSQL** - Production database (planned)
 - **Swagger UI** - Interactive API documentation
 - **swagger-jsdoc** - OpenAPI documentation from JSDoc comments
+- **Query Engine** - Multi-dimensional filtering with consent validation
+- **Dataset Management** - Metadata, browsing, purchase, export
 
 ## Data Formats
 - **CSV** - Legacy hospital data format (supported)
@@ -65,7 +67,8 @@
 - **ECDSA** - Elliptic Curve Digital Signature Algorithm for Hedera keys
 - **SHA-256** - Secure hashing for data proofs
 - **PII Removal** - Automatic anonymization process
-- **Access Control** - Smart contract owner-only functions
+- **Consent Validation** - Database-level filtering in all queries
+- **Access Control** - Smart contract owner-only functions, role-based API auth
 
 ---
 

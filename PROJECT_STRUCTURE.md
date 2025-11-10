@@ -44,8 +44,9 @@ medipact/
 │   │   │   │   └── processing/ # Processing history
 │   │   │   ├── researcher/      # Researcher portal
 │   │   │   │   ├── dashboard/  # Researcher dashboard
-│   │   │   │   ├── catalog/    # Data catalog
-│   │   │   │   ├── dataset/    # Dataset details
+│   │   │   │   ├── catalog/    # Data catalog (browse datasets)
+│   │   │   │   ├── dataset/    # Dataset details (query, purchase, export)
+│   │   │   │   │   └── [id]/   # Dynamic dataset detail page
 │   │   │   │   ├── projects/   # Research projects
 │   │   │   │   └── purchases/  # Purchase history
 │   │   │   ├── admin/          # Admin portal
@@ -67,14 +68,18 @@ medipact/
 │   │   │   │   └── Navigation.tsx
 │   │   │   ├── DataViewer/     # Data display
 │   │   │   │   └── DataViewer.tsx
+│   │   │   ├── DatasetCard/    # Dataset display card (NEW)
+│   │   │   │   └── DatasetCard.tsx
 │   │   │   └── ...             # Other components
 │   │   ├── hooks/              # Custom React hooks
 │   │   │   ├── usePatientSession.ts
 │   │   │   ├── useHospitalSession.ts
 │   │   │   ├── useAdminSession.ts
-│   │   │   └── useResearcher.ts
+│   │   │   ├── useResearcher.ts
+│   │   │   └── useDatasets.ts  # Dataset management hooks (NEW)
 │   │   ├── lib/                # Utilities and API clients
 │   │   │   ├── api/            # API client functions
+│   │   │   │   └── marketplace.ts # Marketplace API client (NEW)
 │   │   │   └── utils.ts        # Utility functions
 │   │   └── types/              # TypeScript definitions
 │   └── tests/                  # Frontend tests
@@ -85,21 +90,31 @@ medipact/
 │   │   │   ├── patient-api.js  # Patient endpoints
 │   │   │   ├── hospital-api.js # Hospital endpoints
 │   │   │   ├── researcher-api.js # Researcher endpoints
-│   │   │   ├── marketplace-api.js # Marketplace endpoints
+│   │   │   ├── marketplace-api.js # Marketplace endpoints (query, browse, purchase, export)
+│   │   │   ├── adapter-api.js  # Adapter integration endpoints (NEW)
 │   │   │   ├── revenue-api.js  # Revenue endpoints
 │   │   │   └── admin-api.js   # Admin endpoints
 │   │   ├── services/           # Business logic services
 │   │   │   ├── patient-identity-service.js
 │   │   │   ├── hospital-registry-service.js
 │   │   │   ├── researcher-registry-service.js
-│   │   │   └── revenue-distribution-service.js
+│   │   │   ├── revenue-distribution-service.js
+│   │   │   ├── query-service.js        # Query engine with consent validation
+│   │   │   └── dataset-service.js      # Dataset management
 │   │   ├── db/                 # Database operations
 │   │   │   ├── database.js     # DB initialization
 │   │   │   ├── patient-db.js   # Patient CRUD
 │   │   │   ├── hospital-db.js  # Hospital CRUD
-│   │   │   └── researcher-db.js # Researcher CRUD
+│   │   │   ├── researcher-db.js # Researcher CRUD
+│   │   │   ├── consent-db.js   # Consent CRUD (NEW)
+│   │   │   ├── fhir-db.js      # FHIR resource CRUD (NEW)
+│   │   │   ├── dataset-db.js   # Dataset CRUD (NEW)
+│   │   │   └── query-db.js     # Query log CRUD (NEW)
 │   │   ├── models/             # Data models
-│   │   │   └── patient-identity-model.js
+│   │   │   ├── patient-identity-model.js
+│   │   │   └── dataset-model.js # Dataset schemas (NEW)
+│   │   ├── hedera/             # Hedera integration
+│   │   │   └── hcs-client.js  # HCS logging for queries/datasets (NEW)
 │   │   ├── config/             # Configuration
 │   │   │   └── swagger.js     # Swagger/OpenAPI config
 │   │   └── server.js           # Express server setup
@@ -162,8 +177,9 @@ Next.js 15 application with TypeScript:
 - **Public Pages**: Marketplace, info pages for each role
 - **Role-Based Navigation**: Conditional rendering based on authentication
 - **Sidebar Navigation**: Dedicated sidebars for each role
-- **Data Components**: DataViewer, dataset cards, purchase modals
+- **Data Components**: DataViewer, DatasetCard, purchase modals
 - **API Integration**: TanStack Query hooks for data fetching
+- **Marketplace Integration**: Dataset catalog, query builder, purchase flow, export
 - **Styling**: Tailwind CSS with shadcn/ui components
 
 ### Backend (`backend/`)
@@ -171,11 +187,14 @@ Express.js RESTful API server:
 - **Patient API**: UPI generation, medical history, hospital linkage
 - **Hospital API**: Registration, verification, patient management
 - **Researcher API**: Registration, verification, marketplace access
-- **Marketplace API**: Dataset browsing, purchase flow
+- **Marketplace API**: Dataset browsing, querying (with consent validation), purchase, export
+- **Adapter API**: FHIR resource submission, dataset creation (with automatic consent creation)
 - **Revenue API**: Revenue distribution via Hedera smart contracts
 - **Admin API**: Hospital verification, platform management
+- **Data Handling**: FHIR resource storage, query engine, dataset management
+- **Consent Validation**: Automatic filtering in all queries (database-level)
 - **Swagger UI**: Interactive API documentation at `/api-docs`
-- **Database**: SQLite (dev) / PostgreSQL (prod)
+- **Database**: SQLite (dev) / PostgreSQL (prod) with FHIR and consent tables
 - **Authentication**: Role-based auth (JWT, API keys, UPI)
 
 ## File Naming Conventions

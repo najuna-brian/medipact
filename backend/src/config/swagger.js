@@ -152,37 +152,36 @@ const options = {
         Dataset: {
           type: 'object',
           properties: {
-            id: {
-              type: 'string',
-              example: 'dataset-001',
-            },
-            name: {
-              type: 'string',
-              example: 'Diabetes Outcomes Dataset',
-            },
-            description: {
-              type: 'string',
-              example: 'Longitudinal data from verified hospitals',
-            },
-            recordCount: {
-              type: 'number',
-              example: 45000,
-            },
-            price: {
-              type: 'number',
-              example: 50,
-            },
-            currency: {
-              type: 'string',
-              example: 'HBAR',
-            },
-            format: {
-              type: 'array',
-              items: {
-                type: 'string',
-              },
-              example: ['FHIR R4', 'CSV'],
-            },
+            id: { type: 'string', example: 'DS-ABC123' },
+            name: { type: 'string', example: 'Diabetes Research Dataset' },
+            description: { type: 'string', example: 'Anonymized diabetes patient data' },
+            hospitalId: { type: 'string', example: 'HOSP-ABC123' },
+            country: { type: 'string', example: 'Uganda' },
+            recordCount: { type: 'integer', example: 5000 },
+            dateRangeStart: { type: 'string', format: 'date', example: '2020-01-01' },
+            dateRangeEnd: { type: 'string', format: 'date', example: '2024-12-31' },
+            conditionCodes: { type: 'array', items: { type: 'string' }, example: ['E11'] },
+            price: { type: 'number', example: 50 },
+            currency: { type: 'string', example: 'HBAR' },
+            format: { type: 'string', example: 'FHIR' },
+            consentType: { type: 'string', example: 'hospital_verified' },
+            hcsTopicId: { type: 'string', nullable: true },
+            consentTopicId: { type: 'string', nullable: true },
+            dataTopicId: { type: 'string', nullable: true },
+            status: { type: 'string', enum: ['draft', 'active', 'archived', 'deleted'] },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        QueryResult: {
+          type: 'object',
+          properties: {
+            results: { type: 'array', items: { type: 'object' }, nullable: true },
+            count: { type: 'integer', example: 150 },
+            filters: { type: 'object' },
+            preview: { type: 'boolean', example: true },
+            hcsMessageId: { type: 'string', nullable: true },
+            timestamp: { type: 'string', format: 'date-time' },
           },
         },
         RevenueDistribution: {
@@ -240,7 +239,11 @@ const options = {
       },
       {
         name: 'Marketplace',
-        description: 'Medical data marketplace endpoints',
+        description: 'Medical data marketplace endpoints - browse, query, purchase datasets',
+      },
+      {
+        name: 'Adapter',
+        description: 'Adapter integration endpoints - submit anonymized FHIR resources',
       },
       {
         name: 'Revenue',
