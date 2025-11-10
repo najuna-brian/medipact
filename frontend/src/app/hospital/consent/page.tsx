@@ -63,7 +63,7 @@ export default function HospitalConsentPage() {
               <div className="space-y-2">
                 <p className="text-sm font-semibold">Instructions:</p>
                 <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                  <li>Click "Generate QR Code" to create a unique enrollment code</li>
+                  <li>Click &quot;Generate QR Code&quot; to create a unique enrollment code</li>
                   <li>Patient scans QR code with mobile money app</li>
                   <li>Patient signs consent form or uses thumbprint</li>
                   <li>System automatically links anonymous ID to mobile money number</li>

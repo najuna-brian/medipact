@@ -388,7 +388,7 @@ export default function HospitalVerificationPage() {
                     <div>
                       <p className="font-semibold text-yellow-900">Verification Pending</p>
                       <p className="mt-1 text-sm text-yellow-800">
-                        Your documents are under review. You'll be notified once verification is
+                        Your documents are under review. You&apos;ll be notified once verification is
                         complete.
                       </p>
                     </div>

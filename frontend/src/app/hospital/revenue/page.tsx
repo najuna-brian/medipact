@@ -55,7 +55,7 @@ export default function HospitalRevenuePage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Revenue Tracking</h1>
           <p className="text-muted-foreground">
-            Track your hospital's revenue from data sharing (25% of total)
+            Track your hospital&apos;s revenue from data sharing (25% of total)
           </p>
         </div>
 

@@ -507,7 +507,7 @@ function AdminHospitalsPageContent() {
             <AlertDialogHeader>
               <AlertDialogTitle>Approve Hospital Verification</AlertDialogTitle>
               <AlertDialogDescription>
-                Confirm approval of this hospital's verification. The hospital will be notified and
+                Confirm approval of this hospital&apos;s verification. The hospital will be notified and
                 will be able to register patients and use all features.
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -565,7 +565,7 @@ function AdminHospitalsPageContent() {
             <AlertDialogHeader>
               <AlertDialogTitle>Reject Hospital Verification</AlertDialogTitle>
               <AlertDialogDescription>
-                Please provide a reason for rejecting this hospital's verification request. This
+                Please provide a reason for rejecting this hospital&apos;s verification request. This
                 reason will be visible to the hospital.
               </AlertDialogDescription>
             </AlertDialogHeader>

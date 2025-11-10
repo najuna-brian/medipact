@@ -145,7 +145,7 @@ export default function ResearcherVerifyPage() {
           <CardContent className="space-y-4">
             <div className="rounded-lg bg-yellow-50 p-4">
               <p className="text-sm text-yellow-800">
-                An admin will review your documents shortly. You'll be notified once your verification is complete.
+                An admin will review your documents shortly. You&apos;ll be notified once your verification is complete.
               </p>
             </div>
             <Button
@@ -207,7 +207,7 @@ export default function ResearcherVerifyPage() {
                     Organization Registration Documents *
                   </label>
                   <p className="text-xs text-muted-foreground">
-                    Upload your organization's registration certificate or legal documents
+                    Upload your organization&apos;s registration certificate or legal documents
                   </p>
                   <input
                     id="organizationDocuments"

@@ -205,7 +205,7 @@ export default function HospitalPatientRegisterPage() {
                     required
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Your hospital's internal patient identifier
+                    Your hospital&apos;s internal patient identifier
                   </p>
                 </div>
 

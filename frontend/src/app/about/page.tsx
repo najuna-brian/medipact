@@ -23,7 +23,7 @@ export default function AboutPage() {
                   MediPact is a verifiable medical data marketplace that empowers patients to
                   control and monetize their anonymized medical data for research. We solve the
                   patient data black market by creating a transparent, ethical platform using
-                  Hedera's Consensus Service for immutable proof and HBAR for instant micropayments.
+                  Hedera&apos;s Consensus Service for immutable proof and HBAR for instant micropayments.
                 </p>
               </CardContent>
             </Card>
@@ -45,7 +45,7 @@ export default function AboutPage() {
                   <h3 className="font-semibold mb-2">Researchers are Blind</h3>
                   <p className="text-muted-foreground">
                     Pharmaceutical companies and AI labs need high-quality, diverse data to cure
-                    diseases. They're forced to buy from untrusted brokers with no way to verify
+                    diseases. They&apos;re forced to buy from untrusted brokers with no way to verify
                     if data is real, ethically sourced, or unaltered.
                   </p>
                 </div>
@@ -112,7 +112,7 @@ export default function AboutPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-4">
-                  Built on Hedera Hashgraph, the world's most used enterprise-grade public
+                  Built on Hedera Hashgraph, the world&apos;s most used enterprise-grade public
                   distributed ledger:
                 </p>
                 <ul className="space-y-2 text-muted-foreground list-disc list-inside">

@@ -116,7 +116,7 @@ export default function HospitalLoginPage() {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <a href="/hospital/enrollment" className="text-primary hover:underline">
                   Register your hospital
                 </a>

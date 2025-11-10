@@ -179,7 +179,7 @@ export default async function DatasetPage({ params }: DatasetPageProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle>What's Included</CardTitle>
+                <CardTitle>What&apos;s Included</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <p>• CSV format dataset</p>
