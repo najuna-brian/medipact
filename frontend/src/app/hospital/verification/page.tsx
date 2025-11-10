@@ -204,9 +204,8 @@ export default function HospitalVerificationPage() {
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        // Remove data URL prefix (e.g., "data:application/pdf;base64,")
-        const base64 = result.split(',')[1];
-        resolve(base64);
+        // Keep the full data URL (backend expects data: prefix for validation)
+        resolve(result);
       };
       reader.onerror = reject;
       reader.readAsDataURL(file);
