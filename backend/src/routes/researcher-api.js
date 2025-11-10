@@ -46,6 +46,62 @@ async function authenticateAdmin(req, res, next) {
 }
 
 /**
+ * @swagger
+ * /api/researcher/register:
+ *   post:
+ *     summary: Register a new researcher
+ *     description: Register a new researcher account. Creates a Hedera account automatically. Verification is required before purchasing datasets.
+ *     tags: [Researcher]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - organizationName
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "researcher@example.com"
+ *                 description: Researcher's email address
+ *               organizationName:
+ *                 type: string
+ *                 example: "Medical Research Institute"
+ *                 description: Name of the research organization
+ *               contactName:
+ *                 type: string
+ *                 example: "Dr. Jane Smith"
+ *                 description: Contact person's name (optional)
+ *               country:
+ *                 type: string
+ *                 example: "United States"
+ *                 description: Country of the organization (optional)
+ *     responses:
+ *       200:
+ *         description: Researcher registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 researcher:
+ *                   $ref: '#/components/schemas/Researcher'
+ *                 message:
+ *                   type: string
+ *                   example: "Researcher registered successfully"
+ *       400:
+ *         description: Bad request - missing required fields or email already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ */
+/**
  * POST /api/researcher/register
  * Register a new researcher
  */

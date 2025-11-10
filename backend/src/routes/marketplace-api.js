@@ -39,6 +39,28 @@ async function checkResearcherVerification(req, res, next) {
 }
 
 /**
+ * @swagger
+ * /api/marketplace/datasets:
+ *   get:
+ *     summary: Browse available anonymized datasets
+ *     description: Get list of available anonymized medical datasets for purchase. All datasets are verified, anonymized, and ready for research use.
+ *     tags: [Marketplace]
+ *     responses:
+ *       200:
+ *         description: List of available datasets
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 datasets:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Dataset'
+ *       500:
+ *         description: Internal server error
+ */
+/**
  * GET /api/marketplace/datasets
  * Browse available anonymized datasets
  */
@@ -57,6 +79,65 @@ router.get('/datasets', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/marketplace/purchase:
+ *   post:
+ *     summary: Purchase anonymized dataset
+ *     description: Purchase an anonymized medical dataset. Revenue is automatically distributed (60% Patient, 25% Hospital, 15% Platform) via Hedera smart contract.
+ *     tags: [Marketplace]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - researcherId
+ *               - amount
+ *             properties:
+ *               researcherId:
+ *                 type: string
+ *                 example: "RES-ABC123"
+ *                 description: Researcher ID (must be verified)
+ *               datasetId:
+ *                 type: string
+ *                 example: "dataset-001"
+ *                 description: Dataset ID to purchase
+ *               patientUPI:
+ *                 type: string
+ *                 example: "UPI-ABC123XYZ"
+ *                 description: Optional - specific patient UPI
+ *               hospitalId:
+ *                 type: string
+ *                 example: "HOSP-001"
+ *                 description: Optional - specific hospital ID
+ *               amount:
+ *                 type: number
+ *                 example: 50
+ *                 description: Purchase amount in HBAR
+ *     responses:
+ *       200:
+ *         description: Purchase successful, revenue distributed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 transactionId:
+ *                   type: string
+ *                   description: Hedera transaction ID
+ *                 distribution:
+ *                   $ref: '#/components/schemas/RevenueDistribution'
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Researcher not verified
+ *       500:
+ *         description: Internal server error
+ */
 /**
  * POST /api/marketplace/purchase
  * Purchase anonymized dataset

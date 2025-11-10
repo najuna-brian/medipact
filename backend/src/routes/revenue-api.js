@@ -11,6 +11,57 @@ import { Hbar } from '@hashgraph/sdk';
 const router = express.Router();
 
 /**
+ * @swagger
+ * /api/revenue/distribute:
+ *   post:
+ *     summary: Distribute revenue from a data sale
+ *     description: Automatically distribute revenue using Hedera smart contract. Split is 60% Patient, 25% Hospital, 15% Platform.
+ *     tags: [Revenue]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - patientUPI
+ *               - hospitalId
+ *               - totalAmount
+ *             properties:
+ *               patientUPI:
+ *                 type: string
+ *                 example: "UPI-ABC123XYZ"
+ *                 description: Patient UPI
+ *               hospitalId:
+ *                 type: string
+ *                 example: "HOSP-001"
+ *                 description: Hospital ID
+ *               totalAmount:
+ *                 type: number
+ *                 example: 100000000
+ *                 description: Total amount in tinybars (1 HBAR = 100,000,000 tinybars)
+ *               revenueSplitterAddress:
+ *                 type: string
+ *                 example: "0x1234567890abcdef"
+ *                 description: Optional - RevenueSplitter smart contract address
+ *     responses:
+ *       200:
+ *         description: Revenue distributed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 distribution:
+ *                   $ref: '#/components/schemas/RevenueDistribution'
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+/**
  * POST /api/revenue/distribute
  * Distribute revenue from a data sale
  * 

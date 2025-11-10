@@ -45,6 +45,69 @@ async function authenticateHospital(req, res, next) {
 }
 
 /**
+ * @swagger
+ * /api/hospital/register:
+ *   post:
+ *     summary: Register a new hospital
+ *     description: Register a new hospital account. Creates a Hedera account automatically for revenue distribution. Returns an API key for authentication.
+ *     tags: [Hospital]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - country
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "City General Hospital"
+ *                 description: Hospital name
+ *               country:
+ *                 type: string
+ *                 example: "United States"
+ *                 description: Hospital country
+ *               location:
+ *                 type: string
+ *                 example: "New York, NY"
+ *                 description: Hospital location (optional)
+ *               fhirEndpoint:
+ *                 type: string
+ *                 format: uri
+ *                 example: "https://hospital.example.com/fhir"
+ *                 description: FHIR R4 endpoint URL (optional)
+ *               contactEmail:
+ *                 type: string
+ *                 format: email
+ *                 example: "admin@hospital.example.com"
+ *                 description: Contact email (optional)
+ *     responses:
+ *       200:
+ *         description: Hospital registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Hospital registered successfully"
+ *                 hospital:
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/Hospital'
+ *                     - type: object
+ *                       properties:
+ *                         apiKey:
+ *                           type: string
+ *                           description: API key for authentication (save securely!)
+ *       400:
+ *         description: Bad request - missing required fields
+ *       500:
+ *         description: Internal server error
+ */
+/**
  * POST /api/hospital/register
  * Register a new hospital
  */

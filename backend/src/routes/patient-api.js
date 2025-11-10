@@ -54,6 +54,75 @@ async function authenticateHospital(req, res, next) {
 }
 
 /**
+ * @swagger
+ * /api/patient/register:
+ *   post:
+ *     summary: Register a new patient
+ *     description: Register a new patient and generate UPI (Universal Patient Identifier) with contact information. Creates a Hedera account for revenue distribution.
+ *     tags: [Patient]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - dateOfBirth
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "John Doe"
+ *                 description: Patient's full name
+ *               dateOfBirth:
+ *                 type: string
+ *                 format: date
+ *                 example: "1990-01-15"
+ *                 description: Patient's date of birth
+ *               phone:
+ *                 type: string
+ *                 example: "+1234567890"
+ *                 description: Patient's phone number (optional)
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "john.doe@example.com"
+ *                 description: Patient's email address (optional)
+ *               nationalId:
+ *                 type: string
+ *                 example: "123456789"
+ *                 description: Patient's national ID (optional)
+ *     responses:
+ *       200:
+ *         description: Patient registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 upi:
+ *                   type: string
+ *                   example: "UPI-ABC123XYZ"
+ *                   description: Universal Patient Identifier
+ *                 patient:
+ *                   $ref: '#/components/schemas/Patient'
+ *                 message:
+ *                   type: string
+ *                   example: "Patient registered successfully"
+ *       400:
+ *         description: Bad request - missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+/**
  * POST /api/patient/register
  * Register a new patient and generate UPI (with contact information)
  */

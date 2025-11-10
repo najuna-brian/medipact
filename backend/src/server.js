@@ -6,6 +6,8 @@
 
 import express from 'express';
 import cors from 'cors';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger.js';
 import patientRoutes from './routes/patient-api.js';
 import hospitalRoutes from './routes/hospital-api.js';
 import hospitalPatientsRoutes from './routes/hospital-patients-api.js';
@@ -33,6 +35,44 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Swagger UI Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'MediPact API Documentation',
+  customfavIcon: '/favicon.ico',
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    filter: true,
+    tryItOutEnabled: true,
+  },
+}));
+
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Health check endpoint
+ *     description: Returns the health status of the API server
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Server is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: healthy
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *                 service:
+ *                   type: string
+ *                   example: MediPact Backend API
+ */
 // Health check
 app.get('/health', (req, res) => {
   res.json({ 
@@ -76,6 +116,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     .then(() => {
       app.listen(PORT, () => {
         console.log(`🚀 MediPact Backend Server running on port ${PORT}`);
+        console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
         console.log(`📋 Health check: http://localhost:${PORT}/health`);
         console.log(`👤 Patient API: http://localhost:${PORT}/api/patient`);
         console.log(`🏥 Hospital API: http://localhost:${PORT}/api/hospital`);
