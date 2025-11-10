@@ -5,15 +5,16 @@ import { Database, DollarSign, FileText, Calendar, Users, Shield } from 'lucide-
 import HashScanLink from '@/components/HashScanLink/HashScanLink';
 
 interface DatasetPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-export default function DatasetPage({ params }: DatasetPageProps) {
+export default async function DatasetPage({ params }: DatasetPageProps) {
+  const { id } = await params;
   // Mock dataset data - in production, fetch from API
   const dataset = {
-    id: params.id,
+    id: id,
     title: 'Diabetes Research Dataset',
     description:
       'Comprehensive anonymized dataset containing diabetes patient records, lab results, and treatment outcomes.',
