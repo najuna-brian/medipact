@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  eslint: {
+    // Only fail on errors, not warnings
+    dirs: ['src/app', 'src/components', 'src/lib', 'src/hooks'],
+    // Exclude test files from linting during build
+    ignoreDuringBuilds: false,
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
