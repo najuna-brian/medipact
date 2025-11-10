@@ -21,6 +21,7 @@ import {
 } from '@/hooks/usePatientIdentity';
 import { useRouter } from 'next/navigation';
 import { HederaAccountId } from '@/components/HederaAccountId/HederaAccountId';
+import { HospitalSidebar } from '@/components/Sidebar/HospitalSidebar';
 
 export default function HospitalDashboardPage() {
   const router = useRouter();
@@ -75,219 +76,223 @@ export default function HospitalDashboardPage() {
   }
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="mb-2 text-3xl font-bold">Hospital Dashboard</h1>
-              <p className="text-muted-foreground">Manage patient data and revenue</p>
+      <HospitalSidebar />
+      <div className="ml-64">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="mb-2 text-3xl font-bold">Hospital Dashboard</h1>
+                <p className="text-muted-foreground">Manage patient data and revenue</p>
+              </div>
+              {hospitalId && (
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Hospital ID</p>
+                  <p className="font-mono font-semibold">{hospitalId}</p>
+                </div>
+              )}
             </div>
-            {hospitalId && (
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Hospital ID</p>
-                <p className="font-mono font-semibold">{hospitalId}</p>
+            {hospitalData?.hederaAccountId && (
+              <div className="mt-4">
+                <HederaAccountId accountId={hospitalData.hederaAccountId} />
               </div>
             )}
           </div>
-          {hospitalData?.hederaAccountId && (
-            <div className="mt-4">
-              <HederaAccountId accountId={hospitalData.hederaAccountId} />
-            </div>
-          )}
-        </div>
 
-        {/* Verification Status Alert */}
-        {!statusLoading &&
-          (!verificationStatus || verificationStatus.verificationStatus !== 'verified') && (
-            <Card className="mb-6 border-yellow-200 bg-yellow-50">
+          {/* Verification Status Alert */}
+          {!statusLoading &&
+            (!verificationStatus || verificationStatus.verificationStatus !== 'verified') && (
+              <Card className="mb-6 border-yellow-200 bg-yellow-50">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 h-5 w-5 text-yellow-600" />
+                    <div className="flex-1">
+                      <div className="mb-2 flex items-center gap-2">
+                        <p className="font-semibold text-yellow-900">Verification Required</p>
+                        <Badge variant="warning">
+                          {!verificationStatus ||
+                          verificationStatus.verificationStatus === 'pending'
+                            ? 'Pending'
+                            : 'Not Verified'}
+                        </Badge>
+                      </div>
+                      <p className="mb-3 text-sm text-yellow-800">
+                        Your hospital account needs to be verified before you can register patients.
+                        Complete verification to access all features.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push('/hospital/verification')}
+                      >
+                        Complete Verification
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+          {verificationStatus && verificationStatus.verificationStatus === 'verified' && (
+            <Card className="mb-6 border-green-200 bg-green-50">
               <CardContent className="pt-6">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="mt-0.5 h-5 w-5 text-yellow-600" />
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600" />
                   <div className="flex-1">
                     <div className="mb-2 flex items-center gap-2">
-                      <p className="font-semibold text-yellow-900">Verification Required</p>
-                      <Badge variant="warning">
-                        {!verificationStatus || verificationStatus.verificationStatus === 'pending'
-                          ? 'Pending'
-                          : 'Not Verified'}
-                      </Badge>
+                      <p className="font-semibold text-green-900">Account Verified</p>
+                      <Badge variant="success">Verified</Badge>
                     </div>
-                    <p className="mb-3 text-sm text-yellow-800">
-                      Your hospital account needs to be verified before you can register patients.
-                      Complete verification to access all features.
+                    <p className="text-sm text-green-800">
+                      Your hospital account is verified. You can now register patients and use all
+                      features.
                     </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push('/hospital/verification')}
-                    >
-                      Complete Verification
-                    </Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
-        {verificationStatus && verificationStatus.verificationStatus === 'verified' && (
-          <Card className="mb-6 border-green-200 bg-green-50">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600" />
-                <div className="flex-1">
-                  <div className="mb-2 flex items-center gap-2">
-                    <p className="font-semibold text-green-900">Account Verified</p>
-                    <Badge variant="success">Verified</Badge>
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Patients Enrolled</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {patientsLoading ? '...' : patientsData?.totalPatients || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">Total patients</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Records Processed</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+                <p className="text-xs text-muted-foreground">Medical records</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Hospital Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0 HBAR</div>
+                <p className="text-xs text-muted-foreground">25% of total</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pending Uploads</CardTitle>
+                <Upload className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">0</div>
+                <p className="text-xs text-muted-foreground">Files to process</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => router.push('/hospital/upload')}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload Data
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => router.push('/hospital/consent')}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Manage Consent
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  disabled={
+                    !verificationStatus || verificationStatus.verificationStatus !== 'verified'
+                  }
+                  onClick={() => router.push('/hospital/patients/register')}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Register Patient
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  disabled={
+                    !verificationStatus || verificationStatus.verificationStatus !== 'verified'
+                  }
+                  onClick={() => router.push('/hospital/patients/bulk')}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Bulk Upload
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => router.push('/hospital/revenue')}
+                >
+                  <DollarSign className="mr-2 h-4 w-4" />
+                  View Revenue
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Patients</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {patientsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-green-800">
-                    Your hospital account is verified. You can now register patients and use all
-                    features.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Patients Enrolled</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {patientsLoading ? '...' : patientsData?.totalPatients || 0}
-              </div>
-              <p className="text-xs text-muted-foreground">Total patients</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Records Processed</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Medical records</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Hospital Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0 HBAR</div>
-              <p className="text-xs text-muted-foreground">25% of total</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Uploads</CardTitle>
-              <Upload className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Files to process</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => router.push('/hospital/upload')}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Data
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => router.push('/hospital/consent')}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                Manage Consent
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                disabled={
-                  !verificationStatus || verificationStatus.verificationStatus !== 'verified'
-                }
-                onClick={() => router.push('/hospital/patients/register')}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                Register Patient
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                disabled={
-                  !verificationStatus || verificationStatus.verificationStatus !== 'verified'
-                }
-                onClick={() => router.push('/hospital/patients/bulk')}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Bulk Upload
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => router.push('/hospital/revenue')}
-              >
-                <DollarSign className="mr-2 h-4 w-4" />
-                View Revenue
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Patients</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {patientsLoading ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
-              ) : patientsData && patientsData.patients.length > 0 ? (
-                <div className="space-y-2">
-                  {patientsData.patients.slice(0, 5).map((patient) => (
-                    <div
-                      key={patient.upi}
-                      className="flex items-center justify-between rounded-lg border p-2"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">{patient.hospitalPatientId}</p>
-                        <p className="font-mono text-xs text-muted-foreground">{patient.upi}</p>
+                ) : patientsData && patientsData.patients.length > 0 ? (
+                  <div className="space-y-2">
+                    {patientsData.patients.slice(0, 5).map((patient) => (
+                      <div
+                        key={patient.upi}
+                        className="flex items-center justify-between rounded-lg border p-2"
+                      >
+                        <div>
+                          <p className="text-sm font-medium">{patient.hospitalPatientId}</p>
+                          <p className="font-mono text-xs text-muted-foreground">{patient.upi}</p>
+                        </div>
+                        <Badge variant={patient.verified ? 'success' : 'warning'}>
+                          {patient.verified ? 'Verified' : 'Pending'}
+                        </Badge>
                       </div>
-                      <Badge variant={patient.verified ? 'success' : 'warning'}>
-                        {patient.verified ? 'Verified' : 'Pending'}
-                      </Badge>
-                    </div>
-                  ))}
-                  {patientsData.patients.length > 5 && (
-                    <p className="pt-2 text-center text-xs text-muted-foreground">
-                      +{patientsData.patients.length - 5} more patients
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No patients registered yet</p>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                    {patientsData.patients.length > 5 && (
+                      <p className="pt-2 text-center text-xs text-muted-foreground">
+                        +{patientsData.patients.length - 5} more patients
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No patients registered yet</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
