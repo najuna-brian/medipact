@@ -23,10 +23,28 @@ const app = express();
 const PORT = process.env.PORT || 3002; // Default to 3002 to avoid conflicts
 
 // Middleware - CORS configuration
+const allowedOrigins = [
+  'https://www.medipact.space',
+  'https://medipact.space',
+  'http://localhost:3000',
+  'http://localhost:3001',
+];
+
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL 
-    ? [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:3001']
-    : ['http://localhost:3000', 'http://localhost:3001'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200,
 };
