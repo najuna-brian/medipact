@@ -89,27 +89,33 @@ export default function ResearcherDashboardPage() {
                     <p className="font-medium">{researcher.data.organizationName}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Verification Status</p>
-                    <p className="font-medium">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded px-2 py-1 text-sm ${
-                          researcher.data.verificationStatus === 'verified'
-                            ? 'bg-green-100 text-green-800'
-                            : researcher.data.verificationStatus === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {researcher.data.verificationStatus === 'verified' && (
-                          <Shield className="h-3 w-3" />
-                        )}
-                        {researcher.data.verificationStatus === 'pending' && (
-                          <AlertCircle className="h-3 w-3" />
-                        )}
-                        {researcher.data.verificationStatus.charAt(0).toUpperCase() +
-                          researcher.data.verificationStatus.slice(1)}
-                      </span>
-                    </p>
+                      <p className="text-sm text-muted-foreground">Verification Status</p>
+                      <p className="font-medium">
+                       {researcher.data?.verificationStatus ? (
+                         <span
+                           className={`inline-flex items-center gap-1 rounded px-2 py-1 text-sm ${
+                             researcher.data.verificationStatus === 'verified'
+                               ? 'bg-green-100 text-green-800'
+                               : researcher.data.verificationStatus === 'pending'
+                                 ? 'bg-yellow-100 text-yellow-800'
+                                 : 'bg-red-100 text-red-800'
+                           }`}
+                         >
+                           {researcher.data.verificationStatus === 'verified' && (
+                             <Shield className="h-3 w-3" />
+                           )}
+                           {researcher.data.verificationStatus === 'pending' && (
+                             <AlertCircle className="h-3 w-3" />
+                           )}
+                           {researcher.data.verificationStatus.charAt(0).toUpperCase() +
+                             researcher.data.verificationStatus.slice(1)}
+                         </span>
+                       ) : (
+                         <span className="inline-flex items-center gap-1 rounded px-2 py-1 text-sm bg-gray-100 text-gray-800">
+                           Loading...
+                         </span>
+                       )}
+                      </p>
                   </div>
                 </div>
               </CardContent>
