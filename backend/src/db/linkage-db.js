@@ -24,7 +24,7 @@ export async function createLinkage(linkageData) {
       linkageData.hospitalId,
       linkageData.hospitalPatientId,
       linkageData.linkedAt || new Date().toISOString(),
-      linkageData.verified ? 1 : 0,
+      linkageData.verified ? true : false,
       linkageData.verificationMethod || 'hospital_verification',
       linkageData.encryptedPII || null,
       linkageData.status || 'active'
@@ -62,7 +62,7 @@ export async function getLinkagesByUPI(upi) {
 
   return linkages.map(l => ({
     ...l,
-    verified: l.verified === 1
+    verified: l.verified === true || l.verified === 1
   }));
 }
 
@@ -88,7 +88,7 @@ export async function getLinkage(upi, hospitalId) {
   );
 
   if (linkage) {
-    linkage.verified = linkage.verified === 1;
+    linkage.verified = linkage.verified === true || linkage.verified === 1;
   }
 
   return linkage;
@@ -125,9 +125,9 @@ export async function removeLinkage(upi, hospitalId) {
 export async function verifyLinkage(upi, hospitalId, verificationMethod) {
   await run(
     `UPDATE hospital_linkages 
-     SET verified = 1, verification_method = ? 
+     SET verified = ?, verification_method = ? 
      WHERE upi = ? AND hospital_id = ?`,
-    [verificationMethod, upi, hospitalId]
+    [true, verificationMethod, upi, hospitalId]
   );
   return await getLinkage(upi, hospitalId);
 }
@@ -154,7 +154,7 @@ export async function getLinkagesByHospital(hospitalId) {
 
   return linkages.map(l => ({
     ...l,
-    verified: l.verified === 1
+    verified: l.verified === true || l.verified === 1
   }));
 }
 

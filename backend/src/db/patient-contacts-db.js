@@ -67,8 +67,8 @@ export async function upsertPatientContact(upi, contactInfo) {
     const id = generateContactId(upi);
     await run(
       `INSERT INTO patient_contacts (id, upi, email, phone, national_id, verified, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-      [id, upi, email, phone, nationalId]
+       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
+      [id, upi, email, phone, nationalId, false]
     );
     return await getPatientContactByUPI(upi);
   }
@@ -126,9 +126,9 @@ export async function findUPIByNationalId(nationalId) {
 export async function verifyPatientContact(upi, verificationMethod = 'email') {
   await run(
     `UPDATE patient_contacts 
-     SET verified = 1, updated_at = CURRENT_TIMESTAMP
+     SET verified = ?, updated_at = CURRENT_TIMESTAMP
      WHERE upi = ?`,
-    [upi]
+    [true, upi]
   );
   return await getPatientContactByUPI(upi);
 }
