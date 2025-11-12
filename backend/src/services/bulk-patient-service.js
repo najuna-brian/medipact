@@ -3,12 +3,10 @@
  * 
  * Handles bulk registration of patients from CSV/JSON files.
  * Supports batch processing with progress tracking.
- * Creates Hedera accounts for each patient.
+ * Uses lazy account creation - Hedera accounts are created only when patients receive payments.
  */
 
 import { generateUPI, getOrCreateUPI } from './patient-identity-service.js';
-import { createHederaAccount } from './hedera-account-service.js';
-import { encrypt } from './encryption-service.js';
 
 /**
  * Parse CSV data
@@ -123,28 +121,18 @@ export async function processBulkRegistration(
       }
       
       // Generate or get UPI
+      // Lazy account creation: Hedera accounts are created only when patients receive payments
+      // This saves costs - operator only pays for accounts that will actually receive revenue
       const upi = await getOrCreateUPI(
         normalized,
         patientExists,
         async (upi, patientData) => {
-          // Create Hedera account for new patient
-          let hederaAccount = null;
-          let encryptedPrivateKey = null;
-          
-          try {
-            hederaAccount = await createHederaAccount(0); // Platform pays
-            encryptedPrivateKey = encrypt(hederaAccount.privateKey);
-          } catch (error) {
-            console.error(`Failed to create Hedera account for patient ${upi}:`, error);
-            // Continue without Hedera account - can be created later
-          }
-          
+          // Create patient without Hedera account (will be created lazily on first payment)
           // Include all normalized data (including email/phone/nationalId) for contact creation
-          // Also include Hedera account info
           await createPatient(upi, {
             ...normalized,
-            hederaAccountId: hederaAccount?.accountId || null,
-            encryptedPrivateKey: encryptedPrivateKey || null
+            hederaAccountId: null, // Account created lazily when revenue is distributed
+            encryptedPrivateKey: null
           });
         }
       );

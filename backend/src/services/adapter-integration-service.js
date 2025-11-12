@@ -40,15 +40,16 @@ export async function distributeRevenueFromSale({
     }
     
     // Lazy account creation: Create account only when revenue needs to be distributed
+    // This ensures operator (mainnet account) only pays for accounts that will receive payments
     if (!patient.hederaAccountId) {
-      console.log(`Creating Hedera account for patient ${patientUPI} (lazy creation)`);
+      console.log(`Creating Hedera account for patient ${patientUPI} (lazy creation - just before payment)`);
       
       try {
         const { createHederaAccount } = await import('./hedera-account-service.js');
         const { encrypt } = await import('./encryption-service.js');
         const { updatePatientAccount } = await import('../db/patient-db.js');
         
-        // Create account (platform pays $0.05)
+        // Create account (operator/mainnet account pays ~$0.05)
         const hederaAccount = await createHederaAccount(0);
         const encryptedPrivateKey = encrypt(hederaAccount.privateKey);
         

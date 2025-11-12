@@ -146,40 +146,26 @@ router.post('/:hospitalId/patients', authenticateHospital, async (req, res) => {
     }
     
     // Generate or get UPI
-    let hederaAccountId = null;
+    // Lazy account creation: Hedera accounts are created only when patients receive payments
+    // This saves costs - operator only pays for accounts that will actually receive revenue
     const upi = await getOrCreateUPI(
       { name, dateOfBirth, phone, nationalId },
       async (upi) => {
         return await patientExists(upi);
       },
       async (upi, patientData) => {
-        // Create Hedera account for new patient
-        const { createHederaAccount } = await import('../services/hedera-account-service.js');
-        const { encrypt } = await import('../services/encryption-service.js');
-        
-        try {
-          const hederaAccount = await createHederaAccount(0); // Platform pays
-          hederaAccountId = hederaAccount.accountId;
-          const encryptedPrivateKey = encrypt(hederaAccount.privateKey);
-          
-          await createPatient(upi, {
-            ...patientData,
-            hederaAccountId,
-            encryptedPrivateKey
-          });
-        } catch (error) {
-          console.error('Failed to create Hedera account for patient:', error);
-          // Continue without Hedera account
-          await createPatient(upi, patientData);
-        }
+        // Create patient without Hedera account (will be created lazily on first payment)
+        await createPatient(upi, {
+          ...patientData,
+          hederaAccountId: null, // Account created lazily when revenue is distributed
+          encryptedPrivateKey: null
+        });
       }
     );
     
-    // If patient already existed, get their Hedera Account ID
-    if (!hederaAccountId) {
-      const patient = await getPatient(upi);
-      hederaAccountId = patient?.hederaAccountId || null;
-    }
+    // Get patient to check if they already have an account (from previous payment)
+    const patient = await getPatient(upi);
+    const hederaAccountId = patient?.hederaAccountId || null;
     
     // Create/update contact information
     if (email || phone || nationalId) {
