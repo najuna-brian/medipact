@@ -47,41 +47,39 @@ export function PatientSidebar() {
       </div>
 
       {/* Mobile Sidebar */}
-      {
-        mobileMenuOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden"
-            onClick={() => setMobileMenuOpen(false)}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <aside
+            className="fixed left-0 top-16 z-50 min-h-screen w-64 overflow-y-auto border-r border-gray-200 bg-white"
+            onClick={(e) => e.stopPropagation()}
           >
-            <aside
-              className="fixed left-0 top-16 z-50 min-h-screen w-64 overflow-y-auto border-r border-gray-200 bg-white"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <nav className="space-y-1 p-4">
-                {patientNavItems.map((item) => {
-                  const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={cn(
-                        'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
-                        isActive
-                          ? 'border border-blue-200 bg-blue-50 text-blue-600'
-                          : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                      )}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </nav>
-            </aside>
-          </div>
-        );
-      }
+            <nav className="space-y-1 p-4">
+              {patientNavItems.map((item) => {
+                const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
+                      isActive
+                        ? 'border border-blue-200 bg-blue-50 text-blue-600'
+                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    )}
+                  >
+                    <item.icon className="h-5 w-5" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </nav>
+          </aside>
+        </div>
+      )}
 
       {
         /* Desktop Sidebar */
@@ -107,7 +105,7 @@ export function PatientSidebar() {
             );
           })}
         </nav>
-      </aside>;
+      </aside>
     </>
   );
 }
