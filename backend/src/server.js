@@ -18,6 +18,7 @@ import marketplaceRoutes from './routes/marketplace-api.js';
 import revenueRoutes from './routes/revenue-api.js';
 import adapterRoutes from './routes/adapter-api.js';
 import { initDatabase, closeDatabase } from './db/database.js';
+import { initializeDefaultAdmin } from './services/admin-init-service.js';
 
 const app = express();
 const PORT = process.env.PORT || 3002; // Default to 3002 to avoid conflicts
@@ -133,7 +134,10 @@ app.use((err, req, res, next) => {
 if (import.meta.url === `file://${process.argv[1]}`) {
   // Initialize database
   initDatabase()
-    .then(() => {
+    .then(async () => {
+      // Initialize default admin account if it doesn't exist
+      await initializeDefaultAdmin();
+      
       app.listen(PORT, () => {
         console.log(`🚀 MediPact Backend Server running on port ${PORT}`);
         console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
