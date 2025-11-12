@@ -203,9 +203,12 @@ async function main() {
     console.log(`  - Output file: ${OUTPUT_FILE}\n`);
 
     // Step 10: Display topic links
+    const { getHederaNetwork } = await import('./utils/network-config.js');
+    const network = getHederaNetwork();
+    const networkPath = network === 'mainnet' ? '' : `${network}.`;
     console.log('HCS Topics:');
-    console.log(`  Consent Topic: https://hashscan.io/testnet/topic/${consentTopicId}`);
-    console.log(`  Data Topic: https://hashscan.io/testnet/topic/${dataTopicId}\n`);
+    console.log(`  Consent Topic: https://hashscan.io/${networkPath}topic/${consentTopicId}`);
+    console.log(`  Data Topic: https://hashscan.io/${networkPath}topic/${dataTopicId}\n`);
 
     // Step 11: Payout simulation (placeholder)
     // Note: This is a simulation for demo purposes.

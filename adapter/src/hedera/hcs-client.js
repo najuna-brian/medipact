@@ -8,29 +8,31 @@
 
 import { Client, PrivateKey, AccountId, TopicCreateTransaction, TopicMessageSubmitTransaction, Status } from '@hashgraph/sdk';
 import dotenv from 'dotenv';
+import { getHederaNetwork } from '../utils/network-config.js';
 
 dotenv.config();
 
 /**
  * Initialize Hedera client based on environment configuration
  * Follows official Hiero SDK patterns for client initialization
+ * Automatically detects network based on NODE_ENV (production = mainnet, dev = testnet)
  * @returns {Client} Configured Hedera client
  */
 export function createHederaClient() {
   if (
     process.env.OPERATOR_ID == null ||
-    process.env.OPERATOR_KEY == null ||
-    process.env.HEDERA_NETWORK == null
+    process.env.OPERATOR_KEY == null
   ) {
     throw new Error(
-      "Environment variables OPERATOR_ID, HEDERA_NETWORK, and OPERATOR_KEY are required.",
+      "Environment variables OPERATOR_ID and OPERATOR_KEY are required.",
     );
   }
 
   const operatorId = AccountId.fromString(process.env.OPERATOR_ID);
   const operatorKey = PrivateKey.fromStringECDSA(process.env.OPERATOR_KEY);
+  const network = getHederaNetwork(); // Automatic network detection
 
-  const client = Client.forName(process.env.HEDERA_NETWORK);
+  const client = Client.forName(network);
   client.setOperator(operatorId, operatorKey);
 
   return client;
@@ -108,10 +110,17 @@ export async function submitMessage(client, topicId, message) {
  * @param {string} network - Network (testnet or mainnet)
  * @returns {string} HashScan URL
  */
-export function getHashScanLink(transactionId, network = 'testnet') {
+export function getHashScanLink(transactionId, network = null) {
+  // If network not provided, detect from environment
+  if (!network) {
+    network = getHederaNetwork();
+  }
+  
   // Extract transaction ID format: 0.0.123@1234567890.123456789
-  // HashScan format: https://hashscan.io/testnet/transaction/{transactionId}
-  return `https://hashscan.io/${network}/transaction/${transactionId}`;
+  // HashScan format: https://hashscan.io/{network}/transaction/{transactionId}
+  // Mainnet URLs don't have "mainnet" in the path
+  const networkPath = network === 'mainnet' ? '' : `${network}.`;
+  return `https://hashscan.io/${networkPath}transaction/${transactionId}`;
 }
 
 /**

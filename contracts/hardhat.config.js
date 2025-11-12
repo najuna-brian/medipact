@@ -27,6 +27,12 @@ module.exports = {
       // Minimum gas price on Hedera JSON-RPC Relay is 500 gwei (500000000000)
       gasPrice: 500000000000,
     },
+    hederaMainnet: {
+      url: process.env.HEDERA_MAINNET_RPC_URL || "https://mainnet.hashio.io/api",
+      chainId: 295,
+      accounts: process.env.OPERATOR_KEY_HEX ? [process.env.OPERATOR_KEY_HEX] : [],
+      gasPrice: 500000000000,
+    },
   },
   paths: {
     sources: "./contracts",

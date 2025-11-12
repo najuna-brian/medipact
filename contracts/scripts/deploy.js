@@ -25,6 +25,9 @@ async function main() {
   console.log("Current gas price:", feeData.gasPrice?.toString(), "wei");
   console.log("");
 
+  // Determine network path for HashScan links
+  const network = hre.network.name === 'hederaMainnet' ? '' : `${hre.network.name.replace('hedera', '')}.`;
+
   // Deploy ConsentManager (no constructor parameters)
   console.log("1. Deploying ConsentManager...");
   const ConsentManager = await hre.ethers.getContractFactory("ConsentManager");
@@ -34,7 +37,7 @@ async function main() {
   await consentManager.waitForDeployment();
   const consentManagerAddress = await consentManager.getAddress();
   console.log("   ✓ ConsentManager deployed to:", consentManagerAddress);
-  console.log("   ✓ HashScan: https://hashscan.io/testnet/contract/" + consentManagerAddress + "\n");
+  console.log("   ✓ HashScan: https://hashscan.io/" + network + "contract/" + consentManagerAddress + "\n");
 
   // Deploy RevenueSplitter
   console.log("2. Deploying RevenueSplitter...");
@@ -50,7 +53,7 @@ async function main() {
   await revenueSplitter.waitForDeployment();
   const revenueSplitterAddress = await revenueSplitter.getAddress();
   console.log("   ✓ RevenueSplitter deployed to:", revenueSplitterAddress);
-  console.log("   ✓ HashScan: https://hashscan.io/testnet/contract/" + revenueSplitterAddress + "\n");
+  console.log("   ✓ HashScan: https://hashscan.io/" + network + "contract/" + revenueSplitterAddress + "\n");
 
   // Verify contract ownership
   console.log("3. Verifying contract ownership...");

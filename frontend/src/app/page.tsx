@@ -40,11 +40,11 @@ export default function HomePage() {
             </div>
 
             <div className="mb-12 text-center">
-              <h1 className="mb-6 text-6xl font-bold leading-tight md:text-7xl">MediPact</h1>
-              <p className="mb-4 text-2xl font-light text-blue-100 md:text-3xl">
+              <h1 className="mb-6 text-4xl font-bold leading-tight md:text-6xl lg:text-7xl">MediPact</h1>
+              <p className="mb-4 text-xl font-light text-blue-100 md:text-2xl lg:text-3xl">
                 Enterprise Healthcare Data Platform
               </p>
-              <p className="mx-auto mb-8 max-w-3xl text-lg leading-relaxed text-blue-200 md:text-xl">
+              <p className="mx-auto mb-8 max-w-3xl text-base leading-relaxed text-blue-200 md:text-lg lg:text-xl">
                 Secure medical records storage meets ethical data marketplace. Patients control
                 their health data, researchers access quality datasets, and healthcare institutions
                 streamline operations—all on blockchain.

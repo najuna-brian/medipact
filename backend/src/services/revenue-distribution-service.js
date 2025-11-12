@@ -175,6 +175,8 @@ export async function distributeRevenue({
   } catch (error) {
     console.error('Error distributing revenue:', error);
     throw error;
+  } finally {
+    client.close(); // Always close client to prevent resource leaks
   }
 }
 

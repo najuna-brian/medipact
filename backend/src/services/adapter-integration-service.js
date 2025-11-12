@@ -39,8 +39,33 @@ export async function distributeRevenueFromSale({
       throw new Error(`Hospital ${hospitalId} not found`);
     }
     
+    // Lazy account creation: Create account only when revenue needs to be distributed
     if (!patient.hederaAccountId) {
-      throw new Error(`Patient ${patientUPI} does not have a Hedera Account ID`);
+      console.log(`Creating Hedera account for patient ${patientUPI} (lazy creation)`);
+      
+      try {
+        const { createHederaAccount } = await import('./hedera-account-service.js');
+        const { encrypt } = await import('./encryption-service.js');
+        const { updatePatientAccount } = await import('../db/patient-db.js');
+        
+        // Create account (platform pays $0.05)
+        const hederaAccount = await createHederaAccount(0);
+        const encryptedPrivateKey = encrypt(hederaAccount.privateKey);
+        
+        // Save to database
+        await updatePatientAccount(patientUPI, {
+          hederaAccountId: hederaAccount.accountId,
+          encryptedPrivateKey: encryptedPrivateKey
+        });
+        
+        // Update patient object for this transaction
+        patient.hederaAccountId = hederaAccount.accountId;
+        
+        console.log(`✅ Hedera account created for patient ${patientUPI}: ${hederaAccount.accountId}`);
+      } catch (error) {
+        console.error(`Failed to create Hedera account for patient ${patientUPI}:`, error);
+        throw new Error(`Cannot distribute revenue: Failed to create Hedera account for patient`);
+      }
     }
     
     if (!hospital.hederaAccountId) {

@@ -42,11 +42,13 @@ export default function ResearcherDashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <ResearcherSidebar />
-      <div className="ml-64">
+      <div className="ml-0 md:ml-64">
         <div className="container mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold">Researcher Dashboard</h1>
-            <p className="text-muted-foreground">Browse datasets and manage research projects</p>
+          <div className="mb-6 md:mb-8">
+            <h1 className="mb-2 text-2xl font-bold md:text-3xl">Researcher Dashboard</h1>
+            <p className="text-sm text-muted-foreground md:text-base">
+              Browse datasets and manage research projects
+            </p>
           </div>
 
           {/* Verification Prompt - Always shown if not verified */}
@@ -89,33 +91,33 @@ export default function ResearcherDashboardPage() {
                     <p className="font-medium">{researcher.data.organizationName}</p>
                   </div>
                   <div>
-                      <p className="text-sm text-muted-foreground">Verification Status</p>
-                      <p className="font-medium">
-                       {researcher.data?.verificationStatus ? (
-                         <span
-                           className={`inline-flex items-center gap-1 rounded px-2 py-1 text-sm ${
-                             researcher.data.verificationStatus === 'verified'
-                               ? 'bg-green-100 text-green-800'
-                               : researcher.data.verificationStatus === 'pending'
-                                 ? 'bg-yellow-100 text-yellow-800'
-                                 : 'bg-red-100 text-red-800'
-                           }`}
-                         >
-                           {researcher.data.verificationStatus === 'verified' && (
-                             <Shield className="h-3 w-3" />
-                           )}
-                           {researcher.data.verificationStatus === 'pending' && (
-                             <AlertCircle className="h-3 w-3" />
-                           )}
-                           {researcher.data.verificationStatus.charAt(0).toUpperCase() +
-                             researcher.data.verificationStatus.slice(1)}
-                         </span>
-                       ) : (
-                         <span className="inline-flex items-center gap-1 rounded px-2 py-1 text-sm bg-gray-100 text-gray-800">
-                           Loading...
-                         </span>
-                       )}
-                      </p>
+                    <p className="text-sm text-muted-foreground">Verification Status</p>
+                    <p className="font-medium">
+                      {researcher.data?.verificationStatus ? (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded px-2 py-1 text-sm ${
+                            researcher.data.verificationStatus === 'verified'
+                              ? 'bg-green-100 text-green-800'
+                              : researcher.data.verificationStatus === 'pending'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {researcher.data.verificationStatus === 'verified' && (
+                            <Shield className="h-3 w-3" />
+                          )}
+                          {researcher.data.verificationStatus === 'pending' && (
+                            <AlertCircle className="h-3 w-3" />
+                          )}
+                          {researcher.data.verificationStatus.charAt(0).toUpperCase() +
+                            researcher.data.verificationStatus.slice(1)}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-1 text-sm text-gray-800">
+                          Loading...
+                        </span>
+                      )}
+                    </p>
                   </div>
                 </div>
               </CardContent>

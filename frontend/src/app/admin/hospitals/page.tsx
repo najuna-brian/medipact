@@ -207,10 +207,12 @@ function AdminHospitalsPageContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold">Hospital Verification Management</h1>
-          <p className="text-muted-foreground">Review and approve hospital verification requests</p>
+      <div className="container mx-auto px-4 py-4 md:py-8">
+        <div className="mb-6 md:mb-8">
+          <h1 className="mb-2 text-2xl font-bold md:text-3xl">Hospital Verification Management</h1>
+          <p className="text-sm text-muted-foreground md:text-base">
+            Review and approve hospital verification requests
+          </p>
         </div>
 
         {/* Statistics */}
@@ -220,7 +222,7 @@ function AdminHospitalsPageContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Pending Verification</p>
-                  <p className="text-2xl font-bold">{pendingHospitals.length}</p>
+                  <p className="text-xl font-bold md:text-2xl">{pendingHospitals.length}</p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-600" />
               </div>
@@ -231,7 +233,7 @@ function AdminHospitalsPageContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Verified</p>
-                  <p className="text-2xl font-bold">{verifiedHospitals.length}</p>
+                  <p className="text-xl font-bold md:text-2xl">{verifiedHospitals.length}</p>
                 </div>
                 <CheckCircle2 className="h-8 w-8 text-green-600" />
               </div>
@@ -242,7 +244,7 @@ function AdminHospitalsPageContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Rejected</p>
-                  <p className="text-2xl font-bold">{rejectedHospitals.length}</p>
+                  <p className="text-xl font-bold md:text-2xl">{rejectedHospitals.length}</p>
                 </div>
                 <XCircle className="h-8 w-8 text-red-600" />
               </div>
@@ -253,7 +255,7 @@ function AdminHospitalsPageContent() {
         {/* Pending Verifications */}
         {pendingHospitals.length > 0 && (
           <div className="mb-8">
-            <h2 className="mb-4 text-xl font-semibold">Pending Verifications</h2>
+            <h2 className="mb-4 text-lg font-semibold md:text-xl">Pending Verifications</h2>
             <div className="space-y-4">
               {pendingHospitals.map((hospital) => (
                 <Card key={hospital.hospitalId} className="border-yellow-200">
@@ -270,23 +272,25 @@ function AdminHospitalsPageContent() {
                           {hospital.location && ` • ${hospital.location}`}
                         </CardDescription>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => viewDocuments(hospital.hospitalId)}
+                          className="text-xs md:text-sm"
                         >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View Documents
+                          <Eye className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
+                          <span className="hidden sm:inline">View Documents</span>
+                          <span className="sm:hidden">View</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => openApproveDialog(hospital.hospitalId)}
                           disabled={approveMutation.isPending}
-                          className="border-green-200 text-green-700 hover:bg-green-50"
+                          className="border-green-200 text-xs text-green-700 hover:bg-green-50 md:text-sm"
                         >
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
+                          <CheckCircle2 className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
                           Approve
                         </Button>
                         <Button
@@ -294,9 +298,9 @@ function AdminHospitalsPageContent() {
                           size="sm"
                           onClick={() => openRejectDialog(hospital.hospitalId)}
                           disabled={rejectMutation.isPending}
-                          className="border-red-200 text-red-700 hover:bg-red-50"
+                          className="border-red-200 text-xs text-red-700 hover:bg-red-50 md:text-sm"
                         >
-                          <XCircle className="mr-2 h-4 w-4" />
+                          <XCircle className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
                           Reject
                         </Button>
                       </div>
@@ -310,7 +314,7 @@ function AdminHospitalsPageContent() {
 
         {/* All Hospitals */}
         <div>
-          <h2 className="mb-4 text-xl font-semibold">All Hospitals</h2>
+          <h2 className="mb-4 text-lg font-semibold md:text-xl">All Hospitals</h2>
           <div className="space-y-4">
             {hospitals.map((hospital) => (
               <Card
@@ -510,8 +514,8 @@ function AdminHospitalsPageContent() {
             <AlertDialogHeader>
               <AlertDialogTitle>Approve Hospital Verification</AlertDialogTitle>
               <AlertDialogDescription>
-                Confirm approval of this hospital&apos;s verification. The hospital will be notified and
-                will be able to register patients and use all features.
+                Confirm approval of this hospital&apos;s verification. The hospital will be notified
+                and will be able to register patients and use all features.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-4">
@@ -568,8 +572,8 @@ function AdminHospitalsPageContent() {
             <AlertDialogHeader>
               <AlertDialogTitle>Reject Hospital Verification</AlertDialogTitle>
               <AlertDialogDescription>
-                Please provide a reason for rejecting this hospital&apos;s verification request. This
-                reason will be visible to the hospital.
+                Please provide a reason for rejecting this hospital&apos;s verification request.
+                This reason will be visible to the hospital.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div className="space-y-4">

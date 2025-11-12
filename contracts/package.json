@@ -11,17 +11,22 @@
     "test": "hardhat test",
     "deploy:testnet": "hardhat run scripts/deploy.js --network hederaTestnet",
     "deploy:previewnet": "hardhat run scripts/deploy.js --network hederaPreviewnet",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network hederaMainnet",
     "clean": "hardhat clean"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@hashgraph/sdk": "^2.76.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "bip39": "^3.1.0",
     "chai": "^4.5.0",
     "dotenv": "^17.2.3",
+    "ed25519-hd-key": "^1.3.0",
     "ethers": "^6.15.0",
-    "hardhat": "^2.26.5"
+    "hardhat": "^2.26.5",
+    "tweetnacl": "^1.0.3"
   }
 }

@@ -34,11 +34,13 @@ async function testHCS() {
     console.log(`   Transaction ID: ${transactionId}`);
     console.log(`   HashScan Link: ${getHashScanLink(transactionId)}\n`);
 
+    const network = process.env.HEDERA_NETWORK || 'testnet';
+    const networkPath = network === 'mainnet' ? '' : `${network}.`;
     console.log('=== Test Complete ===');
     console.log('\nNext steps:');
     console.log('1. Visit the HashScan link above to view the transaction');
     console.log('2. Check the topic messages on HashScan');
-    console.log(`   https://hashscan.io/testnet/topic/${topicId}`);
+    console.log(`   https://hashscan.io/${networkPath}topic/${topicId}`);
 
     // Close client
     client.close();

@@ -10,8 +10,11 @@ import {
   TopicCreateTransaction,
   TopicMessageSubmitTransaction,
   TopicMessageQuery,
-  Hbar
+  Hbar,
+  AccountId,
+  PrivateKey
 } from '@hashgraph/sdk';
+import { getHederaNetwork } from '../utils/network-config.js';
 
 let hcsClient = null;
 let queryAuditTopicId = null;
@@ -19,11 +22,11 @@ let datasetMetadataTopicId = null;
 
 /**
  * Initialize HCS client
+ * Automatically detects network based on NODE_ENV (production = mainnet, dev = testnet)
  */
 export function initHCSClient() {
   const operatorId = process.env.OPERATOR_ID;
   const operatorKey = process.env.OPERATOR_KEY;
-  const network = process.env.HEDERA_NETWORK || 'testnet';
   
   if (!operatorId || !operatorKey) {
     console.warn('⚠️  HCS client not initialized: Missing OPERATOR_ID or OPERATOR_KEY');
@@ -31,14 +34,18 @@ export function initHCSClient() {
   }
   
   try {
+    const network = getHederaNetwork(); // Automatic network detection
+    const operatorIdObj = AccountId.fromString(operatorId);
+    const operatorKeyObj = PrivateKey.fromStringECDSA(operatorKey);
+    
     hcsClient = Client.forName(network);
-    hcsClient.setOperator(operatorId, operatorKey);
+    hcsClient.setOperator(operatorIdObj, operatorKeyObj);
     
     // Get topic IDs from environment or create them
     queryAuditTopicId = process.env.HCS_QUERY_AUDIT_TOPIC_ID;
     datasetMetadataTopicId = process.env.HCS_DATASET_METADATA_TOPIC_ID;
     
-    console.log('✅ HCS client initialized');
+    console.log(`✅ HCS client initialized for ${network}`);
     return hcsClient;
   } catch (error) {
     console.error('❌ Error initializing HCS client:', error);
@@ -151,7 +158,7 @@ export async function logDatasetToHCS(datasetData) {
  * @returns {string} HashScan URL
  */
 export function getHashScanLink(transactionId) {
-  const network = process.env.HEDERA_NETWORK || 'testnet';
+  const network = getHederaNetwork(); // Automatic network detection
   const networkPath = network === 'mainnet' ? '' : `${network}.`;
   return `https://hashscan.io/${networkPath}message/${transactionId}`;
 }

@@ -7,24 +7,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getAllHospitals,
-  getAdminHospitalDetail,
-  approveHospitalVerification,
-  rejectHospitalVerification,
+  getHospitalDetail,
+  verifyHospital,
+  rejectHospital,
   type AdminHospitalsResponse,
   type AdminHospitalDetail,
-} from '@/lib/api/patient-identity';
+} from '@/lib/api/admin';
 import { useAdminSession } from './useAdminSession';
 
 /**
  * Get all hospitals (admin)
  */
 export function useAdminHospitals() {
-  const { token } = useAdminSession();
-  
   return useQuery<AdminHospitalsResponse>({
     queryKey: ['admin', 'hospitals'],
-    queryFn: () => getAllHospitals(token!),
-    enabled: !!token,
+    queryFn: () => getAllHospitals(),
   });
 }
 
@@ -32,12 +29,10 @@ export function useAdminHospitals() {
  * Get hospital detail (admin)
  */
 export function useAdminHospitalDetail(hospitalId: string | null) {
-  const { token } = useAdminSession();
-  
   return useQuery<AdminHospitalDetail>({
     queryKey: ['admin', 'hospitals', hospitalId],
-    queryFn: () => getAdminHospitalDetail(hospitalId!, token!),
-    enabled: !!hospitalId && !!token,
+    queryFn: () => getHospitalDetail(hospitalId!),
+    enabled: !!hospitalId,
   });
 }
 
@@ -46,11 +41,10 @@ export function useAdminHospitalDetail(hospitalId: string | null) {
  */
 export function useApproveHospital() {
   const queryClient = useQueryClient();
-  const { token } = useAdminSession();
 
   return useMutation({
-    mutationFn: ({ hospitalId, adminId }: { hospitalId: string; adminId?: string }) =>
-      approveHospitalVerification(hospitalId, token!, adminId),
+    mutationFn: ({ hospitalId }: { hospitalId: string }) =>
+      verifyHospital(hospitalId),
     onSuccess: (data, variables) => {
       // Invalidate and refetch hospitals list
       queryClient.invalidateQueries({ queryKey: ['admin', 'hospitals'] });
@@ -70,18 +64,15 @@ export function useApproveHospital() {
  */
 export function useRejectHospital() {
   const queryClient = useQueryClient();
-  const { token } = useAdminSession();
 
   return useMutation({
     mutationFn: ({
       hospitalId,
       reason,
-      adminId,
     }: {
       hospitalId: string;
       reason: string;
-      adminId?: string;
-    }) => rejectHospitalVerification(hospitalId, reason, token!, adminId),
+    }) => rejectHospital(hospitalId, reason),
     onSuccess: (data, variables) => {
       // Invalidate and refetch hospitals list
       queryClient.invalidateQueries({ queryKey: ['admin', 'hospitals'] });
