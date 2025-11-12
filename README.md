@@ -1,408 +1,223 @@
-# MediPact - The Verifiable Health Pact. Built on Hedera.
+# MediPact - Verifiable Health Data Marketplace
 
-> **Hedera Hello Future: Ascension Hackathon 2025**  
-> **Theme**: Open Track - Verifiable Healthcare Systems  
-> **Tagline**: "The Verifiable Health Pact. Built on Hedera."
+> Built on Hedera | Hackathon 2025
 
-## Project Description
+## What It Is
 
-MediPact is a verifiable medical data marketplace that empowers patients to control and monetize their anonymized medical data for research. We solve the patient data black market by creating a transparent, ethical platform using Hedera's Consensus Service for immutable proof and HBAR for instant micropayments.
+MediPact enables patients to control and monetize anonymized medical data for research. Uses Hedera HCS for immutable consent/data proof and HBAR for automated revenue distribution (60/25/15 split: Patient/Hospital/MediPact).
 
-**Problem**: Patients are exploited by data brokers who sell their medical data without consent or compensation. Researchers lack trusted, verifiable data sources. Hospitals have no safe way to share data for research.
+**Problem**: Patients are exploited by data brokers. Researchers lack trusted data sources. Hospitals have no safe way to share data.
 
-**Solution**: A unified platform with two patient onboarding paths—digital and in-person—that uses HCS to create immutable proof of consent and data authenticity, ensuring ethical, verifiable medical data transactions.
+**Solution**: A transparent platform using Hedera Consensus Service for immutable proof and smart contracts for automated revenue distribution.
 
-## The Problem We Solve
+## Quick Start
 
-### Patients are Exploited
-Medical data is a multi-billion dollar asset. Data brokers buy and sell patient information without knowledge, consent, or compensation. Patients are the product, not the partner.
+### Prerequisites
+- Node.js 18+
+- Hedera testnet account: https://portal.hedera.com/dashboard
 
-### Researchers are Blind
-Pharmaceutical companies and AI labs need high-quality, diverse data to cure diseases. They're forced to buy from untrusted brokers with no way to verify if data is real, ethically sourced, or unaltered.
+### Setup (5 minutes)
 
-### Hospitals are Trapped
-Hospitals (especially government hospitals in developing countries) sit on valuable data but have no safe, legal, or easy way to share it for research.
+```bash
+# 1. Clone & install
+git clone git@github.com:najuna-brian/medipact.git && cd medipact
+cd adapter && npm install
+cd ../backend && npm install  
+cd ../frontend && npm install
 
-## Our Solution: A Unified, Two-Path Platform
+# 2. Configure environment variables
+# Copy env.example to each directory and add your Hedera credentials
 
-### Path 1: The "Digital Patient" (Future Vision)
-For tech-savvy users in urban areas and developed countries:
+# adapter/.env
+OPERATOR_ID="0.0.xxxxx"
+OPERATOR_KEY="0x..."
+HEDERA_NETWORK="testnet"
+HOSPITAL_COUNTRY="Uganda"
 
-- **Health Wallet**: Secure place to connect hospital portals, upload lab results, view complete medical history
-- **Passive Marketplace**: Simple on/off toggle to sell anonymized data, earn passive income with earnings dashboard
-- **Active Studies Portal**: High-value portal where pharma companies post specific studies; patients browse and apply
+# backend/.env
+OPERATOR_ID="0.0.xxxxx"
+OPERATOR_KEY="0x..."
+HEDERA_NETWORK="testnet"
+ENCRYPTION_KEY="your-32-byte-hex-key"  # Generate: openssl rand -hex 32
+PORT=3002
+JWT_SECRET="your-jwt-secret"
 
-### Path 2: The "In-Person Bridge" (MVP Focus - Our Secret Weapon)
-For billions of patients without smartphones or high digital literacy:
+# frontend/.env.local
+NEXT_PUBLIC_API_URL="http://localhost:3002"
+NEXT_PUBLIC_HEDERA_NETWORK="testnet"
 
-- **Consent**: Hospital clerk explains program, patient signs paper form or uses thumbprint
-- **Onboarding**: Clerk scans QR code, links anonymous ID to Mobile Money number
-- **Result**: Patient enrolled in Passive Marketplace without ever needing a phone or app
+# 3. Start services
+cd backend && npm start      # Port 3002
+cd frontend && npm run dev   # Port 3000
+cd adapter && npm start      # Process data
+```
 
-## Technical Architecture
+**Access**: 
+- Frontend: http://localhost:3000
+- API Docs: http://localhost:3002/api-docs
+- Health: http://localhost:3002/health
 
-### The MediPact Adapter (Core Engine)
-- **Installation**: Small, secure software installed on hospital servers
-- **Connection**: Connects to existing EHR via **FHIR API** (FHIR R4 standard) or CSV
-- **Anonymization**: Automatically strips PII (name, ID, address), replaces with anonymous PID
-- **Standards Compliance**: Full FHIR R4 support for production-ready integration
-- **Logging**: Prepares clean, anonymous files for marketplace (CSV and FHIR formats)
+## Architecture
 
-### Hedera Integration
+```
+EHR Data → Adapter (Anonymize) → HCS (Proof) → Smart Contracts (Revenue) → Marketplace
+```
 
-**Hedera Consensus Service (HCS)**: Immutable "bulletin board" storing:
-- **Consent Proof**: Hash of signed/thumbprint consent form (legal audit trail)
-- **Data Proof**: Hash of anonymous lab file (verifies data authenticity)
+### Components
 
-**HBAR Payments**: Global 60/25/15 revenue split (Patient/Hospital/MediPact)
-- **Smart Contracts**: Automated revenue distribution via RevenueSplitter contract
-- **Real Payouts**: HBAR transfers automatically split 60/25/15
-- Instant micropayments via smart contracts
-- USD-based currency conversion (HBAR → USD → Local Currency)
-- Configurable local currency support (UGX, KES, TZS, etc.)
-- Mobile Money integration with SMS notifications (future)
+- **Adapter** (`adapter/`): Processes FHIR/CSV, anonymizes PII, submits to HCS
+- **Backend** (`backend/`): REST API with patient identity (UPI), hospital/researcher registry, marketplace
+- **Frontend** (`frontend/`): Next.js 15 app with Patient/Hospital/Researcher/Admin portals
+- **Contracts** (`contracts/`): Solidity smart contracts (ConsentManager, RevenueSplitter)
 
-**Hedera EVM Integration**:
-- **ConsentManager Contract**: On-chain registry of consent proofs linked to HCS topics
-- **RevenueSplitter Contract**: Automated HBAR distribution with 60/25/15 split
-- Contracts deployed on Hedera EVM (testnet/mainnet)
-- Full smart contract interaction via Hedera SDK
-
-## MVP Demo Flow
-
-Our hackathon MVP demonstrates the core "In-Person Bridge" flow:
-
-1. **Hospital EHR Data**: FHIR Bundle (`raw_data.fhir.json`) or CSV file (`raw_data.csv`) with lab results
-2. **MediPact Adapter Script**: 
-   - Automatically detects input format (FHIR or CSV)
-   - Reads and parses data (FHIR R4 standard or CSV)
-   - Anonymizes data (removes PII), generates hashes
-3. **HCS Submission**: Posts consent proof hash and data proof hash to Hedera Consensus Service
-4. **On-Chain Registry**: Records consent proofs in ConsentManager smart contract (optional, if deployed)
-5. **HCS Proof on HashScan**: Shows transaction on Hedera Testnet explorer (HashScan) - verifiable proof
-6. **Payout Simulation**: Displays revenue split in USD (and optional local currency)
-7. **Real Payout Execution**: Transfers HBAR to RevenueSplitter contract which automatically distributes 60/25/15 (optional, if deployed)
-8. **Output**: Generates anonymized data in both CSV and FHIR formats (if FHIR input)
-
-## Tech Stack
-
-- **Blockchain**: Hedera Hashgraph
-  - Hedera Consensus Service (HCS) via `@hashgraph/sdk`
-  - Hedera Agent Kit JS for HCS topic management and message submission
-  - HBAR for micropayments
-  - Smart Contracts (Solidity) for revenue distribution
-- **Backend**: Node.js / Express.js
-  - RESTful API with Swagger UI documentation
-  - Patient identity management (UPI system)
-  - Hospital registry and verification
-  - Researcher marketplace
-  - Revenue distribution service
-  - Data handling system (FHIR storage, query engine, dataset management)
-  - Consent validation system (automatic filtering in queries)
-  - SQLite (dev) / PostgreSQL (prod)
-- **Frontend**: Next.js 15 with TypeScript
-  - App Router architecture
-  - Tailwind CSS for styling
-  - TanStack Query for data fetching
-  - Role-based navigation and access control
-  - Public pages (marketplace, for-patients, for-hospitals, for-researchers)
-  - Dashboard sidebars for each role
-- **Adapter**: Node.js / JavaScript
-  - FHIR R4 and CSV data processing
-  - Data anonymization engine
-  - HCS integration
-  - Smart contract integration
-- **Integration**: **FHIR R4 API** (global healthcare standard), Mobile Money APIs (simulated)
-- **Data Standards**: FHIR (Fast Healthcare Interoperability Resources) R4 compliant
-- **API Documentation**: Swagger UI at `/api-docs`
-
-## Repository Structure
+## Project Structure
 
 ```
 medipact/
-├── adapter/                    # MediPact Adapter (Core Engine)
-│   ├── data/                   # Sample EHR data (CSV files)
-│   ├── scripts/                # Adapter utility scripts
-│   ├── src/                    # Source code (JavaScript)
-│   │   ├── anonymizer/         # Data anonymization logic
-│   │   │   └── anonymize.js
-│   │   ├── hedera/             # Hedera integration
-│   │   │   ├── hcs-client.js   # HCS integration
-│   │   │   └── evm-client.js   # EVM smart contract integration
-│   │   ├── utils/              # Helper functions
-│   │   │   ├── hash.js         # Cryptographic hash generation
-│   │   │   └── currency.js     # Currency conversion utilities (USD-based)
-│   │   └── index.js            # Main adapter entry point
-│   └── tests/                  # Adapter tests
-│
-├── contracts/                  # Smart contracts
-│   ├── ConsentManager.sol      # Consent management contract
-│   ├── RevenueSplitter.sol     # Revenue distribution contract (60/25/15 split)
-│   ├── README.md               # Contract documentation
-│   ├── REVIEW.md               # Code review against Hedera standards
-│   ├── scripts/                # Deployment scripts
-│   └── test/                   # Contract tests
-│
-├── frontend/                   # Next.js Frontend Application
-│   ├── src/
-│   │   ├── app/                # Next.js App Router pages
-│   │   │   ├── patient/        # Patient portal pages
-│   │   │   ├── hospital/       # Hospital portal pages
-│   │   │   ├── researcher/     # Researcher portal pages
-│   │   │   ├── admin/          # Admin portal pages
-│   │   │   ├── marketplace/    # Public marketplace page
-│   │   │   ├── for-patients/   # Public patient info page
-│   │   │   ├── for-hospitals/  # Public hospital info page
-│   │   │   ├── for-researchers/# Public researcher info page
-│   │   │   └── api/            # API routes
-│   │   ├── components/         # React components
-│   │   │   ├── ui/            # Reusable UI components
-│   │   │   ├── Sidebar/       # Role-based sidebar navigation
-│   │   │   ├── Navigation/    # Main navigation bar
-│   │   │   └── DataViewer/    # Data display components
-│   │   ├── hooks/             # Custom React hooks
-│   │   ├── lib/               # Utility libraries and API clients
-│   │   └── types/             # TypeScript type definitions
-│   └── tests/                 # Frontend tests
-│
-├── backend/                    # Express.js Backend API
-│   ├── src/
-│   │   ├── routes/            # API route handlers
-│   │   │   ├── patient-api.js
-│   │   │   ├── hospital-api.js
-│   │   │   ├── researcher-api.js
-│   │   │   ├── marketplace-api.js
-│   │   │   └── revenue-api.js
-│   │   ├── services/          # Business logic services
-│   │   ├── db/                # Database operations
-│   │   ├── models/            # Data models and schemas
-│   │   ├── config/            # Configuration (Swagger, etc.)
-│   │   └── server.js          # Express server setup
-│   ├── data/                  # SQLite database (dev)
-│   └── tests/                 # Backend tests
-│
-├── docs/                       # Documentation
-│   ├── plan.md                # Development plan
-│   └── MASTER_PLAN.md         # Comprehensive master plan
-│
-├── scripts/                    # Utility scripts
-│
-├── .gitignore                  # Git ignore rules
-├── README.md                   # Project README
-├── PROJECT_STRUCTURE.md        # Detailed project structure
-└── env.example                 # Environment variables template
+├── adapter/          # Data processing & HCS integration
+│   ├── src/         # Anonymization, HCS client, utilities
+│   └── data/        # Sample EHR data (CSV/FHIR)
+├── backend/         # Express.js REST API
+│   ├── src/         # Routes, services, database
+│   └── data/        # SQLite database (dev)
+├── frontend/        # Next.js 15 application
+│   └── src/         # App router, components, hooks
+└── contracts/       # Solidity smart contracts
+    └── contracts/   # ConsentManager.sol, RevenueSplitter.sol
 ```
 
-See [PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md) for detailed documentation.
+## Key Features
 
-## 🛡️ Development Workflow
+- ✅ FHIR R4 compliant data processing
+- ✅ K-anonymity enforcement (demographics preserved, PII removed)
+- ✅ HCS immutable proof storage (consent & data hashes)
+- ✅ Automated HBAR revenue distribution (60/25/15 split)
+- ✅ Patient identity system (UPI - Unique Patient Identifier)
+- ✅ Consent validation in all queries (database-level)
+- ✅ Marketplace with multi-dimensional query engine
+- ✅ Smart contract integration (on-chain consent registry)
 
-**Important**: The `main` branch is protected. All changes must go through Pull Requests.
+## Environment Variables
 
-### Quick Start Workflow
-
-```bash
-# 1. Create a feature branch
-git checkout -b feature/your-feature-name
-
-# 2. Make changes and commit
-git add .
-git commit -m "feat: Your feature description"
-
-# 3. Push to your branch
-git push origin feature/your-feature-name
-
-# 4. Create Pull Request on GitHub
-```
-
-**Direct pushes to `main` are blocked** - see [CONTRIBUTING.md](CONTRIBUTING.md) for full workflow.
-
-## Getting Started
-
-**🚀 Quick Start**: See [QUICK_START.md](./QUICK_START.md) for a 5-minute setup guide!
-
-**📚 Complete Tutorial**: See [docs/tutorial/README.md](./docs/tutorial/README.md) for a comprehensive, step-by-step guide covering everything from introduction to advanced topics!
-
-### Prerequisites
-
-- Node.js 18+ and npm
-- Hedera Testnet account (get free account at https://portal.hedera.com/dashboard)
-- Git
-
-### Installation
-
-```bash
-# Clone the repository
-git clone git@github.com:najuna-brian/medipact.git
-cd medipact
-
-# Navigate to adapter directory
-cd adapter
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp ../env.example .env
-# Edit .env with your Hedera testnet credentials
-```
-
-### Running the MVP Demo
-
-```bash
-# Navigate to adapter directory
-cd adapter
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp ../env.example .env
-# Edit .env with your Hedera testnet credentials
-
-# Run the adapter script
-npm start
-
-# This will:
-# 1. Read raw_data.csv
-# 2. Anonymize the data (remove PII, generate anonymous IDs)
-# 3. Create HCS topics (Consent Proofs, Data Proofs)
-# 4. Submit consent proof hashes to HCS
-# 5. Submit data proof hashes to HCS
-# 6. Display HashScan links for all transactions
-# 7. Show payout simulation (USD + optional local currency)
-```
-
-### Optional: Local Currency Configuration
-
-To display revenue in local currency (e.g., UGX), add to your `.env` file:
-
+### Adapter (`adapter/.env`)
 ```env
-LOCAL_CURRENCY_CODE="UGX"
-USD_TO_LOCAL_RATE="3700"
+OPERATOR_ID="0.0.xxxxx"
+OPERATOR_KEY="0x..."
+HEDERA_NETWORK="testnet"
+HOSPITAL_COUNTRY="Uganda"
+HOSPITAL_LOCATION="Kampala, Uganda"  # Optional
+HOSPITAL_ID="HOSP-XXXXXXXX"          # For revenue distribution
+BACKEND_API_URL="http://localhost:3002"
+CONSENT_MANAGER_ADDRESS="0x..."      # Optional: from contract deployment
+REVENUE_SPLITTER_ADDRESS="0x..."     # Optional: from contract deployment
 ```
 
-See `adapter/SETUP.md` for detailed setup instructions.
+### Backend (`backend/.env`)
+```env
+OPERATOR_ID="0.0.xxxxx"
+OPERATOR_KEY="0x..."
+HEDERA_NETWORK="testnet"
+ENCRYPTION_KEY="32-byte-hex"  # openssl rand -hex 32
+PORT=3002
+NODE_ENV=development
+DATABASE_PATH="./data/medipact.db"  # SQLite for dev
+JWT_SECRET="your-secret-key"
+JWT_EXPIRES_IN="24h"
+```
 
-## Development Status
+### Frontend (`frontend/.env.local`)
+```env
+NEXT_PUBLIC_API_URL="http://localhost:3002"
+NEXT_PUBLIC_HEDERA_NETWORK="testnet"
+```
 
-### Core Features ✅
-- [x] Project setup and repository structure
-- [x] README and documentation
-- [x] Hedera HCS integration (topic creation, message submission)
-- [x] Data anonymization service
-- [x] Adapter script (CSV → anonymize → HCS → HashScan)
-- [x] Currency utilities (USD-based with configurable local currency)
-- [x] Smart contracts (RevenueSplitter, ConsentManager)
-- [x] Contract documentation and code review
-- [x] Contract testing (24/24 tests passing)
-- [x] Hardhat deployment environment setup
-- [x] Smart contract deployment to testnet
-- [x] EVM integration in adapter (ConsentManager, RevenueSplitter)
-- [x] On-chain consent registry
-- [x] Real HBAR payout execution
+## Smart Contracts (Optional)
 
-### Backend API ✅
-- [x] Patient identity management (UPI system)
-- [x] Hospital registry and verification
-- [x] Researcher registration and verification
-- [x] Marketplace API endpoints
-- [x] Revenue distribution API
-- [x] Swagger UI API documentation
-- [x] Role-based authentication
+For full EVM integration with on-chain consent registry and automated payouts:
 
-### Frontend Application ✅
-- [x] Next.js 15 application setup
-- [x] Patient portal (dashboard, wallet, earnings)
-- [x] Hospital portal (dashboard, upload, consent, revenue)
-- [x] Researcher portal (dashboard, catalog, purchases)
-- [x] Admin portal (dashboard, verification, analytics)
-- [x] Public pages (marketplace, for-patients, for-hospitals, for-researchers)
-- [x] Role-based navigation and access control
-- [x] Sidebar navigation for each role
-- [x] Data viewer components
+```bash
+cd contracts
+npm install
+npm run compile
+npm run deploy:testnet
+# Add contract addresses to adapter/.env
+```
 
-### Data Handling & Consent ✅
-- [x] FHIR resource storage (patients, conditions, observations)
-- [x] Dataset management with metadata
-- [x] Multi-dimensional query filtering
-- [x] Consent validation in queries (automatic filtering)
-- [x] Dataset browsing and search
-- [x] Purchase flow integration
-- [x] Export functionality (FHIR, CSV, JSON)
-- [x] HCS audit logging for queries and datasets
+## API Documentation
 
-### In Progress
-- [ ] End-to-end testing with real data
-- [ ] Demo video and pitch deck
-- [ ] Production deployment
+Interactive Swagger UI available at: http://localhost:3002/api-docs
 
-## Hackathon Submission Requirements
+### Key Endpoints
 
-This project is being developed for the **Hedera Hello Future: Ascension Hackathon 2025**.
+- `GET /health` - Health check
+- `POST /api/patient/register` - Register patient
+- `POST /api/hospital/register` - Register hospital
+- `POST /api/researcher/register` - Register researcher
+- `GET /api/marketplace/datasets` - Browse datasets
+- `POST /api/marketplace/query` - Query data (with consent validation)
+- `POST /api/revenue/distribute` - Distribute revenue
 
-### Submission Checklist
+## Tech Stack
 
-- [x] GitHub repository with code
-- [x] README file
-- [ ] Project description (max 100 words)
-- [ ] Tech stack list
-- [ ] Pitch deck (PDF)
-- [ ] Demo video (YouTube link)
-- [ ] Project demo link (live working environment)
+- **Blockchain**: Hedera (HCS, HBAR, EVM)
+- **Backend**: Node.js, Express, SQLite/PostgreSQL
+- **Frontend**: Next.js 15, TypeScript, Tailwind CSS
+- **Standards**: FHIR R4
+- **Smart Contracts**: Solidity (Hedera EVM)
 
-## Judging Criteria Alignment
+## Development
 
-**Innovation (10%)**: Novel approach to verifiable healthcare using HCS for immutable consent and data proof. Unique two-path onboarding strategy.
+```bash
+# Run tests
+cd contracts && npm test
+cd adapter && npm run validate
 
-**Feasibility (10%)**: Uses Hedera network services (HCS, HBAR). Addresses real-world problem in healthcare data marketplace.
+# Development mode (auto-reload)
+cd backend && npm run dev
+cd frontend && npm run dev
 
-**Execution (20%)**: MVP focuses on core adapter engine with working HCS integration, anonymization, and proof generation.
+# Process data with adapter
+cd adapter && npm start
+```
 
-**Integration (15%)**: Deep Hedera integration using HCS for consent and data proof, HBAR for payments, smart contracts for revenue distribution.
+## Data Flow
 
-**Success (20%)**: Creates verifiable medical data transactions, enables ethical data marketplace, potential for high TPS as marketplace scales.
+1. **Input**: Hospital EHR data (CSV or FHIR R4)
+2. **Anonymization**: Remove PII, preserve demographics, generate anonymous IDs
+3. **HCS Submission**: Submit consent & data proof hashes to Hedera
+4. **On-Chain Registry**: Record consent proofs in ConsentManager contract
+5. **HashScan Verification**: View transactions on HashScan explorer
+6. **Revenue Distribution**: Automated 60/25/15 split via RevenueSplitter contract
+7. **Output**: Anonymized data (CSV/FHIR) ready for marketplace
 
-**Validation (15%)**: Addresses validated market need (healthcare data marketplace). Targets real users (hospitals, patients, researchers).
+## Troubleshooting
 
-**Pitch (10%)**: Clear problem-solution presentation. Demonstrates technical capability and market opportunity.
+**"OPERATOR_ID required"**
+- Create `.env` file with Hedera credentials from https://portal.hedera.com/dashboard
 
-## Future Roadmap
+**"Transaction failed"**
+- Ensure account has HBAR balance (testnet faucet available)
 
-### Phase 1: Post-Hackathon MVP Enhancement
-- Full smart contract deployment for revenue splitting
-- Mobile Money API integration
-- Basic frontend dashboard
+**"Port in use"**
+- Change `PORT` in `backend/.env` or stop the process using the port
 
-### Phase 2: Path 1 (Digital Patient) Development
-- Mobile/web app for Health Wallet
-- Passive marketplace toggle
-- Active studies portal
+**"Failed to record consent on-chain"**
+- Check `CONSENT_MANAGER_ADDRESS` is correct and contract is deployed
+- Ensure account has sufficient HBAR for gas fees
 
-### Phase 3: Production Readiness
-- FHIR API integration
-- Hospital onboarding system
-- Compliance and security audits
-- Pilot program with government hospitals
+**"Failed to execute payout"**
+- Check `REVENUE_SPLITTER_ADDRESS` is correct
+- Ensure account has sufficient HBAR for transfer + gas fees
 
-## Resources & References
+## Contributing
 
-- [Hedera Documentation](https://docs.hedera.com/)
-- [Hedera Consensus Service](https://docs.hedera.com/hedera/core-concepts/consensus-service)
-- [Hedera Agent Kit JS](https://github.com/hashgraph/hedera-agent-kit-js)
-- [Hedera Smart Contracts](https://github.com/hashgraph/hedera-smart-contracts)
-- [HashScan Explorer](https://hashscan.io/)
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development workflow and guidelines.
 
 ## License
 
 [To be determined - Apache 2.0 or MIT]
 
-## Team
-
-Developed for Hedera Hello Future: Ascension Hackathon 2025
-
 ---
 
 **Hackathon**: Hedera Hello Future: Ascension 2025  
-**Track**: Open Track - Verifiable Healthcare Systems  
-**Submission Deadline**: November 22, 2025
+**Track**: Open Track - Verifiable Healthcare Systems
