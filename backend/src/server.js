@@ -37,7 +37,7 @@ if (process.env.FRONTEND_URL) {
 
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://www.medipact.space', 'https://medipact.space']
+    ? allowedOrigins
     : true, // Allow all in development
   credentials: true,
   optionsSuccessStatus: 200,
