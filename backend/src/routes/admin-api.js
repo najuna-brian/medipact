@@ -230,7 +230,10 @@ router.get('/researchers', async (req, res) => {
       registeredAt: r.registeredAt
     }));
     
-    res.json({ researchers: formattedResearchers });
+    res.json({ 
+      researchers: formattedResearchers,
+      total: formattedResearchers.length
+    });
   } catch (error) {
     console.error('Error fetching researchers:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch researchers' });

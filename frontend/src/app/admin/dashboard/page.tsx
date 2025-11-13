@@ -97,6 +97,12 @@ export default function AdminDashboardPage() {
               >
                 Hospital Verifications
               </a>
+              <a
+                href="/admin/researchers"
+                className="block rounded-lg border p-3 text-sm transition hover:bg-accent"
+              >
+                Researcher Verifications
+              </a>
             </CardContent>
           </Card>
         </div>
