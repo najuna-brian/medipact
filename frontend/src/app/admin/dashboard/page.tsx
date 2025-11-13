@@ -1,10 +1,15 @@
+'use client';
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Activity, DollarSign, Users, Database } from 'lucide-react';
+import { AdminSidebar } from '@/components/Sidebar/AdminSidebar';
 
 export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-4 md:py-8">
+      <AdminSidebar />
+      <div className="ml-0 md:ml-64">
+        <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="mb-6 md:mb-8">
           <h1 className="mb-2 text-2xl font-bold md:text-3xl">Admin Dashboard</h1>
           <p className="text-sm text-muted-foreground md:text-base">
@@ -105,6 +110,7 @@ export default function AdminDashboardPage() {
               </a>
             </CardContent>
           </Card>
+        </div>
         </div>
       </div>
     </div>

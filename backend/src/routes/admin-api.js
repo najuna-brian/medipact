@@ -72,6 +72,7 @@ router.get('/hospitals', async (req, res) => {
         country: hospital.country,
         location: hospital.location,
         contactEmail: hospital.contactEmail,
+        registrationNumber: hospital.registrationNumber,
         registeredAt: hospital.registeredAt,
         verificationStatus: hospital.verificationStatus || 'pending',
         verifiedAt: hospital.verifiedAt,
@@ -119,6 +120,7 @@ router.get('/hospitals/:hospitalId', async (req, res) => {
       location: hospital.location,
       fhirEndpoint: hospital.fhirEndpoint,
       contactEmail: hospital.contactEmail,
+      registrationNumber: hospital.registrationNumber,
       registeredAt: hospital.registeredAt,
       verificationStatus: hospital.verificationStatus || 'pending',
       verifiedAt: hospital.verifiedAt,
@@ -216,19 +218,34 @@ router.get('/researchers', async (req, res) => {
   try {
     const researchers = await getAllResearchers();
     
-    const formattedResearchers = researchers.map(r => ({
-      researcherId: r.researcherId,
-      hederaAccountId: r.hederaAccountId,
-      email: r.email,
-      organizationName: r.organizationName,
-      contactName: r.contactName,
-      country: r.country,
-      verificationStatus: r.verificationStatus,
-      accessLevel: r.accessLevel,
-      verifiedAt: r.verifiedAt,
-      verifiedBy: r.verifiedBy,
-      registeredAt: r.registeredAt
-    }));
+    const formattedResearchers = researchers.map(r => {
+      let verificationDocuments = null;
+      if (r.verificationDocuments) {
+        try {
+          verificationDocuments = typeof r.verificationDocuments === 'string' 
+            ? JSON.parse(r.verificationDocuments) 
+            : r.verificationDocuments;
+        } catch (e) {
+          verificationDocuments = { raw: r.verificationDocuments };
+        }
+      }
+      
+      return {
+        researcherId: r.researcherId,
+        hederaAccountId: r.hederaAccountId,
+        email: r.email,
+        organizationName: r.organizationName,
+        contactName: r.contactName,
+        country: r.country,
+        registrationNumber: r.registrationNumber,
+        verificationStatus: r.verificationStatus,
+        accessLevel: r.accessLevel,
+        verifiedAt: r.verifiedAt,
+        verifiedBy: r.verifiedBy,
+        registeredAt: r.registeredAt,
+        verificationDocuments: verificationDocuments
+      };
+    });
     
     res.json({ 
       researchers: formattedResearchers,
@@ -266,6 +283,7 @@ router.get('/researchers/:researcherId', async (req, res) => {
     
     res.json({
       ...researcher,
+      registrationNumber: researcher.registrationNumber,
       verificationDocuments: verificationDocuments
     });
   } catch (error) {

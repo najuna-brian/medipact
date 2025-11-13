@@ -18,7 +18,8 @@ const adminClient = axios.create({
 // Add request interceptor to include auth token
 adminClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+    // Use the same key as useAdminSession hook
+    const token = sessionStorage.getItem('medipact_admin_token') || localStorage.getItem('medipact_admin_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       config.headers['x-admin-token'] = token;
@@ -36,8 +37,10 @@ adminClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Clear token and redirect to login
-      localStorage.removeItem('adminToken');
-      sessionStorage.removeItem('adminToken');
+      sessionStorage.removeItem('medipact_admin_token');
+      sessionStorage.removeItem('medipact_admin_user');
+      localStorage.removeItem('medipact_admin_token');
+      localStorage.removeItem('medipact_admin_user');
       if (typeof window !== 'undefined') {
         window.location.href = '/admin/login';
       }
@@ -80,12 +83,14 @@ export interface AdminResearcher {
   organizationName: string;
   contactName?: string;
   country?: string;
+  registrationNumber?: string;
   verificationStatus: 'pending' | 'verified' | 'rejected';
   accessLevel: 'basic' | 'verified' | 'anonymous';
   verifiedAt?: string;
   verifiedBy?: string;
   registeredAt: string;
   verificationPrompt?: boolean;
+  verificationDocuments?: any | null;
 }
 
 export interface AdminResearchersResponse {

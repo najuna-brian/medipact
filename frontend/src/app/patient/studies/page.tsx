@@ -1,9 +1,13 @@
+'use client';
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, Calendar, Users, DollarSign } from 'lucide-react';
+import { PatientProtectedRoute } from '@/components/PatientProtectedRoute/PatientProtectedRoute';
+import { PatientSidebar } from '@/components/Sidebar/PatientSidebar';
 
-export default function PatientStudiesPage() {
+function PatientStudiesContent() {
   const studies = [
     {
       id: '1',
@@ -31,7 +35,9 @@ export default function PatientStudiesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <PatientSidebar />
+      <div className="ml-0 md:ml-64">
+        <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Active Studies</h1>
           <p className="text-muted-foreground">
@@ -113,8 +119,17 @@ export default function PatientStudiesPage() {
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function PatientStudiesPage() {
+  return (
+    <PatientProtectedRoute>
+      <PatientStudiesContent />
+    </PatientProtectedRoute>
   );
 }
 

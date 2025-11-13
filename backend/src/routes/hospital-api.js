@@ -113,11 +113,37 @@ async function authenticateHospital(req, res, next) {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { name, country, location, fhirEndpoint, contactEmail } = req.body;
+    const { name, country, location, fhirEndpoint, contactEmail, registrationNumber, verificationDocuments } = req.body;
     
+    // Validate required fields
     if (!name || !country) {
       return res.status(400).json({ 
         error: 'Hospital name and country are required' 
+      });
+    }
+    
+    if (!contactEmail) {
+      return res.status(400).json({ 
+        error: 'Contact email is required' 
+      });
+    }
+    
+    if (!registrationNumber) {
+      return res.status(400).json({ 
+        error: 'Registration number is required' 
+      });
+    }
+    
+    if (!verificationDocuments) {
+      return res.status(400).json({ 
+        error: 'Verification documents are required' 
+      });
+    }
+    
+    // Validate verification documents structure
+    if (!verificationDocuments.licenseNumber || !verificationDocuments.registrationCertificate) {
+      return res.status(400).json({ 
+        error: 'License number and registration certificate are required in verification documents' 
       });
     }
     
@@ -125,7 +151,7 @@ router.post('/register', async (req, res) => {
     const apiKey = crypto.randomBytes(32).toString('hex');
     
     const hospital = await registerHospital(
-      { name, country, location, fhirEndpoint, contactEmail, apiKey },
+      { name, country, location, fhirEndpoint, contactEmail, registrationNumber, apiKey, verificationDocuments },
       async (hospitalId) => {
         // Check if hospital exists
         return await hospitalExists(hospitalId);

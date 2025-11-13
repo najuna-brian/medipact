@@ -31,6 +31,8 @@ function generateResearcherID(email, organizationName) {
  * @param {Object} researcherInfo - Researcher information
  *   - email: string (required)
  *   - organizationName: string (required)
+ *   - registrationNumber: string (required)
+ *   - verificationDocuments: object (required)
  *   - contactName: string (optional)
  *   - country: string (optional)
  * @param {Function} researcherExists - Function to check if researcher exists (email) => Promise<boolean>
@@ -40,6 +42,29 @@ function generateResearcherID(email, organizationName) {
 export async function registerResearcher(researcherInfo, researcherExists, researcherCreate) {
   if (!researcherInfo.email || !researcherInfo.organizationName) {
     throw new Error('Email and organization name are required');
+  }
+  
+  if (!researcherInfo.registrationNumber) {
+    throw new Error('Registration number is required');
+  }
+  
+  if (!researcherInfo.verificationDocuments) {
+    throw new Error('Verification documents are required');
+  }
+  
+  // Validate that at least one verification document is provided
+  const hasOrganizationDoc = researcherInfo.verificationDocuments.organizationDocuments && 
+    (researcherInfo.verificationDocuments.organizationDocuments.startsWith('data:') || 
+     researcherInfo.verificationDocuments.organizationDocuments.startsWith('http://') || 
+     researcherInfo.verificationDocuments.organizationDocuments.startsWith('https://'));
+  
+  const hasResearchLicense = researcherInfo.verificationDocuments.researchLicense && 
+    (researcherInfo.verificationDocuments.researchLicense.startsWith('data:') || 
+     researcherInfo.verificationDocuments.researchLicense.startsWith('http://') || 
+     researcherInfo.verificationDocuments.researchLicense.startsWith('https://'));
+  
+  if (!hasOrganizationDoc && !hasResearchLicense) {
+    throw new Error('At least one verification document (organization document or research license) is required');
   }
 
   const researcherId = generateResearcherID(researcherInfo.email, researcherInfo.organizationName);
@@ -76,6 +101,8 @@ export async function registerResearcher(researcherInfo, researcherExists, resea
     organizationName: researcherInfo.organizationName,
     contactName: researcherInfo.contactName || null,
     country: researcherInfo.country || null,
+    registrationNumber: researcherInfo.registrationNumber,
+    verificationDocuments: researcherInfo.verificationDocuments,
     verificationStatus: 'pending',
     accessLevel: 'basic' // Unverified researchers start with basic access
   };

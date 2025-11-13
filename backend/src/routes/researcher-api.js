@@ -107,7 +107,7 @@ async function authenticateAdmin(req, res, next) {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { email, organizationName, contactName, country } = req.body;
+    const { email, organizationName, contactName, country, registrationNumber, verificationDocuments } = req.body;
     
     if (!email || !organizationName) {
       return res.status(400).json({ 
@@ -115,8 +115,37 @@ router.post('/register', async (req, res) => {
       });
     }
     
+    if (!registrationNumber) {
+      return res.status(400).json({ 
+        error: 'Registration number is required' 
+      });
+    }
+    
+    if (!verificationDocuments) {
+      return res.status(400).json({ 
+        error: 'Verification documents are required' 
+      });
+    }
+    
+    // Validate that at least one verification document is provided
+    const hasOrganizationDoc = verificationDocuments.organizationDocuments && 
+      (verificationDocuments.organizationDocuments.startsWith('data:') || 
+       verificationDocuments.organizationDocuments.startsWith('http://') || 
+       verificationDocuments.organizationDocuments.startsWith('https://'));
+    
+    const hasResearchLicense = verificationDocuments.researchLicense && 
+      (verificationDocuments.researchLicense.startsWith('data:') || 
+       verificationDocuments.researchLicense.startsWith('http://') || 
+       verificationDocuments.researchLicense.startsWith('https://'));
+    
+    if (!hasOrganizationDoc && !hasResearchLicense) {
+      return res.status(400).json({ 
+        error: 'At least one verification document (organization document or research license) is required' 
+      });
+    }
+    
     const researcher = await registerResearcher(
-      { email, organizationName, contactName, country },
+      { email, organizationName, contactName, country, registrationNumber, verificationDocuments },
       async (email) => {
         return await researcherExists(email);
       },
@@ -131,7 +160,7 @@ router.post('/register', async (req, res) => {
         ...researcher,
         // Always prompt for verification
         verificationPrompt: true,
-        verificationMessage: 'Please verify your account to access full features and better pricing.'
+        verificationMessage: 'Your verification documents have been submitted and are pending admin review.'
       }
     });
   } catch (error) {

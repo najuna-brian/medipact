@@ -42,7 +42,7 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Hospital-ID', 'X-API-Key', 'X-Researcher-ID'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Hospital-ID', 'X-API-Key', 'X-Researcher-ID', 'x-admin-token'],
 };
 
 app.use(cors(corsOptions));

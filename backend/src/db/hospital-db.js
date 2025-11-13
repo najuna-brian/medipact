@@ -25,8 +25,8 @@ export async function createHospital(hospitalData) {
   await run(
     `INSERT INTO hospitals (
       hospital_id, hedera_account_id, evm_address, encrypted_private_key, name, country, location, fhir_endpoint, 
-      contact_email, api_key_hash, registered_at, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
+      contact_email, registration_number, api_key_hash, verification_status, verification_documents, registered_at, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
     [
       hospitalData.hospitalId,
       hospitalData.hederaAccountId || null,
@@ -37,7 +37,10 @@ export async function createHospital(hospitalData) {
       hospitalData.location || null,
       hospitalData.fhirEndpoint || null,
       hospitalData.contactEmail || null,
-      apiKeyHash
+      hospitalData.registrationNumber || null,
+      apiKeyHash,
+      hospitalData.verificationStatus || 'pending',
+      hospitalData.verificationDocuments || null
     ]
   );
 
@@ -73,6 +76,7 @@ export async function getHospital(hospitalId) {
       location,
       fhir_endpoint as fhirEndpoint,
       contact_email as contactEmail,
+      registration_number as registrationNumber,
       registered_at as registeredAt,
       status,
       verification_status as verificationStatus,
@@ -210,6 +214,7 @@ export async function getAllHospitals() {
       location,
       fhir_endpoint as fhirEndpoint,
       contact_email as contactEmail,
+      registration_number as registrationNumber,
       registered_at as registeredAt,
       status,
       verification_status as verificationStatus,

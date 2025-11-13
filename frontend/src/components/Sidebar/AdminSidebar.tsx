@@ -6,9 +6,12 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
+  Building2,
+  Users,
   Database,
-  TrendingUp,
-  FileDown,
+  DollarSign,
+  Activity,
+  FileCheck,
   BarChart3,
   Settings,
   Menu,
@@ -18,23 +21,26 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const researcherNavItems = [
-  { name: 'Dashboard', href: '/researcher/dashboard', icon: LayoutDashboard },
-  { name: 'Browse Catalog', href: '/researcher/catalog', icon: Database },
-  { name: 'My Projects', href: '/researcher/projects', icon: TrendingUp },
-  { name: 'Purchase History', href: '/researcher/purchases', icon: FileDown },
-  { name: 'Analytics', href: '/researcher/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/researcher/settings', icon: Settings },
+const adminNavItems = [
+  { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+  { name: 'Hospitals', href: '/admin/hospitals', icon: Building2 },
+  { name: 'Researchers', href: '/admin/researchers', icon: Users },
+  { name: 'Users', href: '/admin/users', icon: Database },
+  { name: 'Processing', href: '/admin/processing', icon: FileCheck },
+  { name: 'Transactions', href: '/admin/transactions', icon: Activity },
+  { name: 'Revenue', href: '/admin/revenue', icon: DollarSign },
+  { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+  { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
-export function ResearcherSidebar() {
+export function AdminSidebar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Load collapsed state from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('researcherSidebarCollapsed');
+    const saved = localStorage.getItem('adminSidebarCollapsed');
     if (saved !== null) {
       setIsCollapsed(JSON.parse(saved));
     }
@@ -42,7 +48,7 @@ export function ResearcherSidebar() {
 
   // Save collapsed state to localStorage
   useEffect(() => {
-    localStorage.setItem('researcherSidebarCollapsed', JSON.stringify(isCollapsed));
+    localStorage.setItem('adminSidebarCollapsed', JSON.stringify(isCollapsed));
   }, [isCollapsed]);
 
   const toggleCollapse = () => {
@@ -75,7 +81,7 @@ export function ResearcherSidebar() {
             onClick={(e) => e.stopPropagation()}
           >
             <nav className="space-y-1 p-4">
-              {researcherNavItems.map((item) => {
+              {adminNavItems.map((item) => {
                 const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
                 return (
                   <Link
@@ -85,7 +91,7 @@ export function ResearcherSidebar() {
                     className={cn(
                       'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
                       isActive
-                        ? 'border border-purple-200 bg-purple-50 text-purple-600'
+                        ? 'border border-red-200 bg-red-50 text-red-600'
                         : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                     )}
                   >
@@ -108,7 +114,7 @@ export function ResearcherSidebar() {
       >
         <div className="flex h-full flex-col">
           <nav className="flex-1 space-y-1 p-4">
-            {researcherNavItems.map((item) => {
+            {adminNavItems.map((item) => {
               const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
               return (
                 <Link
@@ -117,7 +123,7 @@ export function ResearcherSidebar() {
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
                     isActive
-                      ? 'border border-purple-200 bg-purple-50 text-purple-600'
+                      ? 'border border-red-200 bg-red-50 text-red-600'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900',
                     isCollapsed && 'justify-center px-2'
                   )}

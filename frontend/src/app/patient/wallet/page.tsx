@@ -10,6 +10,7 @@ import {
 } from '@/hooks/usePatientIdentity';
 import { usePatientSession } from '@/hooks/usePatientSession';
 import { PatientProtectedRoute } from '@/components/PatientProtectedRoute/PatientProtectedRoute';
+import { PatientSidebar } from '@/components/Sidebar/PatientSidebar';
 
 function PatientWalletContent() {
   const { upi } = usePatientSession();
@@ -28,7 +29,9 @@ function PatientWalletContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <PatientSidebar />
+      <div className="ml-0 md:ml-64">
+        <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="mb-2 text-3xl font-bold">Health Wallet</h1>
           <p className="text-muted-foreground">
@@ -227,6 +230,7 @@ function PatientWalletContent() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

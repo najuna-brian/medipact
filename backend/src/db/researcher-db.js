@@ -30,11 +30,16 @@ export async function createResearcher(researcherData) {
     researcherData.organizationName
   );
 
+  // Store verification documents as JSON string
+  const verificationDocumentsJson = typeof researcherData.verificationDocuments === 'string' 
+    ? researcherData.verificationDocuments 
+    : JSON.stringify(researcherData.verificationDocuments || {});
+
   await run(
     `INSERT INTO researchers (
       researcher_id, hedera_account_id, evm_address, encrypted_private_key, email, organization_name,
-      contact_name, country, verification_status, access_level, registered_at, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
+      contact_name, country, registration_number, verification_status, verification_documents, access_level, registered_at, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
     [
       researcherId,
       researcherData.hederaAccountId || null,
@@ -44,7 +49,9 @@ export async function createResearcher(researcherData) {
       researcherData.organizationName,
       researcherData.contactName || null,
       researcherData.country || null,
+      researcherData.registrationNumber || null,
       researcherData.verificationStatus || 'pending',
+      verificationDocumentsJson,
       researcherData.accessLevel || 'basic'
     ]
   );
@@ -81,6 +88,7 @@ export async function getResearcher(researcherId) {
       organization_name as organizationName,
       contact_name as contactName,
       country,
+      registration_number as registrationNumber,
       verification_status as verificationStatus,
       verification_documents as verificationDocuments,
       verified_at as verifiedAt,
@@ -107,6 +115,7 @@ export async function getResearcherByEmail(email) {
       organization_name as organizationName,
       contact_name as contactName,
       country,
+      registration_number as registrationNumber,
       verification_status as verificationStatus,
       verification_documents as verificationDocuments,
       verified_at as verifiedAt,
@@ -214,7 +223,9 @@ export async function getAllResearchers() {
       organization_name as organizationName,
       contact_name as contactName,
       country,
+      registration_number as registrationNumber,
       verification_status as verificationStatus,
+      verification_documents as verificationDocuments,
       verified_at as verifiedAt,
       verified_by as verifiedBy,
       access_level as accessLevel,

@@ -207,6 +207,7 @@ export default function ResearcherDashboardPage() {
             </Card>
           </div>
         </div>
+        </div>
       </div>
     </div>
   );

@@ -294,6 +294,7 @@ export default function HospitalDashboardPage() {
             </Card>
           </div>
         </div>
+        </div>
       </div>
     </div>
   );

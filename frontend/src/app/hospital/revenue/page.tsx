@@ -1,7 +1,10 @@
+'use client';
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import type { RevenueSplit as RevenueSplitType } from '@/types/adapter';
+import { HospitalSidebar } from '@/components/Sidebar/HospitalSidebar';
 
 export default function HospitalRevenuePage() {
   // Mock data - hospital gets 25% of revenue
@@ -50,7 +53,9 @@ export default function HospitalRevenuePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <HospitalSidebar />
+      <div className="ml-0 md:ml-64">
+        <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Revenue Tracking</h1>
           <p className="text-muted-foreground">
@@ -153,6 +158,7 @@ export default function HospitalRevenuePage() {
               </div>
             </CardContent>
           </Card>
+        </div>
         </div>
       </div>
     </div>

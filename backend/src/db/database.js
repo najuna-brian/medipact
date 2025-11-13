@@ -138,12 +138,13 @@ async function createPostgreSQLTables() {
       country VARCHAR(100) NOT NULL,
       location VARCHAR(255),
       fhir_endpoint VARCHAR(512),
-      contact_email VARCHAR(255),
+      contact_email VARCHAR(255) NOT NULL,
+      registration_number VARCHAR(255) NOT NULL,
       api_key_hash VARCHAR(255),
       registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       status VARCHAR(20) NOT NULL DEFAULT 'active',
       verification_status VARCHAR(20) NOT NULL DEFAULT 'pending',
-      verification_documents TEXT,
+      verification_documents TEXT NOT NULL,
       verified_at TIMESTAMP,
       verified_by VARCHAR(255),
       CHECK (status IN ('active', 'suspended', 'deleted')),
@@ -211,8 +212,9 @@ async function createPostgreSQLTables() {
       organization_name VARCHAR(255) NOT NULL,
       contact_name VARCHAR(255),
       country VARCHAR(100),
+      registration_number VARCHAR(255) NOT NULL,
       verification_status VARCHAR(20) NOT NULL DEFAULT 'pending',
-      verification_documents TEXT,
+      verification_documents TEXT NOT NULL,
       verified_at TIMESTAMP,
       verified_by VARCHAR(255),
       access_level VARCHAR(20) NOT NULL DEFAULT 'basic',
@@ -273,6 +275,32 @@ async function createPostgreSQLTables() {
     `);
     if (checkResearcher.rows.length === 0) {
       await client.query(`ALTER TABLE researchers ADD COLUMN evm_address VARCHAR(42)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+
+  // Add registration_number columns if they don't exist (for existing databases)
+  try {
+    const checkHospitalReg = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='hospitals' AND column_name='registration_number'
+    `);
+    if (checkHospitalReg.rows.length === 0) {
+      await client.query(`ALTER TABLE hospitals ADD COLUMN registration_number VARCHAR(255)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkResearcherReg = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='researchers' AND column_name='registration_number'
+    `);
+    if (checkResearcherReg.rows.length === 0) {
+      await client.query(`ALTER TABLE researchers ADD COLUMN registration_number VARCHAR(255)`);
     }
   } catch (e) {
     // Column already exists or error, ignore
@@ -488,12 +516,13 @@ async function createSQLiteTables() {
       country VARCHAR(100) NOT NULL,
       location VARCHAR(255),
       fhir_endpoint VARCHAR(512),
-      contact_email VARCHAR(255),
+      contact_email VARCHAR(255) NOT NULL,
+      registration_number VARCHAR(255) NOT NULL,
       api_key_hash VARCHAR(255),
       registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       status VARCHAR(20) NOT NULL DEFAULT 'active',
       verification_status VARCHAR(20) NOT NULL DEFAULT 'pending',
-      verification_documents TEXT,
+      verification_documents TEXT NOT NULL,
       verified_at TIMESTAMP,
       verified_by VARCHAR(255),
       CHECK (status IN ('active', 'suspended', 'deleted')),
@@ -536,6 +565,18 @@ async function createSQLiteTables() {
   }
   try {
     await run(`ALTER TABLE hospitals ADD COLUMN verified_by VARCHAR(255)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  
+  // Add registration_number columns if they don't exist (for existing databases)
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN registration_number VARCHAR(255)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE researchers ADD COLUMN registration_number VARCHAR(255)`);
   } catch (e) {
     // Column already exists, ignore
   }
@@ -600,8 +641,9 @@ async function createSQLiteTables() {
       organization_name VARCHAR(255) NOT NULL,
       contact_name VARCHAR(255),
       country VARCHAR(100),
+      registration_number VARCHAR(255) NOT NULL,
       verification_status VARCHAR(20) NOT NULL DEFAULT 'pending',
-      verification_documents TEXT,
+      verification_documents TEXT NOT NULL,
       verified_at TIMESTAMP,
       verified_by VARCHAR(255),
       access_level VARCHAR(20) NOT NULL DEFAULT 'basic',

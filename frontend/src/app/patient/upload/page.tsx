@@ -5,8 +5,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Upload, FileText, CheckCircle2, X } from 'lucide-react';
+import { PatientProtectedRoute } from '@/components/PatientProtectedRoute/PatientProtectedRoute';
+import { PatientSidebar } from '@/components/Sidebar/PatientSidebar';
 
-export default function PatientUploadPage() {
+function PatientUploadContent() {
   const [files, setFiles] = useState<File[]>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,7 +23,9 @@ export default function PatientUploadPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <PatientSidebar />
+      <div className="ml-0 md:ml-64">
+        <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Upload Medical Records</h1>
           <p className="text-muted-foreground">
@@ -121,8 +125,17 @@ export default function PatientUploadPage() {
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function PatientUploadPage() {
+  return (
+    <PatientProtectedRoute>
+      <PatientUploadContent />
+    </PatientProtectedRoute>
   );
 }
 

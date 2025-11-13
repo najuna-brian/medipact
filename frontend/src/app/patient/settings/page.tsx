@@ -1,11 +1,17 @@
+'use client';
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bell, Shield, User } from 'lucide-react';
+import { PatientProtectedRoute } from '@/components/PatientProtectedRoute/PatientProtectedRoute';
+import { PatientSidebar } from '@/components/Sidebar/PatientSidebar';
 
-export default function PatientSettingsPage() {
+function PatientSettingsContent() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <PatientSidebar />
+      <div className="ml-0 md:ml-64">
+        <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Settings</h1>
           <p className="text-muted-foreground">
@@ -163,8 +169,17 @@ export default function PatientSettingsPage() {
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+export default function PatientSettingsPage() {
+  return (
+    <PatientProtectedRoute>
+      <PatientSettingsContent />
+    </PatientProtectedRoute>
   );
 }
 
