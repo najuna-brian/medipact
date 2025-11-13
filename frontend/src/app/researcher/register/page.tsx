@@ -126,16 +126,18 @@ export default function ResearcherRegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold">Researcher Registration</CardTitle>
-          <CardDescription>
-            Register to access anonymized medical data for research
-          </CardDescription>
+          <CardDescription>Register to access anonymized medical data for research</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {registerMutation.isError && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800 flex items-center gap-2">
+              <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800">
                 <AlertCircle className="h-4 w-4" />
-                <span>{(registerMutation.error as any)?.response?.data?.error || (registerMutation.error as any)?.message || 'Registration failed'}</span>
+                <span>
+                  {(registerMutation.error as any)?.response?.data?.error ||
+                    (registerMutation.error as any)?.message ||
+                    'Registration failed'}
+                </span>
               </div>
             )}
 
@@ -201,11 +203,7 @@ export default function ResearcherRegisterPage() {
               />
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={registerMutation.isPending}
-            >
+            <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
               {registerMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -217,7 +215,12 @@ export default function ResearcherRegisterPage() {
             </Button>
 
             <div className="text-center text-sm text-gray-600">
-              <p>Already registered? <a href="/researcher/login" className="text-indigo-600 hover:underline">Login</a></p>
+              <p>
+                Already registered?{' '}
+                <a href="/researcher/dashboard" className="text-indigo-600 hover:underline">
+                  Go to Dashboard
+                </a>
+              </p>
             </div>
           </form>
         </CardContent>
