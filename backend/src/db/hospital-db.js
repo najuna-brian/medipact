@@ -24,12 +24,13 @@ export async function createHospital(hospitalData) {
 
   await run(
     `INSERT INTO hospitals (
-      hospital_id, hedera_account_id, encrypted_private_key, name, country, location, fhir_endpoint, 
+      hospital_id, hedera_account_id, evm_address, encrypted_private_key, name, country, location, fhir_endpoint, 
       contact_email, api_key_hash, registered_at, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
     [
       hospitalData.hospitalId,
       hospitalData.hederaAccountId || null,
+      hospitalData.evmAddress || null,
       hospitalData.encryptedPrivateKey || null,
       hospitalData.name,
       hospitalData.country,
@@ -66,6 +67,7 @@ export async function getHospital(hospitalId) {
     `SELECT 
       hospital_id as hospitalId,
       hedera_account_id as hederaAccountId,
+      evm_address as evmAddress,
       name,
       country,
       location,
@@ -91,6 +93,7 @@ export async function getHospitalByHederaAccount(hederaAccountId) {
     `SELECT 
       hospital_id as hospitalId,
       hedera_account_id as hederaAccountId,
+      evm_address as evmAddress,
       name,
       country,
       location,
@@ -173,6 +176,10 @@ export async function updateHospital(hospitalId, updates) {
     fields.push('hedera_account_id = ?');
     values.push(updates.hederaAccountId);
   }
+  if (updates.evmAddress !== undefined) {
+    fields.push('evm_address = ?');
+    values.push(updates.evmAddress);
+  }
   if (updates.encryptedPrivateKey !== undefined) {
     fields.push('encrypted_private_key = ?');
     values.push(updates.encryptedPrivateKey);
@@ -197,6 +204,7 @@ export async function getAllHospitals() {
     `SELECT 
       hospital_id as hospitalId,
       hedera_account_id as hederaAccountId,
+      evm_address as evmAddress,
       name,
       country,
       location,

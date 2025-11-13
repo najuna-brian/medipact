@@ -7,12 +7,14 @@ async function main() {
   console.log("Deploying contracts with account:", deployer.address);
   console.log("Account balance:", (await hre.ethers.provider.getBalance(deployer.address)).toString(), "\n");
 
-  // For RevenueSplitter, we need recipient addresses
-  // In production, these would be real wallet addresses
-  // For testing, we'll use the deployer address for all recipients
-  const patientWallet = process.env.PATIENT_WALLET || deployer.address;
-  const hospitalWallet = process.env.HOSPITAL_WALLET || deployer.address;
-  const medipactWallet = process.env.MEDIPACT_WALLET || deployer.address;
+  // For RevenueSplitter constructor, we need recipient addresses
+  // Note: These are used for the fixed constructor values and the old distributeRevenue() function
+  // The new distributeRevenueTo() function uses dynamic addresses per transaction
+  // PATIENT_WALLET and HOSPITAL_WALLET are optional (only used for backward compatibility)
+  // MEDIPACT_WALLET is required (fixed platform wallet)
+  const patientWallet = process.env.PATIENT_WALLET || deployer.address; // Optional: only for backward compatibility
+  const hospitalWallet = process.env.HOSPITAL_WALLET || deployer.address; // Optional: only for backward compatibility
+  const medipactWallet = process.env.MEDIPACT_WALLET || deployer.address; // Required: fixed platform wallet
 
   console.log("Recipient Addresses:");
   console.log("  Patient Wallet:", patientWallet);

@@ -105,6 +105,58 @@ contract RevenueSplitter {
     }
 
     /**
+     * @dev Distribute revenue with dynamic addresses (per transaction)
+     * Allows different patient and hospital addresses for each distribution
+     * @param _patientWallet Patient wallet address for this transaction
+     * @param _hospitalWallet Hospital wallet address for this transaction
+     */
+    function distributeRevenueTo(
+        address payable _patientWallet,
+        address payable _hospitalWallet
+    ) external payable {
+        if (msg.value == 0) {
+            revert NoFundsToDistribute();
+        }
+        if (_patientWallet == address(0) || _hospitalWallet == address(0)) {
+            revert InvalidAddress();
+        }
+        
+        uint256 amount = msg.value;
+        
+        // Calculate shares (60% patient, 25% hospital, 15% MediPact)
+        uint256 patientAmount = (amount * PATIENT_SHARE) / TOTAL_SHARE;
+        uint256 hospitalAmount = (amount * HOSPITAL_SHARE) / TOTAL_SHARE;
+        uint256 medipactAmount = amount - patientAmount - hospitalAmount; // Handle rounding
+        
+        // Distribute to patient wallet (dynamic - per transaction)
+        (bool success1, ) = _patientWallet.call{value: patientAmount}("");
+        if (!success1) {
+            revert TransferFailed();
+        }
+        
+        // Distribute to hospital wallet (dynamic - per transaction)
+        (bool success2, ) = _hospitalWallet.call{value: hospitalAmount}("");
+        if (!success2) {
+            revert TransferFailed();
+        }
+        
+        // Distribute to MediPact wallet (fixed - from constructor)
+        (bool success3, ) = medipactWallet.call{value: medipactAmount}("");
+        if (!success3) {
+            revert TransferFailed();
+        }
+        
+        emit RevenueDistributed(
+            _patientWallet,
+            patientAmount,
+            _hospitalWallet,
+            hospitalAmount,
+            medipactWallet,
+            medipactAmount
+        );
+    }
+
+    /**
      * @dev Internal function to distribute revenue according to split
      * @param amount Total amount to distribute
      */

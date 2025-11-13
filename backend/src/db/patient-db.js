@@ -11,13 +11,14 @@ import { run, get, all } from './database.js';
  */
 export async function createPatient(upi, patientData = {}) {
   await run(
-    `INSERT INTO patient_identities (upi, hedera_account_id, encrypted_private_key, created_at, last_updated, status)
-     VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'active')`,
-    [upi, patientData.hederaAccountId || null, patientData.encryptedPrivateKey || null]
+    `INSERT INTO patient_identities (upi, hedera_account_id, evm_address, encrypted_private_key, created_at, last_updated, status)
+     VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'active')`,
+    [upi, patientData.hederaAccountId || null, patientData.evmAddress || null, patientData.encryptedPrivateKey || null]
   );
   return { 
     upi, 
     hederaAccountId: patientData.hederaAccountId,
+    evmAddress: patientData.evmAddress,
     ...patientData, 
     createdAt: new Date().toISOString() 
   };
@@ -42,6 +43,7 @@ export async function getPatient(upi) {
     `SELECT 
       upi,
       hedera_account_id as hederaAccountId,
+      evm_address as evmAddress,
       created_at as createdAt,
       last_updated as lastUpdated,
       status
@@ -60,6 +62,7 @@ export async function getPatientByHederaAccount(hederaAccountId) {
     `SELECT 
       upi,
       hedera_account_id as hederaAccountId,
+      evm_address as evmAddress,
       created_at as createdAt,
       last_updated as lastUpdated,
       status
@@ -87,6 +90,11 @@ export async function updatePatient(upi, updates) {
     values.push(updates.hederaAccountId);
   }
 
+  if (updates.evmAddress !== undefined) {
+    fields.push('evm_address = ?');
+    values.push(updates.evmAddress);
+  }
+
   if (updates.encryptedPrivateKey) {
     fields.push('encrypted_private_key = ?');
     values.push(updates.encryptedPrivateKey);
@@ -102,5 +110,12 @@ export async function updatePatient(upi, updates) {
   }
 
   return await getPatient(upi);
+}
+
+/**
+ * Update patient account (alias for updatePatient)
+ */
+export async function updatePatientAccount(upi, updates) {
+  return await updatePatient(upi, updates);
 }
 

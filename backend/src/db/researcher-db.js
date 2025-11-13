@@ -32,12 +32,13 @@ export async function createResearcher(researcherData) {
 
   await run(
     `INSERT INTO researchers (
-      researcher_id, hedera_account_id, encrypted_private_key, email, organization_name,
+      researcher_id, hedera_account_id, evm_address, encrypted_private_key, email, organization_name,
       contact_name, country, verification_status, access_level, registered_at, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
     [
       researcherId,
       researcherData.hederaAccountId || null,
+      researcherData.evmAddress || null,
       researcherData.encryptedPrivateKey || null,
       researcherData.email,
       researcherData.organizationName,
@@ -75,6 +76,7 @@ export async function getResearcher(researcherId) {
     `SELECT 
       researcher_id as researcherId,
       hedera_account_id as hederaAccountId,
+      evm_address as evmAddress,
       email,
       organization_name as organizationName,
       contact_name as contactName,
@@ -100,6 +102,7 @@ export async function getResearcherByEmail(email) {
     `SELECT 
       researcher_id as researcherId,
       hedera_account_id as hederaAccountId,
+      evm_address as evmAddress,
       email,
       organization_name as organizationName,
       contact_name as contactName,
@@ -125,6 +128,7 @@ export async function getResearcherByHederaAccount(hederaAccountId) {
     `SELECT 
       researcher_id as researcherId,
       hedera_account_id as hederaAccountId,
+      evm_address as evmAddress,
       email,
       organization_name as organizationName,
       contact_name as contactName,
@@ -176,6 +180,11 @@ export async function updateResearcher(researcherId, updates) {
     values.push(updates.hederaAccountId);
   }
 
+  if (updates.evmAddress !== undefined) {
+    fields.push('evm_address = ?');
+    values.push(updates.evmAddress);
+  }
+
   if (updates.encryptedPrivateKey) {
     fields.push('encrypted_private_key = ?');
     values.push(updates.encryptedPrivateKey);
@@ -200,6 +209,7 @@ export async function getAllResearchers() {
     `SELECT 
       researcher_id as researcherId,
       hedera_account_id as hederaAccountId,
+      evm_address as evmAddress,
       email,
       organization_name as organizationName,
       contact_name as contactName,

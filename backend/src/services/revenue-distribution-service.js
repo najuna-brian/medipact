@@ -5,17 +5,27 @@
  * Converts Hedera Account IDs to EVM addresses for smart contract calls.
  */
 
-import { Client, TransferTransaction, Hbar, HbarUnit, Status, AccountId } from '@hashgraph/sdk';
+import { 
+  Client, 
+  TransferTransaction, 
+  Hbar, 
+  HbarUnit, 
+  Status, 
+  AccountId,
+  ContractId,
+  ContractExecuteTransaction,
+  ContractFunctionParameters
+} from '@hashgraph/sdk';
 import { createHederaClient } from './hedera-client.js';
 
 /**
  * Note: Hedera Account IDs (0.0.xxxxx) can be used directly in native Hedera transfers.
  * For EVM smart contracts, we use ContractId.fromEvmAddress() for contract addresses.
- * For RevenueSplitter, we can either:
- * 1. Use direct transfers (simpler, works immediately)
- * 2. Update contract to accept Account IDs (requires contract changes)
  * 
- * Current implementation uses direct transfers for simplicity.
+ * RevenueSplitter supports dynamic addresses:
+ * - Uses distributeRevenueTo() function with patient and hospital EVM addresses per transaction
+ * - Automatically uses EVM addresses from database when available
+ * - Falls back to direct transfers if EVM addresses are missing or contract unavailable
  */
 
 /**
@@ -40,19 +50,20 @@ export async function distributeRevenue({
   const client = createHederaClient();
   
   try {
-    // Get Hedera Account IDs (use provided or fetch from database)
-    let patientHederaAccountId = patientAccountId;
-    let hospitalHederaAccountId = hospitalAccountId;
+    // Get patient and hospital records to retrieve EVM addresses
+    let patient = null;
+    let hospital = null;
     
-    if (!patientHederaAccountId && getPatient) {
-      const patient = await getPatient();
-      patientHederaAccountId = patient?.hederaAccountId;
+    if (getPatient) {
+      patient = await getPatient();
+    }
+    if (getHospital) {
+      hospital = await getHospital();
     }
     
-    if (!hospitalHederaAccountId && getHospital) {
-      const hospital = await getHospital();
-      hospitalHederaAccountId = hospital?.hederaAccountId;
-    }
+    // Get Hedera Account IDs
+    let patientHederaAccountId = patientAccountId || patient?.hederaAccountId;
+    let hospitalHederaAccountId = hospitalAccountId || hospital?.hederaAccountId;
     
     if (!patientHederaAccountId) {
       throw new Error('Patient does not have a Hedera Account ID');
@@ -61,6 +72,10 @@ export async function distributeRevenue({
     if (!hospitalHederaAccountId) {
       throw new Error('Hospital does not have a Hedera Account ID');
     }
+    
+    // Get EVM addresses from patient and hospital records
+    const patientEvmAddress = patient?.evmAddress;
+    const hospitalEvmAddress = hospital?.evmAddress;
     
     // Calculate split (60% patient, 25% hospital, 15% platform)
     const patientAmount = Hbar.fromTinybars(
@@ -77,47 +92,54 @@ export async function distributeRevenue({
     const patientAccountIdObj = AccountId.fromString(patientHederaAccountId);
     const hospitalAccountIdObj = AccountId.fromString(hospitalHederaAccountId);
     
-    // If RevenueSplitter contract is provided, use it
-    // Note: Contract address must be in EVM format (0x...) or Account ID format
-    if (revenueSplitterAddress) {
-      // For EVM contracts, we need ContractId, but for transfers we can use AccountId
-      // Try to parse as AccountId first, if it fails, it's likely an EVM address
-      let contractAccountId;
+    // If RevenueSplitter contract is provided AND we have EVM addresses, use dynamic contract function
+    if (revenueSplitterAddress && patientEvmAddress && hospitalEvmAddress) {
       try {
-        contractAccountId = AccountId.fromString(revenueSplitterAddress);
-      } catch (e) {
-        // If it's an EVM address (0x...), we need to convert it
-        // For now, use direct transfers instead
-        console.warn('RevenueSplitter EVM address conversion not yet implemented, using direct transfers');
-        revenueSplitterAddress = null; // Fall through to direct transfers
-      }
-      
-      if (revenueSplitterAddress && contractAccountId) {
-      const totalTinybars = totalAmount.toTinybars();
-      const negativeAmount = new Hbar(-Number(totalTinybars), HbarUnit.Tinybar);
-      
-        const transaction = new TransferTransaction()
-          .addHbarTransfer(operatorId, negativeAmount)
-          .addHbarTransfer(contractAccountId, totalAmount);
+        // Convert EVM address to ContractId
+        const contractId = ContractId.fromEvmAddress(0, 0, revenueSplitterAddress);
+        
+        // Convert EVM addresses to bytes20 format (remove 0x prefix and convert to Buffer)
+        // Hedera SDK expects addresses as bytes20 (20 bytes) for Solidity address type
+        const patientAddressBytes = Buffer.from(patientEvmAddress.replace('0x', ''), 'hex');
+        const hospitalAddressBytes = Buffer.from(hospitalEvmAddress.replace('0x', ''), 'hex');
+        
+        // Build function parameters: distributeRevenueTo(address patientWallet, address hospitalWallet)
+        // Note: The function is payable, so we send HBAR with the transaction
+        // Use addBytes with 20 bytes for address type (Solidity address = bytes20)
+        const functionParameters = new ContractFunctionParameters()
+          .addBytes(patientAddressBytes)
+          .addBytes(hospitalAddressBytes);
+        
+        // Execute contract function with HBAR payment
+        const transaction = new ContractExecuteTransaction()
+          .setContractId(contractId)
+          .setGas(1000000) // Sufficient gas for distribution
+          .setPayableAmount(totalAmount) // Send HBAR with the transaction
+          .setFunction('distributeRevenueTo', functionParameters);
         
         const txResponse = await transaction.execute(client);
         const receipt = await txResponse.getReceipt(client);
         
         if (receipt.status !== Status.Success) {
-          throw new Error(`RevenueSplitter transfer failed: ${receipt.status}`);
+          throw new Error(`RevenueSplitter contract execution failed: ${receipt.status}`);
         }
         
         return {
-          method: 'contract',
+          method: 'contract-dynamic',
           contractAddress: revenueSplitterAddress,
           transactionId: txResponse.transactionId.toString(),
           totalAmount: totalAmount.toString(),
+          patientEvmAddress,
+          hospitalEvmAddress,
           split: {
             patient: patientAmount.toString(),
             hospital: hospitalAmount.toString(),
             platform: platformAmount.toString()
           }
         };
+      } catch (error) {
+        console.warn('Contract execution failed, falling back to direct transfers:', error.message);
+        // Fall through to direct transfers
       }
     }
     

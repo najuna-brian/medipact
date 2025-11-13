@@ -56,11 +56,13 @@ export async function distributeRevenueFromSale({
         // Save to database
         await updatePatientAccount(patientUPI, {
           hederaAccountId: hederaAccount.accountId,
+          evmAddress: hederaAccount.evmAddress,
           encryptedPrivateKey: encryptedPrivateKey
         });
         
         // Update patient object for this transaction
         patient.hederaAccountId = hederaAccount.accountId;
+        patient.evmAddress = hederaAccount.evmAddress;
         
         console.log(`✅ Hedera account created for patient ${patientUPI}: ${hederaAccount.accountId}`);
       } catch (error) {
@@ -76,12 +78,15 @@ export async function distributeRevenueFromSale({
     // Convert tinybars to Hbar
     const hbarAmount = Hbar.fromTinybars(totalAmount);
     
-    // Distribute revenue using Hedera Account IDs
+    // Distribute revenue using Hedera Account IDs and EVM addresses
+    // Pass patient and hospital objects so EVM addresses can be retrieved
     const result = await distributeRevenue({
       patientAccountId: patient.hederaAccountId,
       hospitalAccountId: hospital.hederaAccountId,
       totalAmount: hbarAmount,
-      revenueSplitterAddress
+      revenueSplitterAddress,
+      getPatient: () => Promise.resolve(patient), // Pass patient object with evmAddress
+      getHospital: () => Promise.resolve(hospital) // Pass hospital object with evmAddress
     });
     
     return {
@@ -101,6 +106,9 @@ export async function distributeRevenueFromSale({
 /**
  * Distribute revenue for multiple patients (bulk distribution)
  * 
+ * Each sale should have: { patientUPI, hospitalId, amount }
+ * The hospitalId should be the hospital that provided the data for that specific patient
+ * 
  * @param {Array<Object>} sales - Array of { patientUPI, hospitalId, amount }
  * @param {string} revenueSplitterAddress - Optional contract address
  * @returns {Promise<Array>} Distribution results
@@ -112,7 +120,7 @@ export async function distributeBulkRevenue(sales, revenueSplitterAddress = null
     try {
       const result = await distributeRevenueFromSale({
         patientUPI: sale.patientUPI,
-        hospitalId: sale.hospitalId,
+        hospitalId: sale.hospitalId, // Use the specific hospital that provided this patient's data
         totalAmount: sale.amount,
         revenueSplitterAddress
       });
@@ -128,5 +136,130 @@ export async function distributeBulkRevenue(sales, revenueSplitterAddress = null
   }
   
   return results;
+}
+
+/**
+ * Distribute revenue for a dataset purchase
+ * Splits total payment equally among all patients, then distributes 60/25/15 per patient
+ * Each patient's 25% goes to the hospital that provided their data
+ * 
+ * @param {Object} params
+ *   - datasetId: string - Dataset ID
+ *   - totalAmount: number - Total payment amount in tinybars
+ *   - revenueSplitterAddress: string (optional) - Contract address
+ *   - filters: Object (optional) - Query filters to get patients from dataset
+ * @returns {Promise<Object>} Distribution results
+ */
+export async function distributeDatasetRevenue({
+  datasetId,
+  totalAmount,
+  revenueSplitterAddress = null,
+  filters = null
+}) {
+  try {
+    // Import here to avoid circular dependencies
+    const { getDataset } = await import('../db/dataset-db.js');
+    const { getPatientsWithHospitals } = await import('../db/fhir-db.js');
+    
+    // Get dataset to extract filters if not provided
+    let queryFilters = filters;
+    if (!queryFilters && datasetId) {
+      const dataset = await getDataset(datasetId);
+      if (!dataset) {
+        throw new Error(`Dataset ${datasetId} not found`);
+      }
+      
+      // Build filters from dataset metadata
+      queryFilters = {
+        country: dataset.country,
+        hospitalId: dataset.hospitalId, // This might be null if dataset has multiple hospitals
+        startDate: dataset.dateRangeStart,
+        endDate: dataset.dateRangeEnd,
+        conditionCodes: dataset.conditionCodes
+      };
+    }
+    
+    if (!queryFilters) {
+      throw new Error('Dataset filters required to get patients');
+    }
+    
+    // Get all patients in the dataset with their hospital IDs
+    const patients = await getPatientsWithHospitals(queryFilters);
+    
+    if (patients.length === 0) {
+      throw new Error('No patients found in dataset');
+    }
+    
+    // Calculate equal split per patient
+    const totalTinybars = Number(totalAmount);
+    const amountPerPatient = Math.floor(totalTinybars / patients.length);
+    const remainder = totalTinybars - (amountPerPatient * patients.length); // Handle rounding
+    
+    console.log(`\n💰 Distributing revenue for dataset ${datasetId || 'query'}:`);
+    console.log(`   Total amount: ${totalTinybars} tinybars`);
+    console.log(`   Patients: ${patients.length}`);
+    console.log(`   Amount per patient: ${amountPerPatient} tinybars`);
+    if (remainder > 0) {
+      console.log(`   Remainder: ${remainder} tinybars (will be added to last patient)`);
+    }
+    
+    // Prepare sales array with equal amounts per patient
+    const sales = [];
+    for (let i = 0; i < patients.length; i++) {
+      const patient = patients[i];
+      // Add remainder to last patient to ensure total is correct
+      const patientAmount = i === patients.length - 1 
+        ? amountPerPatient + remainder 
+        : amountPerPatient;
+      
+      sales.push({
+        patientUPI: patient.upi,
+        hospitalId: patient.hospitalId, // Each patient's specific hospital
+        amount: patientAmount
+      });
+    }
+    
+    // Distribute using bulk distribution
+    const results = await distributeBulkRevenue(sales, revenueSplitterAddress);
+    
+    // Calculate summary
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+    
+    // Group by hospital to show distribution
+    const hospitalSummary = {};
+    results.forEach(result => {
+      if (result.success && result.hospitalId) {
+        if (!hospitalSummary[result.hospitalId]) {
+          hospitalSummary[result.hospitalId] = {
+            hospitalId: result.hospitalId,
+            patientCount: 0,
+            totalAmount: 0
+          };
+        }
+        hospitalSummary[result.hospitalId].patientCount++;
+        hospitalSummary[result.hospitalId].totalAmount += result.distribution?.split?.hospital 
+          ? Number(result.distribution.split.hospital.replace(' ℏ', '')) * 100000000 
+          : 0;
+      }
+    });
+    
+    return {
+      success: true,
+      datasetId,
+      totalAmount: totalTinybars,
+      totalPatients: patients.length,
+      amountPerPatient,
+      distribution: {
+        successful,
+        failed,
+        results,
+        hospitalSummary: Object.values(hospitalSummary)
+      }
+    };
+  } catch (error) {
+    console.error('Error distributing dataset revenue:', error);
+    throw error;
+  }
 }
 

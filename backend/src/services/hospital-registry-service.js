@@ -73,6 +73,7 @@ export async function registerHospital(hospitalInfo, hospitalExists, hospitalCre
   const hospitalRecord = {
     hospitalId,
     hederaAccountId: hederaAccount?.accountId || null,
+    evmAddress: hederaAccount?.evmAddress || null,
     encryptedPrivateKey: encryptedPrivateKey || null,
     name: hospitalInfo.name,
     country: hospitalInfo.country,

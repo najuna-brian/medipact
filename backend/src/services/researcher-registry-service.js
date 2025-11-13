@@ -70,6 +70,7 @@ export async function registerResearcher(researcherInfo, researcherExists, resea
   const researcherRecord = {
     researcherId,
     hederaAccountId: hederaAccount?.accountId || null,
+    evmAddress: hederaAccount?.evmAddress || null,
     encryptedPrivateKey: encryptedPrivateKey || null,
     email: researcherInfo.email,
     organizationName: researcherInfo.organizationName,

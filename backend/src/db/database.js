@@ -118,6 +118,7 @@ async function createPostgreSQLTables() {
     CREATE TABLE IF NOT EXISTS patient_identities (
       upi VARCHAR(64) PRIMARY KEY,
       hedera_account_id VARCHAR(20) UNIQUE,
+      evm_address VARCHAR(42),
       encrypted_private_key TEXT,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -131,6 +132,7 @@ async function createPostgreSQLTables() {
     CREATE TABLE IF NOT EXISTS hospitals (
       hospital_id VARCHAR(32) PRIMARY KEY,
       hedera_account_id VARCHAR(20) UNIQUE,
+      evm_address VARCHAR(42),
       encrypted_private_key TEXT,
       name VARCHAR(255) NOT NULL,
       country VARCHAR(100) NOT NULL,
@@ -203,6 +205,7 @@ async function createPostgreSQLTables() {
     CREATE TABLE IF NOT EXISTS researchers (
       researcher_id VARCHAR(32) PRIMARY KEY,
       hedera_account_id VARCHAR(20) UNIQUE,
+      evm_address VARCHAR(42),
       encrypted_private_key TEXT,
       email VARCHAR(255) NOT NULL UNIQUE,
       organization_name VARCHAR(255) NOT NULL,
@@ -235,6 +238,45 @@ async function createPostgreSQLTables() {
   await client.query(`CREATE INDEX IF NOT EXISTS idx_researchers_email ON researchers(email)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_researchers_hedera_account ON researchers(hedera_account_id)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_researchers_verification_status ON researchers(verification_status)`);
+  
+  // Add evm_address columns if they don't exist (for existing databases - PostgreSQL)
+  // PostgreSQL doesn't support IF NOT EXISTS with ADD COLUMN, so we check first
+  try {
+    const checkPatient = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='patient_identities' AND column_name='evm_address'
+    `);
+    if (checkPatient.rows.length === 0) {
+      await client.query(`ALTER TABLE patient_identities ADD COLUMN evm_address VARCHAR(42)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkHospital = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='hospitals' AND column_name='evm_address'
+    `);
+    if (checkHospital.rows.length === 0) {
+      await client.query(`ALTER TABLE hospitals ADD COLUMN evm_address VARCHAR(42)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkResearcher = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='researchers' AND column_name='evm_address'
+    `);
+    if (checkResearcher.rows.length === 0) {
+      await client.query(`ALTER TABLE researchers ADD COLUMN evm_address VARCHAR(42)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
 
   // FHIR Patients Table
   await client.query(`
@@ -426,6 +468,7 @@ async function createSQLiteTables() {
     CREATE TABLE IF NOT EXISTS patient_identities (
       upi VARCHAR(64) PRIMARY KEY,
       hedera_account_id VARCHAR(20) UNIQUE,
+      evm_address VARCHAR(42),
       encrypted_private_key TEXT,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -439,6 +482,7 @@ async function createSQLiteTables() {
     CREATE TABLE IF NOT EXISTS hospitals (
       hospital_id VARCHAR(32) PRIMARY KEY,
       hedera_account_id VARCHAR(20) UNIQUE,
+      evm_address VARCHAR(42),
       encrypted_private_key TEXT,
       name VARCHAR(255) NOT NULL,
       country VARCHAR(100) NOT NULL,
@@ -465,6 +509,23 @@ async function createSQLiteTables() {
   }
   try {
     await run(`ALTER TABLE hospitals ADD COLUMN verification_documents TEXT`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  
+  // Add evm_address columns if they don't exist (for existing databases)
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN evm_address VARCHAR(42)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN evm_address VARCHAR(42)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE researchers ADD COLUMN evm_address VARCHAR(42)`);
   } catch (e) {
     // Column already exists, ignore
   }
@@ -533,6 +594,7 @@ async function createSQLiteTables() {
     CREATE TABLE IF NOT EXISTS researchers (
       researcher_id VARCHAR(32) PRIMARY KEY,
       hedera_account_id VARCHAR(20) UNIQUE,
+      evm_address VARCHAR(42),
       encrypted_private_key TEXT,
       email VARCHAR(255) NOT NULL UNIQUE,
       organization_name VARCHAR(255) NOT NULL,

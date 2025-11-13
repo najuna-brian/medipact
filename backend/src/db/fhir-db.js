@@ -355,6 +355,95 @@ export async function countFHIRPatients(filters) {
 }
 
 /**
+ * Get distinct patients with their hospital IDs from fhir_patients
+ * Used for revenue distribution to ensure each patient's hospital gets their share
+ * 
+ * @param {Object} filters - Query filters (country, hospitalId, dateRange, etc.)
+ * @returns {Promise<Array>} Array of { upi, hospitalId } objects
+ */
+export async function getPatientsWithHospitals(filters = {}) {
+  const db = getDatabase();
+  const dbType = getDatabaseType();
+  
+  const conditions = [];
+  const params = [];
+  let paramIndex = 1;
+  
+  const placeholder = dbType === 'postgresql' 
+    ? (idx) => `$${idx}`
+    : () => '?';
+  
+  if (filters.country) {
+    conditions.push(`p.country = ${placeholder(paramIndex)}`);
+    params.push(filters.country);
+    paramIndex++;
+  }
+  
+  if (filters.hospitalId) {
+    conditions.push(`p.hospital_id = ${placeholder(paramIndex)}`);
+    params.push(filters.hospitalId);
+    paramIndex++;
+  }
+  
+  if (filters.startDate) {
+    conditions.push(`(c.diagnosis_date >= ${placeholder(paramIndex)} OR o.effective_date >= ${placeholder(paramIndex)})`);
+    params.push(filters.startDate);
+    paramIndex++;
+  }
+  
+  if (filters.endDate) {
+    conditions.push(`(c.diagnosis_date <= ${placeholder(paramIndex)} OR o.effective_date <= ${placeholder(paramIndex)})`);
+    params.push(filters.endDate);
+    paramIndex++;
+  }
+  
+  if (filters.conditionCode) {
+    conditions.push(`c.condition_code = ${placeholder(paramIndex)}`);
+    params.push(filters.conditionCode);
+    paramIndex++;
+  }
+  
+  if (filters.observationCode) {
+    conditions.push(`o.observation_code = ${placeholder(paramIndex)}`);
+    params.push(filters.observationCode);
+    paramIndex++;
+  }
+  
+  // Handle conditionCodes array (from dataset metadata)
+  if (filters.conditionCodes && Array.isArray(filters.conditionCodes) && filters.conditionCodes.length > 0) {
+    const placeholders = filters.conditionCodes.map(() => placeholder(paramIndex++)).join(', ');
+    conditions.push(`c.condition_code IN (${placeholders})`);
+    params.push(...filters.conditionCodes);
+  }
+  
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  
+  // Get distinct patients with their hospital IDs
+  const query = `
+    SELECT DISTINCT p.upi, p.hospital_id as hospitalId
+    FROM fhir_patients p
+    LEFT JOIN fhir_conditions c ON p.anonymous_patient_id = c.anonymous_patient_id
+    LEFT JOIN fhir_observations o ON p.anonymous_patient_id = o.anonymous_patient_id
+    ${whereClause}
+  `;
+  
+  if (dbType === 'postgresql') {
+    const result = await db.query(query, params);
+    return result.rows.map(row => ({
+      upi: row.upi,
+      hospitalId: row.hospitalid
+    }));
+  } else {
+    const all = promisify(db.all.bind(db));
+    const rows = await all(query, params);
+    return rows.map(row => ({
+      upi: row.upi,
+      hospitalId: row.hospitalId
+    }));
+  }
+}
+
+/**
  * Map database row to camelCase object (Patient)
  */
 function mapPatientRow(row) {

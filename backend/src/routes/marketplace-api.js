@@ -7,6 +7,7 @@
 import express from 'express';
 import { getResearcher, getResearcherByEmail } from '../db/researcher-db.js';
 import { distributeRevenue } from '../services/revenue-distribution-service.js';
+import { distributeDatasetRevenue } from '../services/adapter-integration-service.js';
 import { getPatient } from '../db/patient-db.js';
 import { getHospital } from '../db/hospital-db.js';
 import { getAllDatasets, getDataset } from '../db/dataset-db.js';
@@ -407,36 +408,54 @@ router.post('/purchase', async (req, res) => {
       });
     }
     
-    // Get patient and hospital Account IDs for revenue distribution
-    let patientAccountId = null;
-    let hospitalAccountId = null;
+    // Convert amount to tinybars for distribution
+    const totalTinybars = amount; // Amount is already in tinybars
     
-    if (patientUPI) {
+    // If datasetId is provided, use dataset-based distribution
+    // This splits payment equally among all patients and uses each patient's specific hospital
+    let distributionResult;
+    
+    if (datasetId) {
+      // Dataset purchase: split equally among all patients, each patient's hospital gets their share
+      distributionResult = await distributeDatasetRevenue({
+        datasetId,
+        totalAmount: totalTinybars,
+        revenueSplitterAddress: process.env.REVENUE_SPLITTER_ADDRESS || null
+      });
+    } else if (patientUPI && hospitalId) {
+      // Single patient purchase: use specific patient and hospital
       const patient = await getPatient(patientUPI);
-      patientAccountId = patient?.hederaAccountId;
-    }
-    
-    if (hospitalId) {
       const hospital = await getHospital(hospitalId);
-      hospitalAccountId = hospital?.hederaAccountId;
-    }
-    
-    if (!patientAccountId || !hospitalAccountId) {
+      
+      if (!patient || !hospital) {
+        return res.status(400).json({ 
+          error: 'Patient or hospital not found. Cannot distribute revenue.' 
+        });
+      }
+      
+      const hbarAmount = Hbar.fromTinybars(totalTinybars);
+      
+      // Use single patient distribution
+      const { distributeRevenueFromSale } = await import('../services/adapter-integration-service.js');
+      const result = await distributeRevenueFromSale({
+        patientUPI,
+        hospitalId,
+        totalAmount: totalTinybars,
+        revenueSplitterAddress: process.env.REVENUE_SPLITTER_ADDRESS || null
+      });
+      
+      distributionResult = {
+        success: true,
+        method: 'single',
+        patientUPI,
+        hospitalId,
+        distribution: result.distribution
+      };
+    } else {
       return res.status(400).json({ 
-        error: 'Patient or hospital Account IDs not found. Cannot distribute revenue.' 
+        error: 'Either datasetId or both patientUPI and hospitalId are required for revenue distribution.' 
       });
     }
-    
-    // Convert amount to Hbar
-    const hbarAmount = Hbar.fromTinybars(amount);
-    
-    // Distribute revenue (60% patient, 25% hospital, 15% platform)
-    const distributionResult = await distributeRevenue({
-      patientAccountId,
-      hospitalAccountId,
-      totalAmount: hbarAmount,
-      revenueSplitterAddress: process.env.REVENUE_SPLITTER_ADDRESS || null
-    });
     
     // Verify dataset exists
     if (datasetId) {

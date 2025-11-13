@@ -107,11 +107,15 @@ export async function lookupPatientUPI(rawRecord, backendApiUrl) {
 /**
  * Distribute revenue after data processing
  * 
+ * Note: This function processes data from a single hospital, so all patients
+ * will have the same hospitalId. For dataset purchases with patients from
+ * multiple hospitals, use distributeDatasetRevenue() instead.
+ * 
  * @param {Object} params
  *   - patientMapping: Map - Original ID -> Anonymous PID
  *   - upiMapping: Map - Original ID -> UPI (optional)
  *   - rawRecords: Array - Raw patient records with PII (for UPI lookup)
- *   - hospitalId: string - Hospital ID
+ *   - hospitalId: string - Hospital ID (same for all patients in this batch)
  *   - totalRevenue: number - Total revenue in tinybars
  *   - recordsPerPatient: Map - Patient ID -> number of records
  * @returns {Promise<Object>} Distribution results
