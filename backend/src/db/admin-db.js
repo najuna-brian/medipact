@@ -152,3 +152,38 @@ export async function anyAdminExists() {
   }
 }
 
+/**
+ * Update admin password
+ */
+export async function updateAdminPassword(username, newPassword) {
+  const passwordHash = hashPassword(newPassword);
+  
+  try {
+    await run(`
+      UPDATE admins
+      SET password_hash = ?
+      WHERE username = ? AND status = 'active'
+    `, [passwordHash, username]);
+    
+    const admin = await getAdminByUsername(username);
+    if (!admin) {
+      throw new Error('Admin not found');
+    }
+    
+    return {
+      id: admin.id,
+      username: admin.username,
+      role: admin.role
+    };
+  } catch (err) {
+    throw err;
+  }
+}
+
+/**
+ * Reset admin password (for recovery)
+ */
+export async function resetAdminPassword(username, newPassword) {
+  return updateAdminPassword(username, newPassword);
+}
+
