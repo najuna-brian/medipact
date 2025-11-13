@@ -36,18 +36,13 @@ if (process.env.FRONTEND_URL) {
 }
 
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://www.medipact.space', 'https://medipact.space']
+    : true, // Allow all in development
   credentials: true,
   optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Hospital-ID', 'X-API-Key', 'X-Researcher-ID'],
 };
 
 app.use(cors(corsOptions));
