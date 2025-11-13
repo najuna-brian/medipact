@@ -61,13 +61,13 @@ graph LR
     style G fill:#FFD700,color:#000,stroke:#FFA500,stroke-width:2px
 ```
 
-**Hedera Account Creation**:
+### Hedera Account Creation:
 
-**Hospitals & Researchers:** Accounts are created during registration. The platform generates an ECDSA key pair, creates a Hedera account (0.0.xxxxx) with EVM compatibility, and stores the encrypted private key.
+- **Hospitals & Researchers:** Accounts are created during registration. The platform generates an ECDSA key pair, creates a Hedera account (0.0.xxxxx) with EVM compatibility, and stores the encrypted private key.
 
-**Patients:** Accounts are created lazily on first payment. The platform creates the account only when revenue is distributed, reducing upfront costs.
+- **Patients:** Accounts are created lazily on first payment. The platform creates the account only when revenue is distributed, reducing upfront costs.
 
-**Process:** Platform generates keys → creates Hedera account (operator pays ~$0.05) → encrypts private key → stores account ID and EVM address in database. All accounts are EVM-compatible for smart contract interactions.
+- **Process:** Platform generates keys → creates Hedera account (operator pays ~$0.05) → encrypts private key → stores account ID and EVM address in database. All accounts are EVM-compatible for smart contract interactions.
 
 ### Why Hedera?
 
@@ -463,12 +463,13 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for development workflow and guidelines
 
 ---
 <div align="center">
-## Hackathon Information
 
+## Hackathon Information
 ### Hedera Hello Future: Ascension 2025  
 ### Open Track - Verifiable Healthcare Systems  
 ### Team Medipact
 </div>
+
 ---
 
 <div align="center">
