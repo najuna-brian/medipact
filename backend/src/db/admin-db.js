@@ -96,11 +96,19 @@ export async function getAdminById(id) {
 export async function verifyAdminPassword(username, password) {
   const admin = await getAdminByUsername(username);
   if (!admin) {
+    console.error(`[AUTH] Admin not found: ${username}`);
     return null;
   }
   
   const passwordHash = hashPassword(password);
-  if (admin.passwordHash === passwordHash) {
+  const dbHash = admin.passwordHash?.trim(); // Trim any whitespace
+  const computedHash = passwordHash.trim();
+  
+  console.log(`[AUTH] Verifying password for: ${username}`);
+  console.log(`[AUTH] DB hash length: ${dbHash?.length}, Computed hash length: ${computedHash.length}`);
+  console.log(`[AUTH] Hashes match: ${dbHash === computedHash}`);
+  
+  if (dbHash === computedHash) {
     // Update last login
     await updateLastLogin(admin.id);
     return {
@@ -110,6 +118,7 @@ export async function verifyAdminPassword(username, password) {
     };
   }
   
+  console.error(`[AUTH] Password mismatch for: ${username}`);
   return null;
 }
 
