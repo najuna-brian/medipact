@@ -136,3 +136,19 @@ export async function adminExists(username) {
   return admin !== null;
 }
 
+/**
+ * Check if any admin exists in the system
+ */
+export async function anyAdminExists() {
+  try {
+    const row = await get(`
+      SELECT COUNT(*) as count
+      FROM admins
+      WHERE status = 'active'
+    `);
+    return (row?.count || 0) > 0;
+  } catch (err) {
+    throw err;
+  }
+}
+
