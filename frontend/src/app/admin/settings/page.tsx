@@ -2,7 +2,7 @@
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Key, Database, Bell, Shield, User } from 'lucide-react';
+import { Key, Database, Bell, User } from 'lucide-react';
 import { AdminSidebar } from '@/components/Sidebar/AdminSidebar';
 import { AdminProtectedRoute } from '@/components/AdminProtectedRoute/AdminProtectedRoute';
 
