@@ -307,30 +307,7 @@ cd adapter && npm start      # Process data
 
 ## 🔧 Environment Variables
 
-### Adapter (`adapter/.env`)
-
-```env
-OPERATOR_ID="0.0.xxxxx"
-OPERATOR_KEY="0x..."
-HEDERA_NETWORK="testnet"
-HOSPITAL_COUNTRY="Uganda"
-HOSPITAL_ID="HOSP-XXXXXXXX"
-BACKEND_API_URL="http://localhost:3002"
-CONSENT_MANAGER_ADDRESS="0x..."      # Optional
-REVENUE_SPLITTER_ADDRESS="0x..."     # Optional
-```
-
-### Backend (`backend/.env`)
-
-```env
-OPERATOR_ID="0.0.xxxxx"
-OPERATOR_KEY="0x..."
-HEDERA_NETWORK="testnet"
-ENCRYPTION_KEY="your-32-byte-hex-key"  # openssl rand -hex 32
-PORT=3002
-DATABASE_PATH="./data/medipact.db"
-JWT_SECRET="your-jwt-secret"
-```
+### Check the environment variables in (`../.env`) of `../backend` `../frontend` `../adapter`
 
 ### Frontend (`frontend/.env.local`)
 
@@ -386,7 +363,6 @@ erDiagram
         string data_topic_id
     }
 ```
-
 ---
 
 ## 🛠️ Technology Stack
@@ -427,17 +403,6 @@ graph TB
     style H3 fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
     style H4 fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
 ```
-
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Next.js 15, TypeScript, Tailwind CSS |
-| **Backend** | Node.js, Express.js, SQLite/PostgreSQL |
-| **Hedera** | HCS, EVM, Accounts, HBAR |
-| **Smart Contracts** | Solidity, Hardhat |
-| **Data Standards** | FHIR R4, K-Anonymity |
-
----
-
 ## ✨ Key Features
 
 | Feature | Description |
@@ -475,22 +440,14 @@ cd contracts && npm run deploy:testnet
 
 ---
 
-## 📚 Resources
-
-- [Adapter README](./adapter/README.md) - Data processing details
-- [Backend README](./backend/README.md) - API documentation
-- [Frontend README](./frontend/README.md) - Frontend architecture
-- [Contracts README](./contracts/README.md) - Smart contract details
-- [Pitch Deck](./PITCH_DECK.md) - Complete project overview
-
 **External Links**:
 - [Hedera Portal](https://portal.hedera.com/) - Get testnet account
 - [HashScan Explorer](https://hashscan.io/) - View transactions
 - [FHIR R4 Specification](https://www.hl7.org/fhir/) - Healthcare data standard
+- [A Comprehensive Guide to Healthcare Data Security](https://www.metomic.io/resource-centre/a-comprehensive-guide-to-healthcare-data-security#:~:text=By%20prioritising%20data%20security%2C%20healthcare,availability%20of%20sensitive%20healthcare%20information.) - How to meet the healthcare data security standards
+- [Why is Healthcare Data so Valuable?](https://blog.tbconsulting.com/why-healthcare-data-is-so-valuable-on-the-black-market#:~:text=Sensitive%20information%20from%20medical%20data,cybercriminals%20at%20an%20alarming%20rate.) -
+- [Establishing a Health Data Marketplace: A Framework for Success](https://www.researchgate.net/publication/376532396_Establishing_a_Health_Data_Marketplace_A_Framework_for_Success#:~:text=Abstract,outcomes%2C%20research%2C%20and%20innovation.)
 
-- [A Comprehensive Guide to Healthcare Data Security](https://www.metomic.io/resource-centre/a-comprehensive-guide-to-healthcare-data-security#:~:text=By%20prioritising%20data%20security%2C%20healthcare,availability%20of%20sensitive%20healthcare%20information.)
-- 
-[Why is Healthcare Data so Valuable?](https://blog.tbconsulting.com/why-healthcare-data-is-so-valuable-on-the-black-market#:~:text=Sensitive%20information%20from%20medical%20data,cybercriminals%20at%20an%20alarming%20rate.)
 
 ---
 
@@ -505,18 +462,18 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for development workflow and guidelines
 [To be determined - Apache 2.0 or MIT]
 
 ---
+<div align="center">
+## Hackathon Information
 
-## 🏆 Hackathon Information
-
-**Hackathon**: Hedera Hello Future: Ascension 2025  
-**Track**: Open Track - Verifiable Healthcare Systems  
-**Team**: Team Medipact
-
+### Hedera Hello Future: Ascension 2025  
+### Open Track - Verifiable Healthcare Systems  
+### Team Medipact
+</div>
 ---
 
 <div align="center">
 
-**Built on Hedera. Built for the Future.**
+[![Hedera](https://img.shields.io/badge/Built%20on-Hedera-00A9CE?style=for-the-badge&logo=hedera)](https://hedera.com)
 
 [GitHub](https://github.com/najuna-brian/medipact) • [Issues](https://github.com/najuna-brian/medipact/issues) 
 
