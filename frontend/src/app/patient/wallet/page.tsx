@@ -1,245 +1,427 @@
 'use client';
 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Upload, Loader2, AlertCircle, Building2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  usePatientHistory,
-  usePatientSummary,
-  usePatientHospitals,
-} from '@/hooks/usePatientIdentity';
+  Wallet,
+  DollarSign,
+  ArrowDownCircle,
+  Copy,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  Building2,
+  Smartphone,
+} from 'lucide-react';
 import { usePatientSession } from '@/hooks/usePatientSession';
 import { PatientProtectedRoute } from '@/components/PatientProtectedRoute/PatientProtectedRoute';
 import { PatientSidebar } from '@/components/Sidebar/PatientSidebar';
+import { HederaAccountId } from '@/components/HederaAccountId/HederaAccountId';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-function PatientWalletContent() {
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+
+interface WalletBalance {
+  balanceHBAR: number;
+  balanceUSD: number;
+  hederaAccountId: string | null;
+  evmAddress: string | null;
+  paymentMethod: string | null;
+  bankAccountNumber: string | null;
+  bankName: string | null;
+  mobileMoneyProvider: string | null;
+  mobileMoneyNumber: string | null;
+  withdrawalThresholdUSD: number;
+  autoWithdrawEnabled: boolean;
+  lastWithdrawalAt: string | null;
+  totalWithdrawnUSD: number;
+}
+
+interface Withdrawal {
+  id: number;
+  amountUSD: number;
+  amountHBAR: number;
+  paymentMethod: string;
+  destinationAccount: string;
+  status: string;
+  createdAt: string;
+  processedAt: string | null;
+}
+
+function WalletContent() {
   const { upi } = usePatientSession();
+  const [balance, setBalance] = useState<WalletBalance | null>(null);
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [copied, setCopied] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const {
-    data: historyData,
-    isLoading: historyLoading,
-    error: historyError,
-  } = usePatientHistory(upi);
-  const { data: summaryData, isLoading: summaryLoading } = usePatientSummary(upi);
-  const { data: hospitalsData } = usePatientHospitals(upi);
+  useEffect(() => {
+    if (upi) {
+      fetchBalance();
+      fetchWithdrawals();
+    }
+  }, [upi]);
 
-  const connectedHospitals = hospitalsData?.hospitals || [];
-  const history = historyData;
-  const summary = summaryData;
+  const fetchBalance = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/patient/${upi}/wallet/balance`);
+      if (!response.ok) throw new Error('Failed to fetch balance');
+      const data = await response.json();
+      setBalance(data);
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+      setError('Failed to load wallet balance');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchWithdrawals = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/patient/${upi}/wallet/withdrawals`);
+      if (!response.ok) throw new Error('Failed to fetch withdrawals');
+      const data = await response.json();
+      setWithdrawals(data);
+    } catch (error) {
+      console.error('Error fetching withdrawals:', error);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+
+    if (balance && parseFloat(withdrawAmount) > balance.balanceUSD) {
+      setError('Insufficient balance');
+      return;
+    }
+
+    setWithdrawing(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(`${API_URL}/api/patient/${upi}/wallet/withdraw`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amountUSD: parseFloat(withdrawAmount) }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Withdrawal failed');
+      }
+
+      const data = await response.json();
+      setSuccess(data.message || 'Withdrawal initiated successfully');
+      setWithdrawAmount('');
+      fetchBalance();
+      fetchWithdrawals();
+    } catch (error: any) {
+      setError(error.message || 'Failed to initiate withdrawal');
+    } finally {
+      setWithdrawing(false);
+    }
+  };
+
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(type);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const formatAccountNumber = (account: string) => {
+    if (!account) return '';
+    if (account.length <= 8) return account;
+    return `${account.slice(0, 4)}****${account.slice(-4)}`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <PatientSidebar />
       <div className="ml-0 md:ml-64">
-        <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold">Health Wallet</h1>
-          <p className="text-muted-foreground">
-            Your complete medical history and records from all connected hospitals
-          </p>
-        </div>
+        <div className="container mx-auto px-4 py-4 md:py-8">
+          <div className="mb-6 md:mb-8">
+            <h1 className="mb-2 text-2xl font-bold md:text-3xl">Wallet</h1>
+            <p className="text-sm text-muted-foreground md:text-base">
+              View your balance and manage withdrawals
+            </p>
+          </div>
 
-        {upi && (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="space-y-6 lg:col-span-2">
-              {/* Medical Timeline */}
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {success && (
+            <Alert className="mb-6 border-green-200 bg-green-50">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">{success}</AlertDescription>
+            </Alert>
+          )}
+
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : balance ? (
+            <div className="space-y-6">
+              {/* Balance Card */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Medical Timeline</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="h-5 w-5" />
+                    Your Wallet Balance
+                  </CardTitle>
                   <CardDescription>
-                    Chronological view of your medical records from all hospitals
+                    Funds are automatically transferred when balance reaches $
+                    {balance.withdrawalThresholdUSD}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  {historyLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <CardContent className="space-y-4">
+                  {/* USD Balance - Primary Display */}
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Balance (USD)</Label>
+                    <div className="text-4xl font-bold text-gray-900">
+                      ${balance.balanceUSD.toFixed(2)}
                     </div>
-                  ) : historyError ? (
-                    <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4">
-                      <AlertCircle className="h-5 w-5 text-red-600" />
-                      <span className="text-red-800">
-                        Error loading history: {historyError.message}
-                      </span>
+                  </div>
+
+                  {/* HBAR Balance - Below USD */}
+                  <div>
+                    <Label className="text-sm text-muted-foreground">Balance (HBAR)</Label>
+                    <div className="text-2xl font-semibold text-gray-700">
+                      {balance.balanceHBAR.toFixed(4)} HBAR
                     </div>
-                  ) : history && history.totalRecords > 0 ? (
-                    <div className="space-y-4">
-                      {history.hospitals.map((hospital) => (
-                        <div key={hospital.hospitalId} className="rounded-lg border p-4">
-                          <div className="mb-2 flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
-                            <h4 className="font-semibold">{hospital.hospitalName}</h4>
-                            <span className="text-sm text-muted-foreground">
-                              ({hospital.recordCount} records)
-                            </span>
-                          </div>
-                          {hospital.records.length > 0 ? (
-                            <div className="mt-2 space-y-2">
-                              {hospital.records.slice(0, 5).map((record: any, idx: number) => (
-                                <div key={idx} className="pl-6 text-sm text-muted-foreground">
-                                  {record['Lab Test'] || record['Test Type'] || 'Medical Record'} -{' '}
-                                  {record['Test Date'] || 'No date'}
-                                </div>
-                              ))}
-                              {hospital.records.length > 5 && (
-                                <p className="pl-6 text-sm text-muted-foreground">
-                                  +{hospital.records.length - 5} more records
-                                </p>
+                  </div>
+
+                  {/* Hedera Account Details */}
+                  {balance.hederaAccountId && (
+                    <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      <Label className="mb-2 block text-sm font-semibold text-gray-900">
+                        Hedera Account Details
+                      </Label>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Account ID:</span>
+                          <div className="flex items-center gap-2">
+                            <code className="font-mono text-sm">{balance.hederaAccountId}</code>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToClipboard(balance.hederaAccountId!, 'accountId')}
+                              className="h-6 w-6 p-0"
+                            >
+                              {copied === 'accountId' ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
                               )}
-                            </div>
-                          ) : (
-                            <p className="pl-6 text-sm text-muted-foreground">
-                              No records available yet
-                            </p>
-                          )}
+                            </Button>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex items-start gap-4 rounded-lg border p-4">
-                      <Calendar className="mt-1 h-5 w-5 text-muted-foreground" />
-                      <div className="flex-1">
-                        <h4 className="font-semibold">No records yet</h4>
-                        <p className="text-sm text-muted-foreground">
-                          Connect hospitals to see your medical timeline. Records will appear here
-                          once hospitals sync your data.
-                        </p>
+                        {balance.evmAddress && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">EVM Address:</span>
+                            <div className="flex items-center gap-2">
+                              <code className="font-mono text-sm">{balance.evmAddress}</code>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyToClipboard(balance.evmAddress!, 'evmAddress')}
+                                className="h-6 w-6 p-0"
+                              >
+                                {copied === 'evmAddress' ? (
+                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Payment Method Info */}
+                  {balance.paymentMethod && (
+                    <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                      <div className="mb-2 flex items-center gap-2">
+                        {balance.paymentMethod === 'bank' ? (
+                          <Building2 className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <Smartphone className="h-4 w-4 text-blue-600" />
+                        )}
+                        <Label className="text-sm font-semibold text-gray-900">
+                          Withdrawal Method:{' '}
+                          {balance.paymentMethod === 'bank' ? 'Bank Account' : 'Mobile Money'}
+                        </Label>
+                      </div>
+                      <div className="text-sm text-gray-700">
+                        {balance.paymentMethod === 'bank' ? (
+                          <>
+                            <p>
+                              <strong>Bank:</strong> {balance.bankName || 'N/A'}
+                            </p>
+                            <p>
+                              <strong>Account:</strong>{' '}
+                              {formatAccountNumber(balance.bankAccountNumber || '')}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p>
+                              <strong>Provider:</strong> {balance.mobileMoneyProvider || 'N/A'}
+                            </p>
+                            <p>
+                              <strong>Number:</strong>{' '}
+                              {formatAccountNumber(balance.mobileMoneyNumber || '')}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {balance.autoWithdrawEnabled
+                          ? `Auto-withdraw enabled (threshold: $${balance.withdrawalThresholdUSD})`
+                          : 'Auto-withdraw disabled'}
+                      </p>
+                    </div>
+                  )}
+
+                  {balance.totalWithdrawnUSD > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      Total withdrawn: ${balance.totalWithdrawnUSD.toFixed(2)}
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Connected Hospitals */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Connected Hospitals</CardTitle>
-                  <CardDescription>Hospitals with access to your data</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {connectedHospitals.length === 0 ? (
+              {/* Withdrawal Card */}
+              {balance.paymentMethod && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ArrowDownCircle className="h-5 w-5" />
+                      Withdraw Funds
+                    </CardTitle>
+                    <CardDescription>
+                      Withdraw to your{' '}
+                      {balance.paymentMethod === 'bank' ? 'bank account' : 'mobile money'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div>
-                      <p className="mb-4 text-sm text-muted-foreground">No hospitals connected</p>
-                      <Button
-                        variant="outline"
-                        onClick={() => (window.location.href = '/patient/connect')}
-                      >
-                        Connect Hospital
-                      </Button>
+                      <Label htmlFor="amount">Amount (USD)</Label>
+                      <Input
+                        id="amount"
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max={balance.balanceUSD}
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                        placeholder={`Max: $${balance.balanceUSD.toFixed(2)}`}
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Available: ${balance.balanceUSD.toFixed(2)}
+                      </p>
                     </div>
-                  ) : (
+                    <Button
+                      onClick={handleWithdraw}
+                      disabled={withdrawing || !withdrawAmount || parseFloat(withdrawAmount) <= 0}
+                      className="w-full"
+                    >
+                      {withdrawing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <ArrowDownCircle className="mr-2 h-4 w-4" />
+                          Withdraw Now
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Withdrawal History */}
+              {withdrawals.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Withdrawal History</CardTitle>
+                  </CardHeader>
+                  <CardContent>
                     <div className="space-y-3">
-                      {connectedHospitals.map((hospital) => (
+                      {withdrawals.map((withdrawal) => (
                         <div
-                          key={hospital.hospitalId}
-                          className="flex items-center justify-between rounded-lg border p-3"
+                          key={withdrawal.id}
+                          className="flex items-center justify-between rounded-lg border border-gray-200 p-3"
                         >
                           <div>
-                            <h4 className="font-semibold">
-                              {hospital.hospitalName || hospital.hospitalId}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">
-                              Linked: {new Date(hospital.linkedAt).toLocaleDateString()}
-                            </p>
+                            <div className="font-semibold">${withdrawal.amountUSD.toFixed(2)}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {withdrawal.amountHBAR.toFixed(4)} HBAR
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(withdrawal.createdAt).toLocaleDateString()}
+                            </div>
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => (window.location.href = '/patient/connect')}
+                          <Badge
+                            variant={
+                              withdrawal.status === 'completed'
+                                ? 'success'
+                                : withdrawal.status === 'failed'
+                                  ? 'error'
+                                  : withdrawal.status === 'processing'
+                                    ? 'warning'
+                                    : 'default'
+                            }
                           >
-                            Manage
-                          </Button>
+                            {withdrawal.status}
+                          </Badge>
                         </div>
                       ))}
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-
-            <div className="space-y-6">
-              {/* Quick Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => (window.location.href = '/patient/upload')}
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Records
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => (window.location.href = '/patient/connect')}
-                  >
-                    <Building2 className="mr-2 h-4 w-4" />
-                    Connect Hospital
-                  </Button>
-                </CardContent>
-              </Card>
-
-              {/* Summary */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {summaryLoading ? (
-                    <div className="flex items-center justify-center py-4">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : summary ? (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Total Records</span>
-                        <span className="font-semibold">{summary.totalRecords}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Hospitals</span>
-                        <span className="font-semibold">{summary.hospitalCount}</span>
-                      </div>
-                      {summary.dateRange && (
-                        <div className="border-t pt-2">
-                          <p className="mb-1 text-xs text-muted-foreground">Date Range</p>
-                          <p className="text-sm">
-                            {new Date(summary.dateRange.start).toLocaleDateString()} -{' '}
-                            {new Date(summary.dateRange.end).toLocaleDateString()}
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Total Records</span>
-                        <span className="font-semibold">0</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Hospitals</span>
-                        <span className="font-semibold">0</span>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">
+                  No wallet found. Your wallet will be created automatically when you receive your
+                  first payment.
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-export default function PatientWalletPage() {
+export default function WalletPage() {
   return (
     <PatientProtectedRoute>
-      <PatientWalletContent />
+      <WalletContent />
     </PatientProtectedRoute>
   );
 }
