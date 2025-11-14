@@ -1,0 +1,182 @@
+import MermaidDiagram from '@/components/docs/MermaidDiagram';
+
+export default function DataFlowPage() {
+  return (
+    <div className="space-y-8">
+      <div className="border-b border-gray-200 pb-8">
+        <h1 className="text-4xl font-bold text-gray-900">Data Flow</h1>
+        <p className="mt-4 text-lg text-gray-600">
+          Complete data flow from EHR export to marketplace purchase and revenue distribution.
+        </p>
+      </div>
+
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900">Complete Data Flow Sequence</h2>
+        <MermaidDiagram
+          chart={`sequenceDiagram
+    participant H as Hospital EHR
+    participant A as Adapter
+    participant HCS as Hedera HCS
+    participant SC as Smart Contracts
+    participant B as Backend
+    participant M as Marketplace
+    participant R as Researcher
+    
+    H->>A: Export EHR Data
+    A->>A: Anonymize PII<br/>Generate Anonymous IDs
+    A->>HCS: Submit Consent Proof
+    A->>HCS: Submit Data Proof
+    A->>SC: Record Consent
+    A->>B: Store Anonymized Data
+    B->>B: Create Dataset
+    
+    R->>M: Browse Datasets
+    R->>M: Query with Filters
+    M->>B: Execute Query<br/>(Consent Validation)
+    B->>M: Return Results
+    R->>M: Purchase Dataset
+    M->>SC: Trigger Revenue Distribution
+    SC->>SC: Auto-Split: 60/25/15
+    SC->>R: Grant Access
+    R->>M: Download Data
+    
+    Note over HCS,SC: All transactions<br/>verifiable on HashScan`}
+        />
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900">Processing Pipeline</h2>
+        <MermaidDiagram
+          chart={`flowchart LR
+    A[Raw EHR Data] --> B[Parse & Validate]
+    B --> C[Anonymize PII]
+    C --> D[Preserve Demographics]
+    D --> E[Generate Anonymous IDs]
+    E --> F[Enforce K-Anonymity]
+    F --> G[Generate Hashes]
+    G --> H[Submit to HCS]
+    H --> I[Record on Contract]
+    I --> J[Store in Backend]
+    J --> K[Marketplace Ready]
+    
+    style A fill:#FFCDD2,stroke:#D32F2F,stroke-width:2px
+    style C fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
+    style D fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
+    style H fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style I fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style K fill:#BBDEFB,stroke:#1976D2,stroke-width:2px`}
+        />
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900">Step-by-Step Process</h2>
+        <div className="mt-4 space-y-6">
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">1. Data Export</h3>
+            <p className="mt-2 text-gray-700">
+              Hospitals export EHR data in FHIR R4 format. The data includes patient records, conditions, observations, and other medical information.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">2. Anonymization</h3>
+            <p className="mt-2 text-gray-700">
+              The adapter service processes the raw data:
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
+              <li>Removes PII: names, addresses, phone numbers, exact dates of birth</li>
+              <li>Preserves demographics: age ranges, country, gender, occupation</li>
+              <li>Generates anonymous patient IDs (PID-001, PID-002, etc.)</li>
+              <li>Enforces K-anonymity (minimum 5 records per demographic group)</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">3. Hedera Integration</h3>
+            <p className="mt-2 text-gray-700">
+              Anonymized data is submitted to Hedera:
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
+              <li><strong>HCS Consent Topic:</strong> Consent proof with anonymous ID, topic ID, and timestamp</li>
+              <li><strong>HCS Data Topic:</strong> Cryptographic hash of the anonymized dataset</li>
+              <li><strong>ConsentManager Contract:</strong> Records consent with anonymous ID and data hash</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">4. Dataset Creation</h3>
+            <p className="mt-2 text-gray-700">
+              The backend creates a dataset entry with:
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
+              <li>Dataset metadata (hospital ID, creation date, demographics)</li>
+              <li>HCS topic IDs for verification</li>
+              <li>Query filters (country, date range, conditions, demographics)</li>
+              <li>Pricing information</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">5. Researcher Query</h3>
+            <p className="mt-2 text-gray-700">
+              Researchers browse the marketplace and query datasets:
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
+              <li>Filter by country, date range, medical conditions, demographics</li>
+              <li>View dataset previews and statistics</li>
+              <li>System validates consent for all records in query results</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">6. Purchase & Revenue Distribution</h3>
+            <p className="mt-2 text-gray-700">
+              When a researcher purchases a dataset:
+            </p>
+            <ol className="mt-2 list-decimal space-y-1 pl-6 text-gray-700">
+              <li>Researcher pays in HBAR</li>
+              <li>RevenueSplitter contract receives payment</li>
+              <li>Contract automatically distributes: 60% Patient, 25% Hospital, 15% Platform</li>
+              <li>HBAR transferred to Hedera accounts (0.0.xxxxx)</li>
+              <li>Researcher gains access to download anonymized data</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900">Revenue Distribution Flow</h2>
+        <div className="mt-4 rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-6">
+          <h3 className="text-lg font-semibold text-[#00A9CE]">How It Works</h3>
+          <ol className="mt-2 list-decimal space-y-2 pl-6 text-gray-700">
+            <li>Researcher purchases dataset (pays in HBAR)</li>
+            <li>RevenueSplitter contract receives payment</li>
+            <li><strong>Automatically distributes:</strong> 60% Patient, 25% Hospital, 15% Platform</li>
+            <li>All transactions verifiable on HashScan</li>
+          </ol>
+          <p className="mt-4 text-sm font-semibold text-gray-700">
+            Benefits: Trustless, Transparent, Instant, Low fees
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900">Verification & Audit</h2>
+        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
+          <h3 className="text-lg font-semibold text-gray-900">HashScan Verification</h3>
+          <p className="mt-2 text-gray-700">
+            All Hedera transactions are publicly verifiable on HashScan:
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
+            <li><strong>HCS Messages:</strong> View consent and data proof submissions</li>
+            <li><strong>Smart Contract Calls:</strong> Verify consent records and revenue distributions</li>
+            <li><strong>HBAR Transfers:</strong> Track revenue distribution to patient, hospital, and platform accounts</li>
+            <li><strong>Account History:</strong> View all transactions for any Hedera account (0.0.xxxxx)</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+
