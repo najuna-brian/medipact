@@ -59,14 +59,26 @@ async function initPostgreSQL() {
     db = client;
     dbType = 'postgresql';
     
-    console.log('📦 Database connected: PostgreSQL (Supabase)');
+    // Use logger if available, otherwise console
+    if (typeof import('../utils/logger.js').then === 'function') {
+      const { logInfo } = await import('../utils/logger.js');
+      logInfo('Database connected: PostgreSQL');
+    } else {
+      console.log('📦 Database connected: PostgreSQL');
+    }
     
     // Create tables
     await createTables();
     
     return;
   } catch (error) {
-    console.error('❌ Error connecting to PostgreSQL:', error);
+    // Use logger if available
+    try {
+      const { logError } = await import('../utils/logger.js');
+      logError('Error connecting to PostgreSQL', error);
+    } catch {
+      console.error('❌ Error connecting to PostgreSQL:', error);
+    }
     throw error;
   }
 }
@@ -82,13 +94,23 @@ function initSQLite() {
       fs.mkdirSync(dbDir, { recursive: true });
     }
 
-    db = new sqlite3.Database(DB_PATH, (err) => {
+    db = new sqlite3.Database(DB_PATH, async (err) => {
       if (err) {
-        console.error('Error opening database:', err);
+        try {
+          const { logError } = await import('../utils/logger.js');
+          logError('Error opening SQLite database', err);
+        } catch {
+          console.error('Error opening database:', err);
+        }
         reject(err);
       } else {
         dbType = 'sqlite';
-        console.log(`📦 Database connected: SQLite (${DB_PATH})`);
+        try {
+          const { logInfo } = await import('../utils/logger.js');
+          logInfo('Database connected: SQLite', { path: DB_PATH });
+        } catch {
+          console.log(`📦 Database connected: SQLite (${DB_PATH})`);
+        }
         createTables().then(resolve).catch(reject);
       }
     });
@@ -120,10 +142,20 @@ async function createPostgreSQLTables() {
       hedera_account_id VARCHAR(20) UNIQUE,
       evm_address VARCHAR(42),
       encrypted_private_key TEXT,
+      payment_method VARCHAR(50),
+      bank_account_number VARCHAR(255),
+      bank_name VARCHAR(255),
+      mobile_money_provider VARCHAR(50),
+      mobile_money_number VARCHAR(50),
+      withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 10.00,
+      auto_withdraw_enabled BOOLEAN DEFAULT true,
+      last_withdrawal_at TIMESTAMP,
+      total_withdrawn_usd DECIMAL(10, 2) DEFAULT 0.00,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       status VARCHAR(20) NOT NULL DEFAULT 'active',
-      CHECK (status IN ('active', 'suspended', 'deleted'))
+      CHECK (status IN ('active', 'suspended', 'deleted')),
+      CHECK (payment_method IN ('bank', 'mobile_money', NULL))
     )
   `);
 
@@ -141,6 +173,15 @@ async function createPostgreSQLTables() {
       contact_email VARCHAR(255) NOT NULL,
       registration_number VARCHAR(255) NOT NULL,
       api_key_hash VARCHAR(255),
+      payment_method VARCHAR(50),
+      bank_account_number VARCHAR(255),
+      bank_name VARCHAR(255),
+      mobile_money_provider VARCHAR(50),
+      mobile_money_number VARCHAR(50),
+      withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 100.00,
+      auto_withdraw_enabled BOOLEAN DEFAULT true,
+      last_withdrawal_at TIMESTAMP,
+      total_withdrawn_usd DECIMAL(10, 2) DEFAULT 0.00,
       registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       status VARCHAR(20) NOT NULL DEFAULT 'active',
       verification_status VARCHAR(20) NOT NULL DEFAULT 'pending',
@@ -148,7 +189,8 @@ async function createPostgreSQLTables() {
       verified_at TIMESTAMP,
       verified_by VARCHAR(255),
       CHECK (status IN ('active', 'suspended', 'deleted')),
-      CHECK (verification_status IN ('pending', 'verified', 'rejected'))
+      CHECK (verification_status IN ('pending', 'verified', 'rejected')),
+      CHECK (payment_method IN ('bank', 'mobile_money', NULL))
     )
   `);
 
@@ -183,6 +225,110 @@ async function createPostgreSQLTables() {
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (upi) REFERENCES patient_identities(upi) ON DELETE CASCADE
+    )
+  `);
+
+  // Patient Data Preferences Table
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS patient_data_preferences (
+      upi VARCHAR(64) PRIMARY KEY,
+      global_sharing_enabled BOOLEAN NOT NULL DEFAULT true,
+      allow_verified_researchers BOOLEAN NOT NULL DEFAULT true,
+      allow_unverified_researchers BOOLEAN NOT NULL DEFAULT false,
+      allow_bulk_purchases BOOLEAN NOT NULL DEFAULT true,
+      allow_sensitive_data_sharing BOOLEAN NOT NULL DEFAULT false,
+      approved_researcher_ids TEXT,
+      blocked_researcher_ids TEXT,
+      approved_researcher_categories TEXT,
+      blocked_researcher_categories TEXT,
+      notify_on_data_access BOOLEAN NOT NULL DEFAULT true,
+      notify_on_new_researcher BOOLEAN NOT NULL DEFAULT true,
+      minimum_price_per_record DECIMAL(10, 2) DEFAULT 0.01,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (upi) REFERENCES patient_identities(upi) ON DELETE CASCADE
+    )
+  `);
+
+  // Patient-Researcher Approvals Table
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS patient_researcher_approvals (
+      id SERIAL PRIMARY KEY,
+      upi VARCHAR(64) NOT NULL,
+      researcher_id VARCHAR(32) NOT NULL,
+      approval_status VARCHAR(20) NOT NULL,
+      approved_at TIMESTAMP,
+      revoked_at TIMESTAMP,
+      conditions TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (approval_status IN ('approved', 'pending', 'rejected', 'revoked')),
+      UNIQUE (upi, researcher_id),
+      FOREIGN KEY (upi) REFERENCES patient_identities(upi) ON DELETE CASCADE,
+      FOREIGN KEY (researcher_id) REFERENCES researchers(researcher_id) ON DELETE CASCADE
+    )
+  `);
+
+  // Data Access History Table
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS data_access_history (
+      id SERIAL PRIMARY KEY,
+      upi VARCHAR(64) NOT NULL,
+      researcher_id VARCHAR(32) NOT NULL,
+      dataset_id VARCHAR(32),
+      record_count INTEGER NOT NULL,
+      accessed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      revenue_amount DECIMAL(18, 8),
+      revenue_currency VARCHAR(10) DEFAULT 'HBAR',
+      FOREIGN KEY (upi) REFERENCES patient_identities(upi) ON DELETE CASCADE,
+      FOREIGN KEY (researcher_id) REFERENCES researchers(researcher_id) ON DELETE CASCADE,
+      FOREIGN KEY (dataset_id) REFERENCES datasets(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Temporary Hospital Access Requests Table
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS temporary_hospital_access (
+      id SERIAL PRIMARY KEY,
+      upi VARCHAR(64) NOT NULL,
+      requesting_hospital_id VARCHAR(32) NOT NULL,
+      original_hospital_id VARCHAR(32) NOT NULL,
+      access_type VARCHAR(50) NOT NULL DEFAULT 'read',
+      duration_minutes INTEGER NOT NULL,
+      purpose TEXT,
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      approved_at TIMESTAMP,
+      expires_at TIMESTAMP,
+      revoked_at TIMESTAMP,
+      patient_notes TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (status IN ('pending', 'approved', 'rejected', 'expired', 'revoked', 'active')),
+      CHECK (access_type IN ('read', 'read_write', 'telemedicine')),
+      FOREIGN KEY (upi) REFERENCES patient_identities(upi) ON DELETE CASCADE,
+      FOREIGN KEY (requesting_hospital_id) REFERENCES hospitals(hospital_id) ON DELETE CASCADE,
+      FOREIGN KEY (original_hospital_id) REFERENCES hospitals(hospital_id) ON DELETE CASCADE
+    )
+  `);
+
+  // Withdrawal History Table
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS withdrawal_history (
+      id SERIAL PRIMARY KEY,
+      upi VARCHAR(64),
+      hospital_id VARCHAR(32),
+      user_type VARCHAR(20) NOT NULL,
+      amount_hbar DECIMAL(20, 8) NOT NULL,
+      amount_usd DECIMAL(10, 2) NOT NULL,
+      payment_method VARCHAR(50) NOT NULL,
+      destination_account VARCHAR(255) NOT NULL,
+      transaction_id VARCHAR(100),
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      processed_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+      CHECK (user_type IN ('patient', 'hospital')),
+      CHECK (payment_method IN ('bank', 'mobile_money'))
     )
   `);
 
@@ -234,6 +380,18 @@ async function createPostgreSQLTables() {
   await client.query(`CREATE INDEX IF NOT EXISTS idx_contacts_email ON patient_contacts(email)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_contacts_phone ON patient_contacts(phone)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_contacts_national_id ON patient_contacts(national_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_preferences_upi ON patient_data_preferences(upi)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_approvals_upi ON patient_researcher_approvals(upi)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_approvals_researcher ON patient_researcher_approvals(researcher_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_approvals_status ON patient_researcher_approvals(approval_status)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_access_history_upi ON data_access_history(upi)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_access_history_researcher ON data_access_history(researcher_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_access_history_date ON data_access_history(accessed_at)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_temp_access_upi ON temporary_hospital_access(upi)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_temp_access_requesting ON temporary_hospital_access(requesting_hospital_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_temp_access_original ON temporary_hospital_access(original_hospital_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_temp_access_status ON temporary_hospital_access(status)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_temp_access_expires ON temporary_hospital_access(expires_at)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_patients_hedera_account ON patient_identities(hedera_account_id)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_hospitals_hedera_account ON hospitals(hedera_account_id)`);
@@ -375,6 +533,12 @@ async function createPostgreSQLTables() {
       date_range_end DATE,
       condition_codes TEXT,
       price DECIMAL(18, 8) NOT NULL,
+      price_usd DECIMAL(18, 8),
+      price_per_record_hbar DECIMAL(18, 8),
+      price_per_record_usd DECIMAL(18, 8),
+      pricing_category_id VARCHAR(32),
+      pricing_category VARCHAR(100),
+      volume_discount DECIMAL(5, 2) DEFAULT 0,
       currency VARCHAR(10) NOT NULL DEFAULT 'HBAR',
       format VARCHAR(20) NOT NULL DEFAULT 'FHIR',
       consent_type VARCHAR(50) NOT NULL,
@@ -498,6 +662,15 @@ async function createSQLiteTables() {
       hedera_account_id VARCHAR(20) UNIQUE,
       evm_address VARCHAR(42),
       encrypted_private_key TEXT,
+      payment_method VARCHAR(50),
+      bank_account_number VARCHAR(255),
+      bank_name VARCHAR(255),
+      mobile_money_provider VARCHAR(50),
+      mobile_money_number VARCHAR(50),
+      withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 10.00,
+      auto_withdraw_enabled BOOLEAN DEFAULT 1,
+      last_withdrawal_at TIMESTAMP,
+      total_withdrawn_usd DECIMAL(10, 2) DEFAULT 0.00,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       status VARCHAR(20) NOT NULL DEFAULT 'active',
@@ -519,6 +692,15 @@ async function createSQLiteTables() {
       contact_email VARCHAR(255) NOT NULL,
       registration_number VARCHAR(255) NOT NULL,
       api_key_hash VARCHAR(255),
+      payment_method VARCHAR(50),
+      bank_account_number VARCHAR(255),
+      bank_name VARCHAR(255),
+      mobile_money_provider VARCHAR(50),
+      mobile_money_number VARCHAR(50),
+      withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 100.00,
+      auto_withdraw_enabled BOOLEAN DEFAULT 1,
+      last_withdrawal_at TIMESTAMP,
+      total_withdrawn_usd DECIMAL(10, 2) DEFAULT 0.00,
       registered_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       status VARCHAR(20) NOT NULL DEFAULT 'active',
       verification_status VARCHAR(20) NOT NULL DEFAULT 'pending',
@@ -615,6 +797,110 @@ async function createSQLiteTables() {
     )
   `);
 
+  // Patient Data Preferences Table
+  await run(`
+    CREATE TABLE IF NOT EXISTS patient_data_preferences (
+      upi VARCHAR(64) PRIMARY KEY,
+      global_sharing_enabled BOOLEAN NOT NULL DEFAULT 1,
+      allow_verified_researchers BOOLEAN NOT NULL DEFAULT 1,
+      allow_unverified_researchers BOOLEAN NOT NULL DEFAULT 0,
+      allow_bulk_purchases BOOLEAN NOT NULL DEFAULT 1,
+      allow_sensitive_data_sharing BOOLEAN NOT NULL DEFAULT 0,
+      approved_researcher_ids TEXT,
+      blocked_researcher_ids TEXT,
+      approved_researcher_categories TEXT,
+      blocked_researcher_categories TEXT,
+      notify_on_data_access BOOLEAN NOT NULL DEFAULT 1,
+      notify_on_new_researcher BOOLEAN NOT NULL DEFAULT 1,
+      minimum_price_per_record REAL DEFAULT 0.01,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (upi) REFERENCES patient_identities(upi) ON DELETE CASCADE
+    )
+  `);
+
+  // Patient-Researcher Approvals Table
+  await run(`
+    CREATE TABLE IF NOT EXISTS patient_researcher_approvals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      upi VARCHAR(64) NOT NULL,
+      researcher_id VARCHAR(32) NOT NULL,
+      approval_status VARCHAR(20) NOT NULL,
+      approved_at TIMESTAMP,
+      revoked_at TIMESTAMP,
+      conditions TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (approval_status IN ('approved', 'pending', 'rejected', 'revoked')),
+      UNIQUE (upi, researcher_id),
+      FOREIGN KEY (upi) REFERENCES patient_identities(upi) ON DELETE CASCADE,
+      FOREIGN KEY (researcher_id) REFERENCES researchers(researcher_id) ON DELETE CASCADE
+    )
+  `);
+
+  // Data Access History Table
+  await run(`
+    CREATE TABLE IF NOT EXISTS data_access_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      upi VARCHAR(64) NOT NULL,
+      researcher_id VARCHAR(32) NOT NULL,
+      dataset_id VARCHAR(32),
+      record_count INTEGER NOT NULL,
+      accessed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      revenue_amount REAL,
+      revenue_currency VARCHAR(10) DEFAULT 'HBAR',
+      FOREIGN KEY (upi) REFERENCES patient_identities(upi) ON DELETE CASCADE,
+      FOREIGN KEY (researcher_id) REFERENCES researchers(researcher_id) ON DELETE CASCADE,
+      FOREIGN KEY (dataset_id) REFERENCES datasets(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Temporary Hospital Access Requests Table
+  await run(`
+    CREATE TABLE IF NOT EXISTS temporary_hospital_access (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      upi VARCHAR(64) NOT NULL,
+      requesting_hospital_id VARCHAR(32) NOT NULL,
+      original_hospital_id VARCHAR(32) NOT NULL,
+      access_type VARCHAR(50) NOT NULL DEFAULT 'read',
+      duration_minutes INTEGER NOT NULL,
+      purpose TEXT,
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      approved_at TIMESTAMP,
+      expires_at TIMESTAMP,
+      revoked_at TIMESTAMP,
+      patient_notes TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (status IN ('pending', 'approved', 'rejected', 'expired', 'revoked', 'active')),
+      CHECK (access_type IN ('read', 'read_write', 'telemedicine')),
+      FOREIGN KEY (upi) REFERENCES patient_identities(upi) ON DELETE CASCADE,
+      FOREIGN KEY (requesting_hospital_id) REFERENCES hospitals(hospital_id) ON DELETE CASCADE,
+      FOREIGN KEY (original_hospital_id) REFERENCES hospitals(hospital_id) ON DELETE CASCADE
+    )
+  `);
+
+  // Withdrawal History Table
+  await run(`
+    CREATE TABLE IF NOT EXISTS withdrawal_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      upi VARCHAR(64),
+      hospital_id VARCHAR(32),
+      user_type VARCHAR(20) NOT NULL,
+      amount_hbar DECIMAL(20, 8) NOT NULL,
+      amount_usd DECIMAL(10, 2) NOT NULL,
+      payment_method VARCHAR(50) NOT NULL,
+      destination_account VARCHAR(255) NOT NULL,
+      transaction_id VARCHAR(100),
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      processed_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+      CHECK (user_type IN ('patient', 'hospital')),
+      CHECK (payment_method IN ('bank', 'mobile_money'))
+    )
+  `);
+
   // Admins Table
   await run(`
     CREATE TABLE IF NOT EXISTS admins (
@@ -663,12 +949,28 @@ async function createSQLiteTables() {
   await run(`CREATE INDEX IF NOT EXISTS idx_contacts_email ON patient_contacts(email)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_contacts_phone ON patient_contacts(phone)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_contacts_national_id ON patient_contacts(national_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_preferences_upi ON patient_data_preferences(upi)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_approvals_upi ON patient_researcher_approvals(upi)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_approvals_researcher ON patient_researcher_approvals(researcher_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_approvals_status ON patient_researcher_approvals(approval_status)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_access_history_upi ON data_access_history(upi)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_access_history_researcher ON data_access_history(researcher_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_access_history_date ON data_access_history(accessed_at)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_temp_access_upi ON temporary_hospital_access(upi)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_temp_access_requesting ON temporary_hospital_access(requesting_hospital_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_temp_access_original ON temporary_hospital_access(original_hospital_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_temp_access_status ON temporary_hospital_access(status)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_temp_access_expires ON temporary_hospital_access(expires_at)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_admins_username ON admins(username)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_patients_hedera_account ON patient_identities(hedera_account_id)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_hospitals_hedera_account ON hospitals(hedera_account_id)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_researchers_email ON researchers(email)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_researchers_hedera_account ON researchers(hedera_account_id)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_researchers_verification_status ON researchers(verification_status)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_withdrawal_history_upi ON withdrawal_history(upi)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_withdrawal_history_hospital_id ON withdrawal_history(hospital_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_withdrawal_history_status ON withdrawal_history(status)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_withdrawal_history_created_at ON withdrawal_history(created_at)`);
   
   // Add Hedera account columns to existing tables (for migration)
   try {
@@ -700,6 +1002,100 @@ async function createSQLiteTables() {
   }
   try {
     await run(`ALTER TABLE researchers ADD COLUMN encrypted_private_key TEXT`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
+  // Add payment method columns to patient_identities (for migration)
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN payment_method VARCHAR(50)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN bank_account_number VARCHAR(255)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN bank_name VARCHAR(255)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN mobile_money_provider VARCHAR(50)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN mobile_money_number VARCHAR(50)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 10.00`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN auto_withdraw_enabled BOOLEAN DEFAULT 1`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN last_withdrawal_at TIMESTAMP`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE patient_identities ADD COLUMN total_withdrawn_usd DECIMAL(10, 2) DEFAULT 0.00`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+
+  // Add payment method columns to hospitals (for migration)
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN payment_method VARCHAR(50)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN bank_account_number VARCHAR(255)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN bank_name VARCHAR(255)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN mobile_money_provider VARCHAR(50)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN mobile_money_number VARCHAR(50)`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 100.00`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN auto_withdraw_enabled BOOLEAN DEFAULT 1`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN last_withdrawal_at TIMESTAMP`);
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    await run(`ALTER TABLE hospitals ADD COLUMN total_withdrawn_usd DECIMAL(10, 2) DEFAULT 0.00`);
   } catch (e) {
     // Column already exists, ignore
   }
@@ -773,6 +1169,12 @@ async function createSQLiteTables() {
       date_range_end DATE,
       condition_codes TEXT,
       price REAL NOT NULL,
+      price_usd REAL,
+      price_per_record_hbar REAL,
+      price_per_record_usd REAL,
+      pricing_category_id TEXT,
+      pricing_category TEXT,
+      volume_discount REAL DEFAULT 0,
       currency TEXT NOT NULL DEFAULT 'HBAR',
       format TEXT NOT NULL DEFAULT 'FHIR',
       consent_type TEXT NOT NULL,

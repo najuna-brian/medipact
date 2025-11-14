@@ -5,13 +5,23 @@
  */
 
 import { run, get, all } from './database.js';
-import crypto from 'crypto';
+import bcrypt from 'bcrypt';
+import { encrypt, decrypt } from '../services/encryption-service.js';
+
+const BCRYPT_ROUNDS = 10; // Lower rounds for API keys (they're checked more frequently)
 
 /**
- * Hash API key
+ * Hash API key using bcrypt
  */
-function hashApiKey(apiKey) {
-  return crypto.createHash('sha256').update(apiKey).digest('hex');
+async function hashApiKey(apiKey) {
+  return await bcrypt.hash(apiKey, BCRYPT_ROUNDS);
+}
+
+/**
+ * Compare API key with hash using bcrypt
+ */
+async function compareApiKey(apiKey, hash) {
+  return await bcrypt.compare(apiKey, hash);
 }
 
 /**
@@ -19,14 +29,25 @@ function hashApiKey(apiKey) {
  */
 export async function createHospital(hospitalData) {
   const apiKeyHash = hospitalData.apiKey 
-    ? hashApiKey(hospitalData.apiKey)
+    ? await hashApiKey(hospitalData.apiKey)
+    : null;
+
+  // Encrypt sensitive payment data
+  const encryptedBankAccount = hospitalData.bankAccountNumber 
+    ? encrypt(hospitalData.bankAccountNumber) 
+    : null;
+  const encryptedMobileMoney = hospitalData.mobileMoneyNumber 
+    ? encrypt(hospitalData.mobileMoneyNumber) 
     : null;
 
   await run(
     `INSERT INTO hospitals (
       hospital_id, hedera_account_id, evm_address, encrypted_private_key, name, country, location, fhir_endpoint, 
-      contact_email, registration_number, api_key_hash, verification_status, verification_documents, registered_at, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
+      contact_email, registration_number, api_key_hash, verification_status, verification_documents,
+      payment_method, bank_account_number, bank_name, mobile_money_provider, mobile_money_number,
+      withdrawal_threshold_usd, auto_withdraw_enabled,
+      registered_at, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'active')`,
     [
       hospitalData.hospitalId,
       hospitalData.hederaAccountId || null,
@@ -40,7 +61,14 @@ export async function createHospital(hospitalData) {
       hospitalData.registrationNumber || null,
       apiKeyHash,
       hospitalData.verificationStatus || 'pending',
-      hospitalData.verificationDocuments || null
+      hospitalData.verificationDocuments || null,
+      hospitalData.paymentMethod || null,
+      encryptedBankAccount, // Store encrypted
+      hospitalData.bankName || null,
+      hospitalData.mobileMoneyProvider || null,
+      encryptedMobileMoney, // Store encrypted
+      hospitalData.withdrawalThresholdUSD || 100.00,
+      hospitalData.autoWithdrawEnabled !== false ? 1 : 0
     ]
   );
 
@@ -66,7 +94,7 @@ export async function hospitalExists(hospitalId) {
  * Get hospital by ID
  */
 export async function getHospital(hospitalId) {
-  return await get(
+  const hospital = await get(
     `SELECT 
       hospital_id as hospitalId,
       hedera_account_id as hederaAccountId,
@@ -77,6 +105,15 @@ export async function getHospital(hospitalId) {
       fhir_endpoint as fhirEndpoint,
       contact_email as contactEmail,
       registration_number as registrationNumber,
+      payment_method as paymentMethod,
+      bank_account_number as bankAccountNumber,
+      bank_name as bankName,
+      mobile_money_provider as mobileMoneyProvider,
+      mobile_money_number as mobileMoneyNumber,
+      withdrawal_threshold_usd as withdrawalThresholdUSD,
+      auto_withdraw_enabled as autoWithdrawEnabled,
+      last_withdrawal_at as lastWithdrawalAt,
+      total_withdrawn_usd as totalWithdrawnUSD,
       registered_at as registeredAt,
       status,
       verification_status as verificationStatus,
@@ -87,6 +124,28 @@ export async function getHospital(hospitalId) {
     WHERE hospital_id = ? AND status = 'active'`,
     [hospitalId]
   );
+  
+  // Decrypt sensitive payment data
+  if (hospital) {
+    if (hospital.bankAccountNumber) {
+      try {
+        hospital.bankAccountNumber = decrypt(hospital.bankAccountNumber);
+      } catch (error) {
+        // If decryption fails, might be plaintext (for migration)
+        console.warn(`Failed to decrypt bank account for hospital ${hospitalId}, might be plaintext`);
+      }
+    }
+    if (hospital.mobileMoneyNumber) {
+      try {
+        hospital.mobileMoneyNumber = decrypt(hospital.mobileMoneyNumber);
+      } catch (error) {
+        // If decryption fails, might be plaintext (for migration)
+        console.warn(`Failed to decrypt mobile money number for hospital ${hospitalId}, might be plaintext`);
+      }
+    }
+  }
+  
+  return hospital;
 }
 
 /**
@@ -116,17 +175,35 @@ export async function getHospitalByHederaAccount(hederaAccountId) {
 }
 
 /**
- * Verify hospital API key
+ * Verify hospital API key using bcrypt
  */
 export async function verifyHospitalApiKey(hospitalId, apiKey) {
-  const apiKeyHash = hashApiKey(apiKey);
-  const result = await get(
-    `SELECT COUNT(*) as count 
+  // Get hospital with API key hash
+  const hospital = await get(
+    `SELECT api_key_hash as apiKeyHash
      FROM hospitals 
-     WHERE hospital_id = ? AND api_key_hash = ? AND status = 'active'`,
-    [hospitalId, apiKeyHash]
+     WHERE hospital_id = ? AND status = 'active'`,
+    [hospitalId]
   );
-  return result.count > 0;
+  
+  if (!hospital || !hospital.apiKeyHash) {
+    return false;
+  }
+  
+  // Check if hash is bcrypt format
+  const isBcryptHash = hospital.apiKeyHash.startsWith('$2a$') || 
+                       hospital.apiKeyHash.startsWith('$2b$') || 
+                       hospital.apiKeyHash.startsWith('$2y$');
+  
+  if (isBcryptHash) {
+    // Use bcrypt comparison
+    return await compareApiKey(apiKey, hospital.apiKeyHash);
+  } else {
+    // Legacy SHA-256 hash - support for migration
+    const crypto = await import('crypto');
+    const apiKeyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
+    return hospital.apiKeyHash.trim() === apiKeyHash.trim();
+  }
 }
 
 /**
@@ -139,6 +216,46 @@ export async function updateHospital(hospitalId, updates) {
   if (updates.name) {
     fields.push('name = ?');
     values.push(updates.name);
+  }
+  if (updates.paymentMethod !== undefined) {
+    fields.push('payment_method = ?');
+    values.push(updates.paymentMethod);
+  }
+  if (updates.bankAccountNumber !== undefined) {
+    fields.push('bank_account_number = ?');
+    // Encrypt before storing
+    const encrypted = updates.bankAccountNumber ? encrypt(updates.bankAccountNumber) : null;
+    values.push(encrypted);
+  }
+  if (updates.bankName !== undefined) {
+    fields.push('bank_name = ?');
+    values.push(updates.bankName);
+  }
+  if (updates.mobileMoneyProvider !== undefined) {
+    fields.push('mobile_money_provider = ?');
+    values.push(updates.mobileMoneyProvider);
+  }
+  if (updates.mobileMoneyNumber !== undefined) {
+    fields.push('mobile_money_number = ?');
+    // Encrypt before storing
+    const encrypted = updates.mobileMoneyNumber ? encrypt(updates.mobileMoneyNumber) : null;
+    values.push(encrypted);
+  }
+  if (updates.withdrawalThresholdUSD !== undefined) {
+    fields.push('withdrawal_threshold_usd = ?');
+    values.push(updates.withdrawalThresholdUSD);
+  }
+  if (updates.autoWithdrawEnabled !== undefined) {
+    fields.push('auto_withdraw_enabled = ?');
+    values.push(updates.autoWithdrawEnabled ? 1 : 0);
+  }
+  if (updates.lastWithdrawalAt !== undefined) {
+    fields.push('last_withdrawal_at = ?');
+    values.push(updates.lastWithdrawalAt);
+  }
+  if (updates.totalWithdrawnUSD !== undefined) {
+    fields.push('total_withdrawn_usd = ?');
+    values.push(updates.totalWithdrawnUSD);
   }
   if (updates.country) {
     fields.push('country = ?');
