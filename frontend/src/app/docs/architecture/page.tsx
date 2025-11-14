@@ -20,6 +20,8 @@ export default function ArchitecturePage() {
     
     subgraph "Backend Layer"
         API[Express.js REST API<br/>Routes, Services, Database]
+        LOG[Structured Logging<br/>Production Logger]
+        VAL[Environment Validation<br/>Config Checker]
     end
     
     subgraph "Processing Layer"
@@ -39,7 +41,10 @@ export default function ArchitecturePage() {
     ADAPTER -->|Contract Calls| EVM
     API -->|Create Accounts| ACCOUNTS
     API -->|Distribute Revenue| HBAR
+    API -->|Payment Verification| HBAR
     HBAR -->|Transfer| ACCOUNTS
+    API --> LOG
+    API --> VAL
     
     style FE fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
     style API fill:#FFF3E0,stroke:#F57C00,stroke-width:2px
@@ -120,6 +125,10 @@ export default function ArchitecturePage() {
               <li>Dataset creation and querying</li>
               <li>Revenue distribution</li>
               <li>Hedera account management</li>
+              <li>Payment verification</li>
+              <li>Wallet balance queries</li>
+              <li>Withdrawal processing</li>
+              <li>Exchange rate management</li>
             </ul>
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-6">
@@ -133,6 +142,9 @@ export default function ArchitecturePage() {
               <li>Consent records and verification status</li>
               <li>Dataset metadata and query results</li>
               <li>Hedera account IDs and encrypted keys</li>
+              <li>Payment methods and withdrawal settings</li>
+              <li>Withdrawal history and transaction logs</li>
+              <li>Exchange rate cache</li>
             </ul>
           </div>
         </div>
@@ -197,6 +209,10 @@ export default function ArchitecturePage() {
             <li><strong>Consent Validation:</strong> Database and smart contract level enforcement</li>
             <li><strong>Immutable Audit Trail:</strong> All consent and data proofs stored on HCS</li>
             <li><strong>K-Anonymity:</strong> Privacy protection through demographic grouping</li>
+            <li><strong>Payment Data Encryption:</strong> Bank accounts and mobile money numbers encrypted at rest</li>
+            <li><strong>Production Logging:</strong> Structured JSON logs with security event tracking</li>
+            <li><strong>Environment Validation:</strong> Startup validation of required configuration</li>
+            <li><strong>Security Headers:</strong> Production security headers (HSTS, XSS protection, etc.)</li>
           </ul>
         </div>
       </section>

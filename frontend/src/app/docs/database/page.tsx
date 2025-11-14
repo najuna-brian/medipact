@@ -21,18 +21,28 @@ export default function DatabasePage() {
     HOSPITALS ||--o{ HOSPITAL_LINKAGES : links
     HOSPITALS ||--o{ DATASETS : creates
     RESEARCHERS ||--o{ DATASETS : purchases
+    PATIENTS ||--o{ WITHDRAWAL_HISTORY : has
+    HOSPITALS ||--o{ WITHDRAWAL_HISTORY : has
     FHIR_PATIENTS ||--o{ FHIR_CONDITIONS : has
     FHIR_PATIENTS ||--o{ FHIR_OBSERVATIONS : has
     
     PATIENTS {
         string upi PK
         string hedera_account_id
-        string name
+        string evm_address
+        string payment_method
+        string bank_account_number
+        string withdrawal_threshold_usd
+        boolean auto_withdraw_enabled
     }
     HOSPITALS {
         string hospital_id PK
         string hedera_account_id
-        string name
+        string evm_address
+        string payment_method
+        string bank_account_number
+        string withdrawal_threshold_usd
+        boolean auto_withdraw_enabled
         boolean verified
     }
     CONSENTS {
@@ -47,6 +57,20 @@ export default function DatabasePage() {
         string hospital_id FK
         string consent_topic_id
         string data_topic_id
+        decimal price
+        decimal price_usd
+        string pricing_category
+    }
+    WITHDRAWAL_HISTORY {
+        int id PK
+        string upi FK
+        string hospital_id FK
+        string user_type
+        decimal amount_hbar
+        decimal amount_usd
+        string payment_method
+        string status
+        timestamp created_at
     }`}
         />
       </section>
@@ -78,9 +102,29 @@ export default function DatabasePage() {
                     <td className="px-3 py-2 text-gray-600">Hedera account (0.0.xxxxx) for revenue</td>
                   </tr>
                   <tr>
-                    <td className="px-3 py-2 font-medium text-gray-900">name</td>
+                    <td className="px-3 py-2 font-medium text-gray-900">evm_address</td>
                     <td className="px-3 py-2 text-gray-600">STRING</td>
-                    <td className="px-3 py-2 text-gray-600">Patient name</td>
+                    <td className="px-3 py-2 text-gray-600">EVM-compatible address (0x...)</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">payment_method</td>
+                    <td className="px-3 py-2 text-gray-600">STRING</td>
+                    <td className="px-3 py-2 text-gray-600">'bank' or 'mobile_money'</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">bank_account_number</td>
+                    <td className="px-3 py-2 text-gray-600">STRING (encrypted)</td>
+                    <td className="px-3 py-2 text-gray-600">Encrypted bank account number</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">withdrawal_threshold_usd</td>
+                    <td className="px-3 py-2 text-gray-600">DECIMAL</td>
+                    <td className="px-3 py-2 text-gray-600">Auto-withdrawal threshold (default: $10.00)</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">auto_withdraw_enabled</td>
+                    <td className="px-3 py-2 text-gray-600">BOOLEAN</td>
+                    <td className="px-3 py-2 text-gray-600">Enable automatic withdrawals</td>
                   </tr>
                 </tbody>
               </table>
@@ -109,6 +153,26 @@ export default function DatabasePage() {
                     <td className="px-3 py-2 font-medium text-gray-900">hedera_account_id</td>
                     <td className="px-3 py-2 text-gray-600">STRING</td>
                     <td className="px-3 py-2 text-gray-600">Hedera account for revenue</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">evm_address</td>
+                    <td className="px-3 py-2 text-gray-600">STRING</td>
+                    <td className="px-3 py-2 text-gray-600">EVM-compatible address (0x...)</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">payment_method</td>
+                    <td className="px-3 py-2 text-gray-600">STRING</td>
+                    <td className="px-3 py-2 text-gray-600">'bank' or 'mobile_money'</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">bank_account_number</td>
+                    <td className="px-3 py-2 text-gray-600">STRING (encrypted)</td>
+                    <td className="px-3 py-2 text-gray-600">Encrypted bank account number</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">withdrawal_threshold_usd</td>
+                    <td className="px-3 py-2 text-gray-600">DECIMAL</td>
+                    <td className="px-3 py-2 text-gray-600">Auto-withdrawal threshold (default: $100.00)</td>
                   </tr>
                   <tr>
                     <td className="px-3 py-2 font-medium text-gray-900">verification_status</td>
@@ -228,6 +292,89 @@ export default function DatabasePage() {
                     <td className="px-3 py-2 font-medium text-gray-900">data_topic_id</td>
                     <td className="px-3 py-2 text-gray-600">STRING</td>
                     <td className="px-3 py-2 text-gray-600">HCS topic for data proof</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">price</td>
+                    <td className="px-3 py-2 text-gray-600">DECIMAL(20,8)</td>
+                    <td className="px-3 py-2 text-gray-600">Price in HBAR</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">price_usd</td>
+                    <td className="px-3 py-2 text-gray-600">DECIMAL(10,2)</td>
+                    <td className="px-3 py-2 text-gray-600">Price in USD</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">pricing_category</td>
+                    <td className="px-3 py-2 text-gray-600">STRING</td>
+                    <td className="px-3 py-2 text-gray-600">Pricing category (basic, condition, lab, etc.)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">WITHDRAWAL_HISTORY</h3>
+            <p className="mt-2 text-sm text-gray-600">Tracks all withdrawal requests and their status</p>
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-900">Column</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-900">Type</th>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-900">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">id</td>
+                    <td className="px-3 py-2 text-gray-600">INTEGER (PK)</td>
+                    <td className="px-3 py-2 text-gray-600">Unique withdrawal ID</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">upi</td>
+                    <td className="px-3 py-2 text-gray-600">STRING (FK)</td>
+                    <td className="px-3 py-2 text-gray-600">Patient UPI (if patient withdrawal)</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">hospital_id</td>
+                    <td className="px-3 py-2 text-gray-600">STRING (FK)</td>
+                    <td className="px-3 py-2 text-gray-600">Hospital ID (if hospital withdrawal)</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">user_type</td>
+                    <td className="px-3 py-2 text-gray-600">STRING</td>
+                    <td className="px-3 py-2 text-gray-600">'patient' or 'hospital'</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">amount_hbar</td>
+                    <td className="px-3 py-2 text-gray-600">DECIMAL(20,8)</td>
+                    <td className="px-3 py-2 text-gray-600">Withdrawal amount in HBAR</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">amount_usd</td>
+                    <td className="px-3 py-2 text-gray-600">DECIMAL(10,2)</td>
+                    <td className="px-3 py-2 text-gray-600">Withdrawal amount in USD</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">payment_method</td>
+                    <td className="px-3 py-2 text-gray-600">STRING</td>
+                    <td className="px-3 py-2 text-gray-600">'bank' or 'mobile_money'</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">destination_account</td>
+                    <td className="px-3 py-2 text-gray-600">STRING</td>
+                    <td className="px-3 py-2 text-gray-600">Bank account or mobile money number (masked)</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">status</td>
+                    <td className="px-3 py-2 text-gray-600">STRING</td>
+                    <td className="px-3 py-2 text-gray-600">pending, processing, completed, failed</td>
+                  </tr>
+                  <tr>
+                    <td className="px-3 py-2 font-medium text-gray-900">transaction_id</td>
+                    <td className="px-3 py-2 text-gray-600">STRING</td>
+                    <td className="px-3 py-2 text-gray-600">Fiat transfer transaction ID (if available)</td>
                   </tr>
                 </tbody>
               </table>

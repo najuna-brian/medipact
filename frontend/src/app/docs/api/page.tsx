@@ -165,39 +165,198 @@ Content-Type: multipart/form-data
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Dataset Endpoints</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Marketplace Endpoints</h2>
         <div className="mt-4 space-y-4">
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Browse Datasets</h3>
+            <CodeBlock
+              code={`GET /api/marketplace/datasets
+Query Parameters:
+  ?country=Uganda
+  &hospitalId=HOSP-001
+  &limit=50
+  &offset=0`}
+              language="text"
+            />
+          </div>
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">Query Datasets</h3>
             <CodeBlock
-              code={`POST /api/datasets/query
+              code={`POST /api/marketplace/query
 Content-Type: application/json
 
 {
-  "country": "Uganda",
-  "dateRange": {
-    "start": "2024-01-01",
-    "end": "2024-12-31"
+  "researcherId": "RES-001",
+  "filters": {
+    "country": "Uganda",
+    "startDate": "2024-01-01",
+    "endDate": "2024-12-31",
+    "conditionCode": "E11.9",
+    "gender": "male",
+    "ageRange": "35-50"
   },
-  "conditions": ["diabetes", "hypertension"],
-  "demographics": {
-    "ageRange": "35-50",
-    "gender": "male"
-  }
+  "limit": 100,
+  "preview": false
 }`}
               language="json"
             />
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">Purchase Dataset</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Purchase flow with payment verification:
+            </p>
             <CodeBlock
-              code={`POST /api/datasets/:datasetId/purchase
-Authorization: Bearer {researcher_token}
+              code={`# Step 1: Initiate purchase (without transaction ID)
+POST /api/marketplace/purchase
 Content-Type: application/json
 
 {
-  "paymentAmount": "100.00",
-  "hederaAccountId": "0.0.123456"
+  "researcherId": "RES-001",
+  "datasetId": "DS-ABC123",
+  "amount": 100.00
+}
+
+# Response (202 Accepted):
+{
+  "paymentRequest": {
+    "paymentRequestId": "PAY-123",
+    "amountHBAR": 625.0,
+    "amountUSD": 100.00,
+    "recipientAccountId": "0.0.1234567",
+    "memo": "MediPact Dataset Purchase",
+    "instructions": "Send HBAR to the recipient account..."
+  },
+  "message": "Payment required",
+  "nextStep": "Send HBAR and provide transaction ID"
+}
+
+# Step 2: Complete purchase with transaction ID
+POST /api/marketplace/purchase
+Content-Type: application/json
+
+{
+  "researcherId": "RES-001",
+  "datasetId": "DS-ABC123",
+  "amount": 100.00,
+  "transactionId": "0.0.123@1234567890.123456789"
+}
+
+# Response (200 OK):
+{
+  "message": "Purchase successful",
+  "purchaseId": "PURCHASE-123",
+  "amountHBAR": 625.0,
+  "amountUSD": 100.00,
+  "transactionId": "0.0.123@1234567890.123456789",
+  "verified": true,
+  "revenueDistribution": {...},
+  "accessGranted": true,
+  "downloadUrl": "/api/marketplace/datasets/DS-ABC123/export"
+}`}
+              language="json"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900">Wallet & Payment Endpoints</h2>
+        <div className="mt-4 space-y-4">
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Get Wallet Balance</h3>
+            <CodeBlock
+              code={`# Patient wallet
+GET /api/patient/:upi/wallet
+
+# Hospital wallet
+GET /api/hospital/:hospitalId/wallet
+
+# Response:
+{
+  "balanceHBAR": 784.3750,
+  "balanceUSD": 125.50,
+  "hederaAccountId": "0.0.1234567",
+  "evmAddress": "0x...",
+  "paymentMethod": "bank",
+  "bankName": "Bank of Uganda",
+  "withdrawalThresholdUSD": 10.00,
+  "autoWithdrawEnabled": true
+}`}
+              language="json"
+            />
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Initiate Withdrawal</h3>
+            <CodeBlock
+              code={`# Patient withdrawal
+POST /api/patient/:upi/withdraw
+Content-Type: application/json
+
+{
+  "amountUSD": 100.00
+}
+
+# Hospital withdrawal
+POST /api/hospital/:hospitalId/withdraw
+Content-Type: application/json
+
+{
+  "amountUSD": 500.00
+}
+
+# Response:
+{
+  "message": "Withdrawal initiated successfully",
+  "withdrawal": {
+    "id": 123,
+    "amountHBAR": 625.0,
+    "amountUSD": 100.00,
+    "payment_method": "bank",
+    "destination_account": "1234****5678",
+    "status": "pending",
+    "created_at": "2024-01-15T10:30:00Z"
+  }
+}`}
+              language="json"
+            />
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Get Withdrawal History</h3>
+            <CodeBlock
+              code={`# Patient withdrawal history
+GET /api/patient/:upi/withdrawal-history?limit=10&offset=0
+
+# Hospital withdrawal history
+GET /api/hospital/:hospitalId/withdrawal-history?limit=10&offset=0`}
+              language="text"
+            />
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Update Payment Method</h3>
+            <CodeBlock
+              code={`# Patient payment method
+PUT /api/patient/:upi/payment-method
+Content-Type: application/json
+
+{
+  "paymentMethod": "bank",
+  "bankName": "Bank of Uganda",
+  "bankAccountNumber": "1234567890",
+  "withdrawalThresholdUSD": 10.00,
+  "autoWithdrawEnabled": true
+}
+
+# Hospital payment method
+PUT /api/hospital/:hospitalId/payment-method
+Content-Type: application/json
+
+{
+  "paymentMethod": "mobile_money",
+  "mobileMoneyProvider": "MTN",
+  "mobileMoneyNumber": "+256123456789",
+  "withdrawalThresholdUSD": 100.00,
+  "autoWithdrawEnabled": true
 }`}
               language="json"
             />

@@ -35,8 +35,16 @@ export default function DataFlowPage() {
     M->>B: Execute Query<br/>(Consent Validation)
     B->>M: Return Results
     R->>M: Purchase Dataset
+    M->>R: Payment Request<br/>(Account, Amount HBAR)
+    R->>Hedera: Send HBAR Payment
+    R->>M: Provide Transaction ID
+    M->>Hedera: Verify Payment
+    Hedera-->>M: Payment Verified
     M->>SC: Trigger Revenue Distribution
     SC->>SC: Auto-Split: 60/25/15
+    SC->>Patient: Transfer 60% HBAR
+    SC->>Hospital: Transfer 25% HBAR
+    SC->>Platform: Transfer 15% HBAR
     SC->>R: Grant Access
     R->>M: Download Data
     
@@ -74,15 +82,14 @@ export default function DataFlowPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">1. Data Export</h3>
             <p className="mt-2 text-gray-700">
-              Hospitals export EHR data in FHIR R4 format. The data includes patient records, conditions, observations, and other medical information.
+              Hospitals export EHR data in FHIR R4 format. The data includes patient records,
+              conditions, observations, and other medical information.
             </p>
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">2. Anonymization</h3>
-            <p className="mt-2 text-gray-700">
-              The adapter service processes the raw data:
-            </p>
+            <p className="mt-2 text-gray-700">The adapter service processes the raw data:</p>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
               <li>Removes PII: names, addresses, phone numbers, exact dates of birth</li>
               <li>Preserves demographics: age ranges, country, gender, occupation</li>
@@ -93,21 +100,25 @@ export default function DataFlowPage() {
 
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">3. Hedera Integration</h3>
-            <p className="mt-2 text-gray-700">
-              Anonymized data is submitted to Hedera:
-            </p>
+            <p className="mt-2 text-gray-700">Anonymized data is submitted to Hedera:</p>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
-              <li><strong>HCS Consent Topic:</strong> Consent proof with anonymous ID, topic ID, and timestamp</li>
-              <li><strong>HCS Data Topic:</strong> Cryptographic hash of the anonymized dataset</li>
-              <li><strong>ConsentManager Contract:</strong> Records consent with anonymous ID and data hash</li>
+              <li>
+                <strong>HCS Consent Topic:</strong> Consent proof with anonymous ID, topic ID, and
+                timestamp
+              </li>
+              <li>
+                <strong>HCS Data Topic:</strong> Cryptographic hash of the anonymized dataset
+              </li>
+              <li>
+                <strong>ConsentManager Contract:</strong> Records consent with anonymous ID and data
+                hash
+              </li>
             </ul>
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">4. Dataset Creation</h3>
-            <p className="mt-2 text-gray-700">
-              The backend creates a dataset entry with:
-            </p>
+            <p className="mt-2 text-gray-700">The backend creates a dataset entry with:</p>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
               <li>Dataset metadata (hospital ID, creation date, demographics)</li>
               <li>HCS topic IDs for verification</li>
@@ -129,16 +140,44 @@ export default function DataFlowPage() {
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">6. Purchase & Revenue Distribution</h3>
-            <p className="mt-2 text-gray-700">
-              When a researcher purchases a dataset:
-            </p>
+            <h3 className="text-lg font-semibold text-gray-900">
+              6. Purchase & Payment Verification
+            </h3>
+            <p className="mt-2 text-gray-700">When a researcher purchases a dataset:</p>
             <ol className="mt-2 list-decimal space-y-1 pl-6 text-gray-700">
-              <li>Researcher pays in HBAR</li>
-              <li>RevenueSplitter contract receives payment</li>
-              <li>Contract automatically distributes: 60% Patient, 25% Hospital, 15% Platform</li>
-              <li>HBAR transferred to Hedera accounts (0.0.xxxxx)</li>
+              <li>
+                Researcher initiates purchase and receives payment request (recipient account,
+                amount in HBAR)
+              </li>
+              <li>
+                Researcher connects Hedera wallet (HashPack, Blade, etc.) and sends HBAR payment
+              </li>
+              <li>Researcher provides transaction ID for verification</li>
+              <li>System verifies payment on Hedera network using transaction ID</li>
+              <li>
+                Upon verification, revenue is automatically distributed: 60% Patient, 25% Hospital,
+                15% Platform
+              </li>
+              <li>
+                HBAR transferred to Hedera accounts (0.0.xxxxx) - accounts created automatically if
+                needed
+              </li>
               <li>Researcher gains access to download anonymized data</li>
+            </ol>
+          </div>
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">
+              7. Revenue Distribution & Withdrawal
+            </h3>
+            <p className="mt-2 text-gray-700">After revenue distribution:</p>
+            <ol className="mt-2 list-decimal space-y-1 pl-6 text-gray-700">
+              <li>
+                Patients and hospitals receive HBAR in their Hedera wallets (automatically created)
+              </li>
+              <li>Balances displayed in USD (primary) with HBAR below</li>
+              <li>Users can withdraw to bank accounts or mobile money</li>
+              <li>Automatic withdrawals triggered when balance reaches threshold</li>
+              <li>Withdrawal notifications sent via email/SMS</li>
             </ol>
           </div>
         </div>
@@ -151,7 +190,9 @@ export default function DataFlowPage() {
           <ol className="mt-2 list-decimal space-y-2 pl-6 text-gray-700">
             <li>Researcher purchases dataset (pays in HBAR)</li>
             <li>RevenueSplitter contract receives payment</li>
-            <li><strong>Automatically distributes:</strong> 60% Patient, 25% Hospital, 15% Platform</li>
+            <li>
+              <strong>Automatically distributes:</strong> 60% Patient, 25% Hospital, 15% Platform
+            </li>
             <li>All transactions verifiable on HashScan</li>
           </ol>
           <p className="mt-4 text-sm font-semibold text-gray-700">
@@ -168,10 +209,21 @@ export default function DataFlowPage() {
             All Hedera transactions are publicly verifiable on HashScan:
           </p>
           <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
-            <li><strong>HCS Messages:</strong> View consent and data proof submissions</li>
-            <li><strong>Smart Contract Calls:</strong> Verify consent records and revenue distributions</li>
-            <li><strong>HBAR Transfers:</strong> Track revenue distribution to patient, hospital, and platform accounts</li>
-            <li><strong>Account History:</strong> View all transactions for any Hedera account (0.0.xxxxx)</li>
+            <li>
+              <strong>HCS Messages:</strong> View consent and data proof submissions
+            </li>
+            <li>
+              <strong>Smart Contract Calls:</strong> Verify consent records and revenue
+              distributions
+            </li>
+            <li>
+              <strong>HBAR Transfers:</strong> Track revenue distribution to patient, hospital, and
+              platform accounts
+            </li>
+            <li>
+              <strong>Account History:</strong> View all transactions for any Hedera account
+              (0.0.xxxxx)
+            </li>
           </ul>
         </div>
       </section>
