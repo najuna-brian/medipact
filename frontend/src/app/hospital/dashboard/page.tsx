@@ -47,12 +47,12 @@ export default function HospitalDashboardPage() {
     };
 
     window.addEventListener('hospital-verified', handleVerificationUpdate);
-    // Also poll for updates every 10 seconds (as fallback)
+    // Also poll for updates every 30 seconds (reduced from 10 seconds to avoid rate limiting)
     const pollInterval = setInterval(() => {
       if (hospitalId && apiKey) {
         refetchVerification();
       }
-    }, 10000);
+    }, 30000);
 
     return () => {
       window.removeEventListener('hospital-verified', handleVerificationUpdate);
@@ -111,7 +111,7 @@ export default function HospitalDashboardPage() {
           </div>
 
           {/* Verification Status Alert */}
-          {!statusLoading &&
+          {!statusLoading && (
             (!verificationStatus || verificationStatus.verificationStatus !== 'verified') && (
               <Card className="mb-6 border-yellow-200 bg-yellow-50">
                 <CardContent className="pt-6">
@@ -121,15 +121,17 @@ export default function HospitalDashboardPage() {
                       <div className="mb-2 flex items-center gap-2">
                         <p className="font-semibold text-yellow-900">Verification Required</p>
                         <Badge variant="warning">
-                          {!verificationStatus ||
-                          verificationStatus.verificationStatus === 'pending'
+                          {!verificationStatus
+                            ? 'Unknown'
+                            : verificationStatus.verificationStatus === 'pending'
                             ? 'Pending'
                             : 'Not Verified'}
                         </Badge>
                       </div>
                       <p className="mb-3 text-sm text-yellow-800">
-                        Your hospital account needs to be verified before you can register patients.
-                        Complete verification to access all features.
+                        {!verificationStatus
+                          ? 'Unable to fetch verification status. Please check your credentials or try again later.'
+                          : 'Your hospital account needs to be verified before you can register patients. Complete verification to access all features.'}
                       </p>
                       <Button
                         variant="outline"
@@ -142,7 +144,8 @@ export default function HospitalDashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            )}
+            )
+          )}
 
           {verificationStatus && verificationStatus.verificationStatus === 'verified' && (
             <Card className="mb-6 border-green-200 bg-green-50">

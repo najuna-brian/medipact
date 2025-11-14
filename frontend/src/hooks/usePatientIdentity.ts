@@ -173,10 +173,20 @@ export function useRegisterHospital() {
 
 // Get Hospital
 export function useHospital(hospitalId: string | null, apiKey: string | null) {
+  const hasValidCredentials = !!hospitalId && !!apiKey && hospitalId.trim().length > 0 && apiKey.trim().length > 0;
+  
   return useQuery({
     queryKey: ['hospital', hospitalId],
-    queryFn: () => getHospital(hospitalId!, apiKey!),
-    enabled: !!hospitalId && !!apiKey,
+    queryFn: () => {
+      if (!hospitalId || !apiKey) {
+        throw new Error('Hospital credentials required');
+      }
+      return getHospital(hospitalId.trim(), apiKey.trim());
+    },
+    enabled: hasValidCredentials,
+    refetchInterval: false, // Don't poll hospital data automatically
+    retry: 2, // Retry failed requests up to 2 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
   });
 }
 
@@ -249,18 +259,31 @@ export function useVerificationStatus(hospitalId: string | null, apiKey: string 
     enabled: hasValidCredentials,
     refetchInterval: (query) => {
       // Only poll if we have valid credentials and data exists
-      return hasValidCredentials && query.state.data ? 5000 : false;
+      // Increased to 30 seconds to avoid rate limiting (was 5 seconds)
+      return hasValidCredentials && query.state.data ? 30000 : false;
     },
     refetchOnWindowFocus: hasValidCredentials, // Only refetch on focus if authenticated
+    retry: 3, // Retry failed requests up to 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 }
 
 // Hospital Patients List
 export function useHospitalPatients(hospitalId: string | null, apiKey: string | null) {
+  const hasValidCredentials = !!hospitalId && !!apiKey && hospitalId.trim().length > 0 && apiKey.trim().length > 0;
+  
   return useQuery({
     queryKey: ['hospital', 'patients', hospitalId],
-    queryFn: () => getHospitalPatients(hospitalId!, apiKey!),
-    enabled: !!hospitalId && !!apiKey,
+    queryFn: () => {
+      if (!hospitalId || !apiKey) {
+        throw new Error('Hospital credentials required');
+      }
+      return getHospitalPatients(hospitalId.trim(), apiKey.trim());
+    },
+    enabled: hasValidCredentials,
+    refetchInterval: false, // Don't poll patients list automatically
+    retry: 2, // Retry failed requests up to 2 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Exponential backoff
   });
 }
 
