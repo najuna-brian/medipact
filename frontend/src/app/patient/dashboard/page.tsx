@@ -27,9 +27,7 @@ function PatientDashboardContent() {
       <div className="ml-0 md:ml-64">
         <div className="container mx-auto px-4 py-4 md:py-8">
           <div className="mb-6 md:mb-8">
-            <h1 className="mb-2 text-2xl font-bold md:text-3xl">
-              Patient Dashboard
-            </h1>
+            <h1 className="mb-2 text-2xl font-bold md:text-3xl">Patient Dashboard</h1>
             <p className="text-sm text-muted-foreground md:text-base">
               Welcome! Manage your health data and earnings
             </p>
