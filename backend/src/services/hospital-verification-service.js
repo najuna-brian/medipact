@@ -92,15 +92,34 @@ export async function getVerificationStatus(hospitalId, hospitalGet) {
   }
   
   let verificationDocuments = null;
+  let hasDocuments = false;
   if (hospital.verificationDocuments) {
     try {
       // Handle both string (JSON) and object formats
       verificationDocuments = typeof hospital.verificationDocuments === 'string' 
         ? JSON.parse(hospital.verificationDocuments) 
         : hospital.verificationDocuments;
+      
+      hasDocuments = verificationDocuments && 
+        Object.keys(verificationDocuments).length > 0 && 
+        (verificationDocuments.licenseNumber || 
+         verificationDocuments.registrationCertificate || 
+         verificationDocuments.additionalDocuments);
     } catch (e) {
       verificationDocuments = { raw: hospital.verificationDocuments };
+      hasDocuments = false;
     }
+  }
+  
+  let verificationMessage = null;
+  if (hospital.verificationStatus === 'verified') {
+    verificationMessage = null;
+  } else if (hospital.verificationStatus === 'rejected') {
+    verificationMessage = 'Your verification was rejected. Please submit new documents to verify your account.';
+  } else if (hasDocuments) {
+    verificationMessage = 'Your verification is pending review. Please wait for admin approval.';
+  } else {
+    verificationMessage = 'Please verify your account to access full features and better pricing.';
   }
   
   return {
@@ -108,7 +127,9 @@ export async function getVerificationStatus(hospitalId, hospitalGet) {
     verificationStatus: hospital.verificationStatus || 'pending',
     verifiedAt: hospital.verifiedAt,
     verifiedBy: hospital.verifiedBy,
-    verificationDocuments: verificationDocuments
+    verificationDocuments: verificationDocuments,
+    verificationPrompt: hospital.verificationStatus !== 'verified',
+    verificationMessage: verificationMessage
   };
 }
 

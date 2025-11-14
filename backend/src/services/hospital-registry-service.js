@@ -32,9 +32,7 @@ function generateHospitalID(hospitalName, country) {
  * @param {Object} hospitalInfo - Hospital information
  *   - name: string (required)
  *   - country: string (required)
- *   - contactEmail: string (required)
- *   - registrationNumber: string (required)
- *   - verificationDocuments: object (required)
+ *   - contactEmail: string (optional)
  *   - location: string (optional)
  *   - fhirEndpoint: string (optional)
  * @param {Function} hospitalExists - Function to check if hospital exists (hospitalId) => Promise<boolean>
@@ -46,22 +44,7 @@ export async function registerHospital(hospitalInfo, hospitalExists, hospitalCre
     throw new Error('Hospital name and country are required');
   }
   
-  if (!hospitalInfo.contactEmail) {
-    throw new Error('Contact email is required');
-  }
-  
-  if (!hospitalInfo.registrationNumber) {
-    throw new Error('Registration number is required');
-  }
-  
-  if (!hospitalInfo.verificationDocuments) {
-    throw new Error('Verification documents are required');
-  }
-  
-  // Validate verification documents structure
-  if (!hospitalInfo.verificationDocuments.licenseNumber || !hospitalInfo.verificationDocuments.registrationCertificate) {
-    throw new Error('License number and registration certificate are required in verification documents');
-  }
+  // Registration number and verification documents should only be submitted during verification, not registration
 
   const hospitalId = generateHospitalID(hospitalInfo.name, hospitalInfo.country);
   
@@ -89,11 +72,6 @@ export async function registerHospital(hospitalInfo, hospitalExists, hospitalCre
     // Account can be created later if needed
   }
   
-  // Store verification documents as JSON string
-  const verificationDocumentsJson = typeof hospitalInfo.verificationDocuments === 'string' 
-    ? hospitalInfo.verificationDocuments 
-    : JSON.stringify(hospitalInfo.verificationDocuments);
-  
   const hospitalRecord = {
     hospitalId,
     hederaAccountId: hederaAccount?.accountId || null,
@@ -103,11 +81,11 @@ export async function registerHospital(hospitalInfo, hospitalExists, hospitalCre
     country: hospitalInfo.country,
     location: hospitalInfo.location || null,
     fhirEndpoint: hospitalInfo.fhirEndpoint || null,
-    contactEmail: hospitalInfo.contactEmail,
-    registrationNumber: hospitalInfo.registrationNumber,
+    contactEmail: hospitalInfo.contactEmail || null,
+    registrationNumber: '', // Will be set during verification (empty string for NOT NULL constraint)
     apiKey: hospitalInfo.apiKey || null, // Include API key for hashing
-    verificationDocuments: verificationDocumentsJson,
-    verificationStatus: 'pending', // Set to pending on registration
+    verificationDocuments: '{}', // Empty JSON object for NOT NULL constraint, will be set during verification
+    verificationStatus: 'pending', // Start as pending (database constraint only allows 'pending', 'verified', 'rejected')
     registeredAt: new Date().toISOString(),
     status: 'active'
   };

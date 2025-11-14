@@ -113,7 +113,7 @@ async function authenticateHospital(req, res, next) {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { name, country, location, fhirEndpoint, contactEmail, registrationNumber, verificationDocuments } = req.body;
+    const { name, country, location, fhirEndpoint, contactEmail } = req.body;
     
     // Validate required fields
     if (!name || !country) {
@@ -122,36 +122,13 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    if (!contactEmail) {
-      return res.status(400).json({ 
-        error: 'Contact email is required' 
-      });
-    }
-    
-    if (!registrationNumber) {
-      return res.status(400).json({ 
-        error: 'Registration number is required' 
-      });
-    }
-    
-    if (!verificationDocuments) {
-      return res.status(400).json({ 
-        error: 'Verification documents are required' 
-      });
-    }
-    
-    // Validate verification documents structure
-    if (!verificationDocuments.licenseNumber || !verificationDocuments.registrationCertificate) {
-      return res.status(400).json({ 
-        error: 'License number and registration certificate are required in verification documents' 
-      });
-    }
+    // Registration number and verification documents should only be submitted during verification, not registration
     
     // Generate API key for hospital (in production, this should be more secure)
     const apiKey = crypto.randomBytes(32).toString('hex');
     
     const hospital = await registerHospital(
-      { name, country, location, fhirEndpoint, contactEmail, registrationNumber, apiKey, verificationDocuments },
+      { name, country, location, fhirEndpoint, contactEmail, apiKey },
       async (hospitalId) => {
         // Check if hospital exists
         return await hospitalExists(hospitalId);
@@ -169,7 +146,9 @@ router.post('/register', async (req, res) => {
       hospital: {
         ...hospital,
         apiKey, // Only returned on creation - hospital should save this securely
-        hederaAccountId: hospital.hederaAccountId // Include Hedera Account ID
+        hederaAccountId: hospital.hederaAccountId, // Include Hedera Account ID
+        verificationPrompt: true,
+        verificationMessage: 'Please verify your account to access full features and better pricing.'
       }
     });
   } catch (error) {
