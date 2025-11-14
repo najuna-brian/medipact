@@ -13,7 +13,9 @@ import { getHospital } from '../db/hospital-db.js';
 import { getAllDatasets, getDataset } from '../db/dataset-db.js';
 import { executeQuery, getFilterOptions } from '../services/query-service.js';
 import { getDatasetWithPreview, exportDataset } from '../services/dataset-service.js';
+import { queryLimiter, purchaseLimiter } from '../middleware/rate-limiter.js';
 import { Hbar } from '@hashgraph/sdk';
+import { verifyHBARPayment, createPaymentRequest } from '../services/payment-verification-service.js';
 
 const router = express.Router();
 
@@ -188,7 +190,7 @@ router.get('/datasets/:datasetId', async (req, res) => {
  *       400:
  *         description: Invalid filters
  */
-router.post('/query', async (req, res) => {
+router.post('/query', queryLimiter, async (req, res) => {
   try {
     const filters = req.body;
     const researcherId = req.body.researcherId || req.headers['x-researcher-id'];
@@ -381,9 +383,9 @@ router.post('/datasets/:datasetId/export', async (req, res) => {
  *   - hospitalId: string (optional - for specific hospital data)
  *   - amount: number (HBAR amount)
  */
-router.post('/purchase', async (req, res) => {
+router.post('/purchase', purchaseLimiter, async (req, res) => {
   try {
-    const { researcherId, datasetId, patientUPI, hospitalId, amount } = req.body;
+    const { researcherId, datasetId, patientUPI, hospitalId, amount, transactionId } = req.body;
     
     if (!researcherId || !amount) {
       return res.status(400).json({ 
@@ -408,8 +410,59 @@ router.post('/purchase', async (req, res) => {
       });
     }
     
-    // Convert amount to tinybars for distribution
-    const totalTinybars = amount; // Amount is already in tinybars
+    // Get platform account ID for payment verification
+    const platformAccountId = process.env.PLATFORM_HEDERA_ACCOUNT_ID || process.env.OPERATOR_ID;
+    if (!platformAccountId) {
+      console.warn('⚠️ PLATFORM_HEDERA_ACCOUNT_ID not set, payment verification may fail');
+    }
+    
+    // Convert amount (assuming it's in HBAR, convert to tinybars)
+    const amountHBAR = typeof amount === 'string' ? parseFloat(amount) : amount;
+    const totalTinybars = Math.floor(amountHBAR * 100000000); // Convert HBAR to tinybars
+    
+    // Verify payment if transaction ID is provided
+    if (transactionId) {
+      try {
+        const verification = await verifyHBARPayment(
+          transactionId,
+          researcherId,
+          amountHBAR,
+          platformAccountId
+        );
+        
+        if (!verification.verified) {
+          return res.status(402).json({
+            error: 'Payment verification failed',
+            message: verification.error || 'Could not verify payment transaction',
+            transactionId,
+            verification
+          });
+        }
+        
+        console.log(`✅ Payment verified: ${transactionId} for ${amountHBAR} HBAR`);
+      } catch (verificationError) {
+        console.error('Payment verification error:', verificationError);
+        return res.status(402).json({
+          error: 'Payment verification error',
+          message: verificationError.message || 'Failed to verify payment'
+        });
+      }
+    } else {
+      // If no transaction ID, create payment request for researcher
+      // This allows them to pay first, then complete the purchase
+      const paymentRequest = await createPaymentRequest(
+        researcherId,
+        amountHBAR,
+        platformAccountId
+      );
+      
+      return res.status(202).json({
+        message: 'Payment required',
+        paymentRequest: paymentRequest,
+        instructions: 'Please send the HBAR payment and include the transaction ID in your purchase request',
+        nextStep: 'Send payment and retry purchase with transactionId'
+      });
+    }
     
     // If datasetId is provided, use dataset-based distribution
     // This splits payment equally among all patients and uses each patient's specific hospital
@@ -457,25 +510,80 @@ router.post('/purchase', async (req, res) => {
       });
     }
     
-    // Verify dataset exists
+    // Verify dataset exists and get patient UPIs
+    let dataset = null;
+    let patientUPIs = [];
+    
     if (datasetId) {
-      const dataset = await getDataset(datasetId);
+      dataset = await getDataset(datasetId);
       if (!dataset) {
         return res.status(404).json({ error: 'Dataset not found' });
       }
+      
+      // Get all patient UPIs in this dataset
+      const { queryFHIRResources } = await import('../db/fhir-db.js');
+      const filters = {
+        country: dataset.country,
+        startDate: dataset.dateRangeStart,
+        endDate: dataset.dateRangeEnd
+      };
+      if (dataset.conditionCodes) {
+        const codes = typeof dataset.conditionCodes === 'string' 
+          ? JSON.parse(dataset.conditionCodes) 
+          : dataset.conditionCodes;
+        if (codes && codes.length > 0) {
+          filters.conditionCode = codes[0];
+        }
+      }
+      filters.limit = 10000; // Get all patients
+      const patients = await queryFHIRResources(filters);
+      patientUPIs = [...new Set(patients.map(p => p.upi))];
+    } else if (patientUPI) {
+      patientUPIs = [patientUPI];
     }
     
-    // TODO: Record purchase in database
-    // TODO: Grant researcher access to purchased dataset
+    // Record data access history for all patients
+    if (patientUPIs.length > 0) {
+      const { recordDataAccess } = await import('../db/patient-preferences-db.js');
+      const pricePerRecord = dataset 
+        ? (dataset.priceUSD / dataset.recordCount) 
+        : (amount * 0.16 / 1); // Convert HBAR to USD
+      
+      for (const upi of patientUPIs) {
+        try {
+          await recordDataAccess(
+            upi,
+            researcherId,
+            dataset ? dataset.recordCount : 1,
+            datasetId,
+            pricePerRecord
+          );
+        } catch (error) {
+          console.error(`Error recording access for patient ${upi}:`, error);
+          // Continue with other patients
+        }
+      }
+    }
+    
+    // Record purchase in database
+    const purchaseId = `PURCHASE-${Date.now()}`;
+    // TODO: Store purchase record in purchases table
+    
+    // Get USD amount using dynamic exchange rate
+    const { hbarToUSD } = await import('../services/pricing-service.js');
+    const amountUSD = await hbarToUSD(amountHBAR);
     
     res.json({
       message: 'Purchase successful',
-      purchaseId: `PURCHASE-${Date.now()}`,
+      purchaseId,
       datasetId,
-      amount: hbarAmount.toString(),
+      transactionId: transactionId || null,
+      amountHBAR: amountHBAR,
+      amountUSD: amountUSD,
       revenueDistribution: distributionResult,
       accessGranted: true,
-      downloadUrl: datasetId ? `/api/marketplace/datasets/${datasetId}/export` : null
+      downloadUrl: datasetId ? `/api/marketplace/datasets/${datasetId}/export` : null,
+      verified: true
     });
   } catch (error) {
     console.error('Error processing purchase:', error);

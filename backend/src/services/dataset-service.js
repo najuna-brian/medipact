@@ -7,6 +7,7 @@
 import { createDataset, getDataset, getAllDatasets, updateDataset } from '../db/dataset-db.js';
 import { queryFHIRResources, countFHIRPatients } from '../db/fhir-db.js';
 import { logDatasetToHCS } from '../hedera/hcs-client.js';
+import { determinePricingCategory, calculateDatasetPrice } from './pricing-service.js';
 import crypto from 'crypto';
 
 /**
@@ -38,13 +39,31 @@ export async function createDatasetFromQuery(datasetData, filters = {}) {
     conditionCodes = [filters.conditionCode];
   }
   
-  // Create dataset record
+  // Auto-calculate pricing based on category
+  const category = determinePricingCategory({
+    conditionCodes: conditionCodes,
+    observationTypes: datasetData.observationTypes,
+    isLongitudinal: datasetData.isLongitudinal,
+    containsSensitiveData: datasetData.containsSensitiveData
+  });
+  
+  const pricing = await calculateDatasetPrice(recordCount, category);
+  
+  // Create dataset record with auto-calculated pricing
   const dataset = await createDataset({
     ...datasetData,
     recordCount,
     dateRangeStart,
     dateRangeEnd,
     conditionCodes: conditionCodes ? JSON.stringify(conditionCodes) : null,
+    // Pricing fields
+    price: pricing.pricing.finalPriceHBAR, // Store in HBAR for transactions
+    priceUSD: pricing.pricing.finalPriceUSD, // Store USD for display
+    pricePerRecordHBAR: pricing.pricing.finalPricePerRecordHBAR,
+    pricePerRecordUSD: pricing.pricing.finalPricePerRecordUSD,
+    pricingCategoryId: pricing.categoryId,
+    pricingCategory: pricing.category,
+    volumeDiscount: pricing.pricing.volumeDiscount,
     status: 'active'
   });
   
@@ -104,6 +123,21 @@ export async function getDatasetWithPreview(datasetId, options = {}) {
     filters.limit = previewLimit;
     const results = await queryFHIRResources(filters);
     preview = results;
+  }
+  
+  // Ensure USD prices are always included for display
+  if (!dataset.priceUSD && dataset.price) {
+    const { hbarToUSD } = await import('./pricing-service.js');
+    dataset.priceUSD = hbarToUSD(dataset.price);
+  }
+  
+  if (!dataset.pricePerRecordUSD && dataset.pricePerRecordHBAR) {
+    const { hbarToUSD } = await import('./pricing-service.js');
+    dataset.pricePerRecordUSD = hbarToUSD(dataset.pricePerRecordHBAR);
+  } else if (!dataset.pricePerRecordUSD && dataset.price && dataset.recordCount > 0) {
+    const { hbarToUSD } = await import('./pricing-service.js');
+    dataset.pricePerRecordUSD = hbarToUSD(dataset.price / dataset.recordCount);
+    dataset.pricePerRecordHBAR = dataset.price / dataset.recordCount;
   }
   
   return {
