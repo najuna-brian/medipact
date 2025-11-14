@@ -236,12 +236,22 @@ export function useSubmitVerificationDocuments() {
 }
 
 export function useVerificationStatus(hospitalId: string | null, apiKey: string | null) {
+  const hasValidCredentials = !!hospitalId && !!apiKey && hospitalId.trim().length > 0 && apiKey.trim().length > 0;
+  
   return useQuery({
     queryKey: ['hospital-verification', hospitalId],
-    queryFn: () => getVerificationStatus(hospitalId!, apiKey!),
-    enabled: !!hospitalId && !!apiKey,
-    refetchInterval: 5000, // Refetch every 5 seconds to catch admin updates
-    refetchOnWindowFocus: true, // Refetch when window regains focus
+    queryFn: () => {
+      if (!hospitalId || !apiKey) {
+        throw new Error('Hospital credentials required');
+      }
+      return getVerificationStatus(hospitalId.trim(), apiKey.trim());
+    },
+    enabled: hasValidCredentials,
+    refetchInterval: (query) => {
+      // Only poll if we have valid credentials and data exists
+      return hasValidCredentials && query.state.data ? 5000 : false;
+    },
+    refetchOnWindowFocus: hasValidCredentials, // Only refetch on focus if authenticated
   });
 }
 
