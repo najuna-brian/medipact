@@ -101,12 +101,14 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
  *                   type: string
  *                   example: MediPact Backend API
  */
-// Health check
+// Health check - available immediately, even before database initialization
+let dbReady = false;
 app.get('/health', (req, res) => {
   res.json({ 
-    status: 'healthy',
+    status: dbReady ? 'healthy' : 'initializing',
     timestamp: new Date().toISOString(),
-    service: 'MediPact Backend API'
+    service: 'MediPact Backend API',
+    database: dbReady ? 'connected' : 'connecting'
   });
 });
 
@@ -164,16 +166,49 @@ app.use((err, req, res, next) => {
 // Start server
 if (import.meta.url === `file://${process.argv[1]}`) {
   // Validate environment variables first
+  // Note: In production, ensure all required env vars are set in Railway
   try {
     validateEnvironment();
   } catch (error) {
     logError('Environment validation failed', error);
-    process.exit(1);
+    // In production, exit on validation failure
+    // In development, log warning but continue (for local testing)
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    } else {
+      logWarn('Continuing despite validation errors (development mode)');
+    }
   }
   
-  // Initialize database
+  // Start server listening immediately (for health checks)
+  // Database initialization happens asynchronously
+  app.listen(PORT, '0.0.0.0', () => {
+    logInfo('MediPact Backend Server started', {
+      port: PORT,
+      nodeEnv: process.env.NODE_ENV,
+      apiDocs: `/api-docs`,
+      healthCheck: `/health`
+    });
+    
+    // Only log detailed info in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🚀 MediPact Backend Server running on port ${PORT}`);
+      console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+      console.log(`📋 Health check: http://localhost:${PORT}/health`);
+    }
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      logError(`Port ${PORT} is already in use`, err);
+      process.exit(1);
+    } else {
+      throw err;
+    }
+  });
+
+  // Initialize database asynchronously
   initDatabase()
     .then(async () => {
+      dbReady = true;
       logInfo('Server initialization started', {
         nodeEnv: process.env.NODE_ENV,
         port: PORT,
@@ -197,28 +232,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
         logInfo('Automatic withdrawal job started', { intervalMinutes: withdrawalInterval });
       }
       
-      app.listen(PORT, () => {
-        logInfo('MediPact Backend Server started', {
-          port: PORT,
-          nodeEnv: process.env.NODE_ENV,
-          apiDocs: `/api-docs`,
-          healthCheck: `/health`
-        });
-        
-        // Only log detailed info in development
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`🚀 MediPact Backend Server running on port ${PORT}`);
-          console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-          console.log(`📋 Health check: http://localhost:${PORT}/health`);
-        }
-      }).on('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
-          logError(`Port ${PORT} is already in use`, err);
-          process.exit(1);
-        } else {
-          throw err;
-        }
-      });
+      logInfo('Database initialization complete');
 
       // Graceful shutdown handlers
       const gracefulShutdown = async (signal) => {
@@ -244,8 +258,14 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       });
     })
     .catch((err) => {
-      logError('Failed to initialize server', err);
-      process.exit(1);
+      logError('Failed to initialize database/services', err);
+      // Server is already listening, so health check can still work
+      // In production, log error but don't exit (allows debugging via logs)
+      // In development, exit for faster feedback
+      if (process.env.NODE_ENV === 'development') {
+        process.exit(1);
+      }
+      // In production, continue running - health check will show 'initializing' status
     });
 }
 
