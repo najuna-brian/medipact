@@ -17,6 +17,14 @@ export default function HospitalEnrollmentPage() {
     location: '',
     fhirEndpoint: '',
     contactEmail: '',
+    // Payment method fields (optional)
+    paymentMethod: '' as 'bank' | 'mobile_money' | '',
+    bankName: '',
+    bankAccountNumber: '',
+    mobileMoneyProvider: '' as 'mtn' | 'airtel' | 'vodafone' | 'tigo' | '',
+    mobileMoneyNumber: '',
+    withdrawalThresholdUSD: 100.0,
+    autoWithdrawEnabled: true,
   });
   const [showApiKey, setShowApiKey] = useState(false);
   const [registeredHospital, setRegisteredHospital] = useState<any>(null);
@@ -33,10 +41,32 @@ export default function HospitalEnrollmentPage() {
     setSuccess(null);
 
     try {
-      const result = await registerMutation.mutateAsync(formData);
+      // Convert empty strings to undefined for optional fields
+      const registrationData = {
+        ...formData,
+        paymentMethod: formData.paymentMethod || undefined,
+        bankName: formData.bankName || undefined,
+        bankAccountNumber: formData.bankAccountNumber || undefined,
+        mobileMoneyProvider: formData.mobileMoneyProvider || undefined,
+        mobileMoneyNumber: formData.mobileMoneyNumber || undefined,
+      };
+      const result = await registerMutation.mutateAsync(registrationData);
       setRegisteredHospital(result.hospital);
       setSuccess('Hospital registered successfully!');
-      setFormData({ name: '', country: '', location: '', fhirEndpoint: '', contactEmail: '' });
+      setFormData({
+        name: '',
+        country: '',
+        location: '',
+        fhirEndpoint: '',
+        contactEmail: '',
+        paymentMethod: '',
+        bankName: '',
+        bankAccountNumber: '',
+        mobileMoneyProvider: '',
+        mobileMoneyNumber: '',
+        withdrawalThresholdUSD: 100.0,
+        autoWithdrawEnabled: true,
+      });
 
       // Auto-login after successful registration
       if (result.hospital?.hospitalId && result.hospital?.apiKey) {
@@ -182,6 +212,130 @@ export default function HospitalEnrollmentPage() {
                     placeholder="admin@hospital.com"
                     className="w-full rounded-lg border px-3 py-2"
                   />
+                </div>
+
+                {/* Payment Method Section */}
+                <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <h3 className="mb-4 text-sm font-semibold">Payment Method (Optional)</h3>
+                  <p className="mb-4 text-xs text-muted-foreground">
+                    Set up how you want to receive revenue payments. You can update this later in
+                    settings.
+                  </p>
+
+                  <div className="mb-4">
+                    <label className="mb-2 block text-sm font-medium">Payment Method</label>
+                    <select
+                      value={formData.paymentMethod}
+                      onChange={(e) =>
+                        setFormData({ ...formData, paymentMethod: e.target.value as any })
+                      }
+                      className="w-full rounded-lg border px-3 py-2"
+                    >
+                      <option value="">Select payment method (optional)</option>
+                      <option value="bank">Bank Account</option>
+                      <option value="mobile_money">Mobile Money</option>
+                    </select>
+                  </div>
+
+                  {formData.paymentMethod === 'bank' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="mb-2 block text-sm font-medium">Bank Name</label>
+                        <input
+                          type="text"
+                          value={formData.bankName}
+                          onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                          placeholder="Bank of Uganda"
+                          className="w-full rounded-lg border px-3 py-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-medium">Account Number</label>
+                        <input
+                          type="text"
+                          value={formData.bankAccountNumber}
+                          onChange={(e) =>
+                            setFormData({ ...formData, bankAccountNumber: e.target.value })
+                          }
+                          placeholder="1234567890"
+                          className="w-full rounded-lg border px-3 py-2"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {formData.paymentMethod === 'mobile_money' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="mb-2 block text-sm font-medium">Provider</label>
+                        <select
+                          value={formData.mobileMoneyProvider}
+                          onChange={(e) =>
+                            setFormData({ ...formData, mobileMoneyProvider: e.target.value as any })
+                          }
+                          className="w-full rounded-lg border px-3 py-2"
+                        >
+                          <option value="">Select provider</option>
+                          <option value="mtn">MTN</option>
+                          <option value="airtel">Airtel</option>
+                          <option value="vodafone">Vodafone</option>
+                          <option value="tigo">Tigo</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-medium">Phone Number</label>
+                        <input
+                          type="tel"
+                          value={formData.mobileMoneyNumber}
+                          onChange={(e) =>
+                            setFormData({ ...formData, mobileMoneyNumber: e.target.value })
+                          }
+                          placeholder="+256 700 123456"
+                          className="w-full rounded-lg border px-3 py-2"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {formData.paymentMethod && (
+                    <div className="mt-4 space-y-2">
+                      <div>
+                        <label className="mb-2 block text-sm font-medium">
+                          Auto-Withdraw Threshold (USD)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={formData.withdrawalThresholdUSD}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              withdrawalThresholdUSD: parseFloat(e.target.value) || 100.0,
+                            })
+                          }
+                          className="w-full rounded-lg border px-3 py-2"
+                        />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Funds will automatically transfer when balance reaches this amount
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="autoWithdraw"
+                          checked={formData.autoWithdrawEnabled}
+                          onChange={(e) =>
+                            setFormData({ ...formData, autoWithdrawEnabled: e.target.checked })
+                          }
+                          className="h-4 w-4"
+                        />
+                        <label htmlFor="autoWithdraw" className="text-sm">
+                          Enable automatic withdrawals
+                        </label>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <Button type="submit" className="w-full" disabled={registerMutation.isPending}>

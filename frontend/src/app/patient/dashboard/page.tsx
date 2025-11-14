@@ -59,8 +59,18 @@ function PatientDashboardContent() {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">0 HBAR</div>
-                    <p className="text-xs text-muted-foreground">$0.00 USD</p>
+                    {summaryLoading ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    ) : (
+                      <>
+                        <div className="text-2xl font-bold">
+                          ${summary?.balanceUSD?.toFixed(2) || '0.00'}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {summary?.balanceHBAR?.toFixed(4) || '0.0000'} HBAR
+                        </p>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
 

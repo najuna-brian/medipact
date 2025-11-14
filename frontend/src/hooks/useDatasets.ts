@@ -82,7 +82,10 @@ export function usePurchaseDataset() {
     onSuccess: (data) => {
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['datasets'] });
-      queryClient.invalidateQueries({ queryKey: ['dataset', data.datasetId] });
+      // Only invalidate specific dataset if it's a successful purchase (not a payment request)
+      if ('datasetId' in data) {
+        queryClient.invalidateQueries({ queryKey: ['dataset', data.datasetId] });
+      }
     },
   });
 }

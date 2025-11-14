@@ -97,7 +97,24 @@ export function useHospitalHistory(upi: string | null, hospitalId: string | null
 export function usePatientSummary(upi: string | null) {
   return useQuery({
     queryKey: ['patient-summary', upi],
-    queryFn: () => getPatientSummary(upi!),
+    queryFn: async () => {
+      const summary = await getPatientSummary(upi!);
+      // Fetch balance separately and merge
+      try {
+        const { getPatientBalance } = await import('@/lib/api/wallet');
+        const balance = await getPatientBalance(upi!);
+        return {
+          ...summary,
+          balanceUSD: balance.balanceUSD,
+          balanceHBAR: balance.balanceHBAR,
+          hederaAccountId: balance.hederaAccountId || summary.hederaAccountId
+        };
+      } catch (error) {
+        // If balance fetch fails, return summary without balance
+        console.warn('Failed to fetch balance:', error);
+        return summary;
+      }
+    },
     enabled: !!upi,
   });
 }

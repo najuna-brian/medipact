@@ -23,6 +23,14 @@ export interface PatientPII {
   phone?: string;
   nationalId?: string;
   email?: string;
+  // Payment method fields (optional)
+  paymentMethod?: 'bank' | 'mobile_money';
+  bankName?: string;
+  bankAccountNumber?: string;
+  mobileMoneyProvider?: 'mtn' | 'airtel' | 'vodafone' | 'tigo';
+  mobileMoneyNumber?: string;
+  withdrawalThresholdUSD?: number;
+  autoWithdrawEnabled?: boolean;
 }
 
 export interface Patient {
@@ -38,6 +46,14 @@ export interface HospitalInfo {
   location?: string;
   fhirEndpoint?: string;
   contactEmail?: string;
+  // Payment method fields (optional)
+  paymentMethod?: 'bank' | 'mobile_money';
+  bankName?: string;
+  bankAccountNumber?: string;
+  mobileMoneyProvider?: 'mtn' | 'airtel' | 'vodafone' | 'tigo';
+  mobileMoneyNumber?: string;
+  withdrawalThresholdUSD?: number;
+  autoWithdrawEnabled?: boolean;
 }
 
 export interface Hospital {
@@ -99,6 +115,8 @@ export interface PatientSummary {
     hospitalName: string;
     recordCount: number;
   }>;
+  balanceUSD?: number;
+  balanceHBAR?: number;
 }
 
 // Patient API Functions

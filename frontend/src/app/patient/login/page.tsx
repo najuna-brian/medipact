@@ -33,6 +33,14 @@ export default function PatientLoginPage() {
     phone: '',
     email: '',
     nationalId: '',
+    // Payment method fields (optional)
+    paymentMethod: '' as 'bank' | 'mobile_money' | '',
+    bankName: '',
+    bankAccountNumber: '',
+    mobileMoneyProvider: '' as 'mtn' | 'airtel' | 'vodafone' | 'tigo' | '',
+    mobileMoneyNumber: '',
+    withdrawalThresholdUSD: 10.0,
+    autoWithdrawEnabled: true,
   });
 
   const { login } = usePatientSession();
@@ -116,6 +124,14 @@ export default function PatientLoginPage() {
         phone: registerForm.phone || undefined,
         email: registerForm.email || undefined,
         nationalId: registerForm.nationalId || undefined,
+        // Payment method fields
+        paymentMethod: registerForm.paymentMethod || undefined,
+        bankName: registerForm.bankName || undefined,
+        bankAccountNumber: registerForm.bankAccountNumber || undefined,
+        mobileMoneyProvider: registerForm.mobileMoneyProvider || undefined,
+        mobileMoneyNumber: registerForm.mobileMoneyNumber || undefined,
+        withdrawalThresholdUSD: registerForm.withdrawalThresholdUSD,
+        autoWithdrawEnabled: registerForm.autoWithdrawEnabled,
       });
 
       setSuccess(

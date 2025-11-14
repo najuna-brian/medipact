@@ -2,7 +2,8 @@
 
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Key, Database, Bell } from 'lucide-react';
+import { Key, Database, Bell, CreditCard } from 'lucide-react';
+import Link from 'next/link';
 import { HospitalSidebar } from '@/components/Sidebar/HospitalSidebar';
 
 export default function HospitalSettingsPage() {
@@ -116,6 +117,25 @@ export default function HospitalSettingsPage() {
                     <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary"></div>
                   </label>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Payment Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure payment method and withdrawal preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/hospital/settings/payment">
+                  <Button variant="outline" className="w-full">
+                    Manage Payment Method
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 

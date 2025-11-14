@@ -20,6 +20,9 @@ import { useDataset, usePurchaseDataset, useExportDataset } from '@/hooks/useDat
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { downloadDataset } from '@/lib/api/marketplace';
+import HederaWalletConnect from '@/components/wallet/HederaWalletConnect';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { CheckCircle2 } from 'lucide-react';
 
 interface DatasetPageProps {
   params: Promise<{
@@ -32,6 +35,9 @@ export default function DatasetPage({ params }: DatasetPageProps) {
   const [datasetId, setDatasetId] = useState<string | null>(null);
   const [researcherId, setResearcherId] = useState<string | null>(null);
   const [exportFormat, setExportFormat] = useState<'fhir' | 'csv' | 'json'>('fhir');
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentRequest, setPaymentRequest] = useState<any>(null);
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
 
   useEffect(() => {
     params.then((p) => setDatasetId(p.id));
@@ -52,9 +58,37 @@ export default function DatasetPage({ params }: DatasetPageProps) {
         datasetId: dataset.id,
         amount: dataset.price,
       });
-      alert('Purchase successful! You can now download the dataset.');
+
+      // Check if it's a payment request (202 response)
+      if ('paymentRequest' in result) {
+        setPaymentRequest(result.paymentRequest);
+        setShowPayment(true);
+      } else {
+        // Purchase successful
+        setPurchaseSuccess(true);
+        setShowPayment(false);
+      }
     } catch (error: any) {
       alert(`Purchase failed: ${error.message}`);
+    }
+  };
+
+  const handlePaymentComplete = async (transactionId: string) => {
+    if (!researcherId || !dataset) return;
+
+    try {
+      const result = await purchaseMutation.mutateAsync({
+        researcherId,
+        datasetId: dataset.id,
+        amount: dataset.price,
+        transactionId,
+      });
+
+      setPurchaseSuccess(true);
+      setShowPayment(false);
+      setPaymentRequest(null);
+    } catch (error: any) {
+      alert(`Payment verification failed: ${error.message}`);
     }
   };
 
@@ -135,9 +169,22 @@ export default function DatasetPage({ params }: DatasetPageProps) {
             </div>
             <div className="text-right">
               <p className="text-3xl font-bold">
-                {dataset.price.toFixed(2)} {dataset.currency}
+                $
+                {dataset.priceUSD ? dataset.priceUSD.toFixed(2) : (dataset.price * 0.16).toFixed(2)}
               </p>
-              <p className="text-sm text-muted-foreground">One-time purchase</p>
+              <p className="text-sm text-muted-foreground">
+                {dataset.pricePerRecordUSD
+                  ? `$${dataset.pricePerRecordUSD.toFixed(4)} per record`
+                  : `One-time purchase`}
+                {dataset.volumeDiscount && dataset.volumeDiscount > 0 && (
+                  <span className="ml-2 text-green-600">
+                    ({Math.round(dataset.volumeDiscount * 100)}% volume discount)
+                  </span>
+                )}
+              </p>
+              {dataset.pricingCategory && (
+                <p className="text-xs text-muted-foreground">Category: {dataset.pricingCategory}</p>
+              )}
             </div>
           </div>
         </div>
@@ -266,23 +313,41 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                 <CardTitle>Purchase & Download</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button
-                  className="w-full"
-                  onClick={handlePurchase}
-                  disabled={purchaseMutation.isPending || !researcherId}
-                >
-                  {purchaseMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <DollarSign className="mr-2 h-4 w-4" />
-                      Purchase Dataset
-                    </>
-                  )}
-                </Button>
+                {purchaseSuccess ? (
+                  <Alert>
+                    <CheckCircle2 className="h-4 w-4" />
+                    <AlertDescription>
+                      Purchase successful! You can now download the dataset.
+                    </AlertDescription>
+                  </Alert>
+                ) : showPayment && paymentRequest ? (
+                  <HederaWalletConnect
+                    amountHBAR={paymentRequest.amountHBAR}
+                    amountUSD={dataset.priceUSD || dataset.price * 0.16}
+                    recipientAccountId={paymentRequest.recipientAccountId}
+                    memo={paymentRequest.memo}
+                    researcherAccountId={paymentRequest.researcherAccountId}
+                    onPaymentComplete={handlePaymentComplete}
+                  />
+                ) : (
+                  <Button
+                    className="w-full"
+                    onClick={handlePurchase}
+                    disabled={purchaseMutation.isPending || !researcherId}
+                  >
+                    {purchaseMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <DollarSign className="mr-2 h-4 w-4" />
+                        Purchase Dataset
+                      </>
+                    )}
+                  </Button>
+                )}
 
                 <div className="space-y-2 border-t pt-4">
                   <p className="mb-2 text-sm font-medium">Export Format</p>

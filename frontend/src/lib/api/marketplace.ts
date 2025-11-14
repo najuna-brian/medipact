@@ -20,7 +20,13 @@ export interface Dataset {
   dateRangeStart?: string;
   dateRangeEnd?: string;
   conditionCodes?: string[];
-  price: number;
+  price: number; // Price in HBAR (for transactions)
+  priceUSD?: number; // Price in USD (for display)
+  pricePerRecordHBAR?: number;
+  pricePerRecordUSD?: number;
+  pricingCategoryId?: string;
+  pricingCategory?: string;
+  volumeDiscount?: number;
   currency: string;
   format: string;
   consentType: string;
@@ -71,6 +77,7 @@ export interface PurchaseRequest {
   amount: number;
   patientUPI?: string;
   hospitalId?: string;
+  transactionId?: string; // Optional: for payment verification
 }
 
 export interface PurchaseResponse {
@@ -78,9 +85,22 @@ export interface PurchaseResponse {
   purchaseId: string;
   datasetId: string;
   amount: string;
+  amountHBAR?: number;
+  amountUSD?: number;
+  transactionId?: string;
   revenueDistribution: any;
   accessGranted: boolean;
   downloadUrl?: string;
+  verified?: boolean;
+}
+
+export interface PaymentRequest {
+  paymentRequestId: string;
+  amountHBAR: number;
+  recipientAccountId: string;
+  memo: string;
+  researcherAccountId?: string;
+  instructions: string;
 }
 
 /**
@@ -153,8 +173,9 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 
 /**
  * Purchase dataset
+ * Returns either a PurchaseResponse (if transactionId provided) or PaymentRequest (if payment needed)
  */
-export async function purchaseDataset(request: PurchaseRequest): Promise<PurchaseResponse> {
+export async function purchaseDataset(request: PurchaseRequest): Promise<PurchaseResponse | { paymentRequest: PaymentRequest; message: string; instructions: string; nextStep: string }> {
   const response = await fetch(`${API_URL}/api/marketplace/purchase`, {
     method: 'POST',
     headers: {
@@ -168,7 +189,14 @@ export async function purchaseDataset(request: PurchaseRequest): Promise<Purchas
     throw new Error(error.error || `Purchase failed: ${response.statusText}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  
+  // If status is 202, it's a payment request
+  if (response.status === 202) {
+    return data;
+  }
+
+  return data as PurchaseResponse;
 }
 
 /**
