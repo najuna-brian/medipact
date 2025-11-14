@@ -31,7 +31,6 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Marketplace', href: '/marketplace', icon: ShoppingBag },
-  { name: 'Documentation', href: '/docs', icon: BookOpen },
   { name: 'For Patients', href: '/for-patients', icon: Users },
   { name: 'For Hospitals', href: '/for-hospitals', icon: Building2 },
   { name: 'For Researchers', href: '/for-researchers', icon: Database },
@@ -149,6 +148,16 @@ export default function Navigation() {
 
           {/* User Context */}
           <div className="flex items-center gap-4">
+            {/* Documentation link - always visible */}
+            <Link
+              href="/docs"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              title="Documentation"
+            >
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden md:inline">Docs</span>
+            </Link>
+
             {/* Context-aware login/signup icon */}
             {!isAnyAuthenticated && (
               <Link
