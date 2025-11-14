@@ -45,9 +45,22 @@ export default function ResearcherDashboardPage() {
       <div className="ml-0 md:ml-64">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-6 md:mb-8">
-            <h1 className="mb-2 text-2xl font-bold md:text-3xl">Researcher Dashboard</h1>
+            <h1 className="mb-2 text-2xl font-bold md:text-3xl">
+              {researcher.data?.organizationName ? (
+                <>
+                  {researcher.data.organizationName}
+                  <span className="ml-2 text-lg font-normal text-muted-foreground">
+                    Dashboard
+                  </span>
+                </>
+              ) : (
+                'Researcher Dashboard'
+              )}
+            </h1>
             <p className="text-sm text-muted-foreground md:text-base">
-              Browse datasets and manage research projects
+              {researcher.data?.contactName
+                ? `Welcome, ${researcher.data.contactName}. Browse datasets and manage research projects.`
+                : 'Browse datasets and manage research projects'}
             </p>
           </div>
 

@@ -82,13 +82,24 @@ export default function HospitalDashboardPage() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="mb-2 text-2xl font-bold md:text-3xl">Hospital Dashboard</h1>
+                <h1 className="mb-2 text-2xl font-bold md:text-3xl">
+                  {hospitalData?.name ? (
+                    <>
+                      {hospitalData.name}
+                      <span className="ml-2 text-lg font-normal text-muted-foreground">
+                        Dashboard
+                      </span>
+                    </>
+                  ) : (
+                    'Hospital Dashboard'
+                  )}
+                </h1>
                 <p className="text-muted-foreground">Manage patient data and revenue</p>
               </div>
               {hospitalId && (
                 <div className="text-right">
                   <p className="text-sm text-muted-foreground">Hospital ID</p>
-                  <p className="font-mono font-semibold">{hospitalId}</p>
+                  <p className="font-mono text-xs font-semibold">{hospitalId}</p>
                 </div>
               )}
             </div>
