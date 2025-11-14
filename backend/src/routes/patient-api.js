@@ -14,6 +14,7 @@ import { getLinkagesByUPI, getLinkage, createLinkage, removeLinkage } from '../d
 import { lookupPatientUPI, registerPatientWithContact } from '../services/patient-lookup-service.js';
 import { findUPIByEmail, findUPIByPhone, findUPIByNationalId, upsertPatientContact } from '../db/patient-contacts-db.js';
 import { processBulkRegistration } from '../services/bulk-patient-service.js';
+import { requirePatientAccess, restrictPlatformAccess } from '../middleware/access-control.js';
 
 const router = express.Router();
 
@@ -128,7 +129,21 @@ async function authenticateHospital(req, res, next) {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { name, dateOfBirth, phone, nationalId, email } = req.body;
+    const { 
+      name, 
+      dateOfBirth, 
+      phone, 
+      nationalId, 
+      email,
+      // Payment method fields (optional)
+      paymentMethod,
+      bankAccountNumber,
+      bankName,
+      mobileMoneyProvider,
+      mobileMoneyNumber,
+      withdrawalThresholdUSD,
+      autoWithdrawEnabled
+    } = req.body;
     
     if (!name || !dateOfBirth) {
       return res.status(400).json({ 
@@ -140,7 +155,18 @@ router.post('/register', async (req, res) => {
       { name, dateOfBirth, phone, nationalId, email },
       generateUPI,
       async (upi, patientData) => {
-        await createPatient(upi, patientData);
+        // Add payment method fields to patient data
+        const patientWithPayment = {
+          ...patientData,
+          paymentMethod: paymentMethod || null,
+          bankAccountNumber: bankAccountNumber || null,
+          bankName: bankName || null,
+          mobileMoneyProvider: mobileMoneyProvider || null,
+          mobileMoneyNumber: mobileMoneyNumber || null,
+          withdrawalThresholdUSD: withdrawalThresholdUSD || 10.00,
+          autoWithdrawEnabled: autoWithdrawEnabled !== false // Default true
+        };
+        await createPatient(upi, patientWithPayment);
       },
       async (upi, contactInfo) => {
         await upsertPatientContact(upi, contactInfo);
@@ -222,8 +248,9 @@ router.post('/match', async (req, res) => {
 /**
  * GET /api/patient/:upi/history
  * Get complete medical history across all hospitals
+ * Only patient can decrypt their own data - platform sees encrypted data
  */
-router.get('/:upi/history', authenticatePatient, async (req, res) => {
+router.get('/:upi/history', authenticatePatient, requirePatientAccess, restrictPlatformAccess, async (req, res) => {
   try {
     const { upi } = req.params;
     
@@ -250,8 +277,9 @@ router.get('/:upi/history', authenticatePatient, async (req, res) => {
 /**
  * GET /api/patient/:upi/history/:hospitalId
  * Get medical history from specific hospital
+ * Only patient can decrypt their own data - platform sees encrypted data
  */
-router.get('/:upi/history/:hospitalId', authenticatePatient, async (req, res) => {
+router.get('/:upi/history/:hospitalId', authenticatePatient, requirePatientAccess, restrictPlatformAccess, async (req, res) => {
   try {
     const { upi, hospitalId } = req.params;
     

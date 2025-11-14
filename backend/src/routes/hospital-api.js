@@ -113,7 +113,21 @@ async function authenticateHospital(req, res, next) {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { name, country, location, fhirEndpoint, contactEmail } = req.body;
+    const { 
+      name, 
+      country, 
+      location, 
+      fhirEndpoint, 
+      contactEmail,
+      // Payment method fields (optional)
+      paymentMethod,
+      bankAccountNumber,
+      bankName,
+      mobileMoneyProvider,
+      mobileMoneyNumber,
+      withdrawalThresholdUSD,
+      autoWithdrawEnabled
+    } = req.body;
     
     // Validate required fields
     if (!name || !country) {
@@ -134,8 +148,19 @@ router.post('/register', async (req, res) => {
         return await hospitalExists(hospitalId);
       },
       async (hospitalRecord) => {
+        // Add payment method fields to hospital record
+        const hospitalWithPayment = {
+          ...hospitalRecord,
+          paymentMethod: paymentMethod || null,
+          bankAccountNumber: bankAccountNumber || null,
+          bankName: bankName || null,
+          mobileMoneyProvider: mobileMoneyProvider || null,
+          mobileMoneyNumber: mobileMoneyNumber || null,
+          withdrawalThresholdUSD: withdrawalThresholdUSD || 100.00,
+          autoWithdrawEnabled: autoWithdrawEnabled !== false // Default true
+        };
         // Store hospital in database
-        return await createHospital(hospitalRecord);
+        return await createHospital(hospitalWithPayment);
       }
     );
     
