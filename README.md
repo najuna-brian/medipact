@@ -453,10 +453,12 @@ cd contracts && npm run deploy:testnet
 - [Hedera Portal](https://portal.hedera.com/) - Get testnet account
 - [HashScan Explorer](https://hashscan.io/) - View transactions
 - [FHIR R4 Specification](https://www.hl7.org/fhir/) - Healthcare data standard
+
+### Healthcare marketplace references
 - [A Comprehensive Guide to Healthcare Data Security](https://www.metomic.io/resource-centre/a-comprehensive-guide-to-healthcare-data-security#:~:text=By%20prioritising%20data%20security%2C%20healthcare,availability%20of%20sensitive%20healthcare%20information.) - How to meet the healthcare data security standards
 - [Why is Healthcare Data so Valuable?](https://blog.tbconsulting.com/why-healthcare-data-is-so-valuable-on-the-black-market#:~:text=Sensitive%20information%20from%20medical%20data,cybercriminals%20at%20an%20alarming%20rate.) -
 - [Establishing a Health Data Marketplace: A Framework for Success](https://www.researchgate.net/publication/376532396_Establishing_a_Health_Data_Marketplace_A_Framework_for_Success#:~:text=Abstract,outcomes%2C%20research%2C%20and%20innovation.)
-
+- [Healthcare Data Marketplaces: All You Need To Know 2025](https://www.monda.ai/blog/healthcare-data-marketplaces#:~:text=%E2%80%8D-,1.,Ensure%20Data%20Privacy%20and%20Compliance)
 
 ---
 
