@@ -48,7 +48,11 @@ function AdminResearchersPageContent() {
   );
 
   const { data, isLoading, error } = useAdminResearchers();
-  const { data: researcherDetail } = useAdminResearcherDetail(selectedResearcherId);
+  const {
+    data: researcherDetail,
+    isLoading: isLoadingDetail,
+    error: detailError,
+  } = useAdminResearcherDetail(selectedResearcherId);
   const approveMutation = useApproveResearcher();
   const rejectMutation = useRejectResearcher();
 
@@ -359,30 +363,31 @@ function AdminResearchersPageContent() {
                           <Eye className="mr-2 h-4 w-4" />
                           View
                         </Button>
-                        {researcher.verificationStatus === 'pending' && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openApproveDialog(researcher.researcherId)}
-                              disabled={approveMutation.isPending}
-                              className="border-green-200 text-green-700 hover:bg-green-50"
-                            >
-                              <CheckCircle2 className="mr-2 h-4 w-4" />
-                              Approve
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openRejectDialog(researcher.researcherId)}
-                              disabled={rejectMutation.isPending}
-                              className="border-red-200 text-red-700 hover:bg-red-50"
-                            >
-                              <XCircle className="mr-2 h-4 w-4" />
-                              Reject
-                            </Button>
-                          </>
-                        )}
+                        {researcher.verificationStatus === 'pending' &&
+                          researcher.verificationDocuments && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openApproveDialog(researcher.researcherId)}
+                                disabled={approveMutation.isPending}
+                                className="border-green-200 text-green-700 hover:bg-green-50"
+                              >
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                Approve
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openRejectDialog(researcher.researcherId)}
+                                disabled={rejectMutation.isPending}
+                                className="border-red-200 text-red-700 hover:bg-red-50"
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Reject
+                              </Button>
+                            </>
+                          )}
                       </div>
                     </div>
                   </CardHeader>
@@ -392,14 +397,28 @@ function AdminResearchersPageContent() {
           </div>
 
           {/* Researcher Detail Modal/Dialog */}
-          {selectedResearcherId && researcherDetail && (
+          {selectedResearcherId && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
               <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle>{researcherDetail.organizationName}</CardTitle>
-                      <CardDescription>{researcherDetail.researcherId}</CardDescription>
+                      {isLoadingDetail ? (
+                        <>
+                          <CardTitle>Loading...</CardTitle>
+                          <CardDescription>Fetching researcher details</CardDescription>
+                        </>
+                      ) : researcherDetail ? (
+                        <>
+                          <CardTitle>{researcherDetail.organizationName}</CardTitle>
+                          <CardDescription>{researcherDetail.researcherId}</CardDescription>
+                        </>
+                      ) : (
+                        <>
+                          <CardTitle>Error</CardTitle>
+                          <CardDescription>Failed to load researcher details</CardDescription>
+                        </>
+                      )}
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => setSelectedResearcherId(null)}>
                       <XCircle className="h-4 w-4" />
@@ -407,96 +426,118 @@ function AdminResearchersPageContent() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <h3 className="mb-2 font-semibold">Researcher Information</h3>
-                    <div className="space-y-1 text-sm">
-                      <p>
-                        <span className="font-medium">Email:</span> {researcherDetail.email}
-                      </p>
-                      {researcherDetail.contactName && (
-                        <p>
-                          <span className="font-medium">Contact Name:</span>{' '}
-                          {researcherDetail.contactName}
-                        </p>
-                      )}
-                      {researcherDetail.country && (
-                        <p>
-                          <span className="font-medium">Country:</span> {researcherDetail.country}
-                        </p>
-                      )}
-                      {researcherDetail.hederaAccountId && (
-                        <p>
-                          <span className="font-medium">Hedera Account:</span>{' '}
-                          {researcherDetail.hederaAccountId}
-                        </p>
-                      )}
-                      <p>
-                        <span className="font-medium">Access Level:</span>{' '}
-                        {researcherDetail.accessLevel || 'basic'}
-                      </p>
-                      <p>
-                        <span className="font-medium">Registered:</span>{' '}
-                        {new Date(researcherDetail.registeredAt).toLocaleDateString()}
-                      </p>
+                  {isLoadingDetail ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                  </div>
+                  ) : detailError ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
+                        <div>
+                          <p className="font-semibold text-red-800">Error Loading Details</p>
+                          <p className="text-sm text-red-700">
+                            Failed to load researcher details. Please try again.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : researcherDetail ? (
+                    <>
+                      <div>
+                        <h3 className="mb-2 font-semibold">Researcher Information</h3>
+                        <div className="space-y-1 text-sm">
+                          <p>
+                            <span className="font-medium">Email:</span> {researcherDetail.email}
+                          </p>
+                          {researcherDetail.contactName && (
+                            <p>
+                              <span className="font-medium">Contact Name:</span>{' '}
+                              {researcherDetail.contactName}
+                            </p>
+                          )}
+                          {researcherDetail.country && (
+                            <p>
+                              <span className="font-medium">Country:</span>{' '}
+                              {researcherDetail.country}
+                            </p>
+                          )}
+                          {researcherDetail.hederaAccountId && (
+                            <p>
+                              <span className="font-medium">Hedera Account:</span>{' '}
+                              {researcherDetail.hederaAccountId}
+                            </p>
+                          )}
+                          <p>
+                            <span className="font-medium">Access Level:</span>{' '}
+                            {researcherDetail.accessLevel || 'basic'}
+                          </p>
+                          <p>
+                            <span className="font-medium">Registered:</span>{' '}
+                            {new Date(researcherDetail.registeredAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
 
-                  {researcherDetail.verificationDocuments ? (
-                    <div>
-                      <h3 className="mb-2 font-semibold">Verification Documents</h3>
-                      <div className="space-y-2 text-sm">
-                        {typeof researcherDetail.verificationDocuments === 'object' ? (
-                          Object.entries(researcherDetail.verificationDocuments).map(
-                            ([key, value]) => (
-                              <div key={key}>
-                                <span className="font-medium">{key}:</span>
-                                {renderDocument(String(value))}
+                      {researcherDetail.verificationDocuments ? (
+                        <div>
+                          <h3 className="mb-2 font-semibold">Verification Documents</h3>
+                          <div className="space-y-2 text-sm">
+                            {typeof researcherDetail.verificationDocuments === 'object' ? (
+                              Object.entries(researcherDetail.verificationDocuments).map(
+                                ([key, value]) => (
+                                  <div key={key}>
+                                    <span className="font-medium">{key}:</span>
+                                    {renderDocument(String(value))}
+                                  </div>
+                                )
+                              )
+                            ) : (
+                              <div>
+                                {renderDocument(String(researcherDetail.verificationDocuments))}
                               </div>
-                            )
-                          )
-                        ) : (
-                          <div>
-                            {renderDocument(String(researcherDetail.verificationDocuments))}
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <h3 className="mb-2 font-semibold">Verification Documents</h3>
-                      <div className="text-sm text-muted-foreground">
-                        No verification documents submitted yet.
-                      </div>
-                    </div>
-                  )}
+                        </div>
+                      ) : (
+                        <div>
+                          <h3 className="mb-2 font-semibold">Verification Documents</h3>
+                          <div className="text-sm text-muted-foreground">
+                            No verification documents submitted yet.
+                          </div>
+                        </div>
+                      )}
 
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setSelectedResearcherId(null)}>
-                      Close
-                    </Button>
-                    {researcherDetail.verificationStatus === 'pending' && (
-                      <>
-                        <Button
-                          variant="outline"
-                          onClick={() => openApproveDialog(researcherDetail.researcherId)}
-                          disabled={approveMutation.isPending}
-                          className="border-green-200 text-green-700 hover:bg-green-50"
-                        >
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                          Approve
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setSelectedResearcherId(null)}>
+                          Close
                         </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => openRejectDialog(researcherDetail.researcherId)}
-                          disabled={rejectMutation.isPending}
-                          className="border-red-200 text-red-700 hover:bg-red-50"
-                        >
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Reject
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                        {researcherDetail.verificationStatus === 'pending' &&
+                          researcherDetail.verificationDocuments && (
+                            <>
+                              <Button
+                                variant="outline"
+                                onClick={() => openApproveDialog(researcherDetail.researcherId)}
+                                disabled={approveMutation.isPending}
+                                className="border-green-200 text-green-700 hover:bg-green-50"
+                              >
+                                <CheckCircle2 className="mr-2 h-4 w-4" />
+                                Approve
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => openRejectDialog(researcherDetail.researcherId)}
+                                disabled={rejectMutation.isPending}
+                                className="border-red-200 text-red-700 hover:bg-red-50"
+                              >
+                                <XCircle className="mr-2 h-4 w-4" />
+                                Reject
+                              </Button>
+                            </>
+                          )}
+                      </div>
+                    </>
+                  ) : null}
                 </CardContent>
               </Card>
             </div>
