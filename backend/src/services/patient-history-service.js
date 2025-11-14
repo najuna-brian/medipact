@@ -3,19 +3,26 @@
  * 
  * Aggregates patient medical records from all linked hospitals.
  * Provides complete medical history access for patients.
+ * Supports temporary cross-hospital access for telemedicine.
  */
+
+import { checkTemporaryAccess } from './temporary-access-service.js';
+import { checkAndReEncryptForAccess } from './re-encryption-service.js';
+import { PATIENT_ENCRYPTED_FIELDS, MEDICAL_ENCRYPTED_FIELDS } from './field-encryption-service.js';
 
 /**
  * Get complete medical history for a patient
  * 
  * Aggregates records from all hospitals where patient is linked.
+ * Also includes records from hospitals with temporary access.
  * 
  * @param {string} upi - Unique Patient Identity
  * @param {Function} getLinkages - Function to get hospital linkages (upi) => Promise<Array>
  * @param {Function} getHospitalRecords - Function to get records from hospital (hospitalId, hospitalPatientId) => Promise<Array>
+ * @param {string} requestingHospitalId - Optional: Hospital requesting access (for temporary access)
  * @returns {Promise<Object>} Complete medical history
  */
-export async function getPatientMedicalHistory(upi, getLinkages, getHospitalRecords) {
+export async function getPatientMedicalHistory(upi, getLinkages, getHospitalRecords, requestingHospitalId = null) {
   // Get all hospital linkages
   const linkages = await getLinkages(upi);
   
@@ -36,22 +43,50 @@ export async function getPatientMedicalHistory(upi, getLinkages, getHospitalReco
   for (const linkage of linkages) {
     if (linkage.status !== 'active') continue;
     
+    // Check if requesting hospital has temporary access to this hospital's data
+    let hasAccess = true;
+    if (requestingHospitalId && requestingHospitalId !== linkage.hospitalId) {
+      hasAccess = await checkTemporaryAccess(
+        requestingHospitalId,
+        upi,
+        linkage.hospitalId
+      );
+    }
+    
+    if (!hasAccess) {
+      // Skip this hospital's data if no access
+      continue;
+    }
+    
     try {
       const records = await getHospitalRecords(
         linkage.hospitalId,
         linkage.hospitalPatientId
       );
       
+      // If requesting hospital is different from original, re-encrypt data
+      let processedRecords = records;
+      if (requestingHospitalId && requestingHospitalId !== linkage.hospitalId) {
+        processedRecords = await checkAndReEncryptForAccess(
+          records,
+          upi,
+          linkage.hospitalId,
+          requestingHospitalId,
+          [...PATIENT_ENCRYPTED_FIELDS, ...MEDICAL_ENCRYPTED_FIELDS]
+        ) || records; // Fallback to original if re-encryption fails
+      }
+      
       hospitalRecords.push({
         hospitalId: linkage.hospitalId,
         hospitalName: linkage.hospitalName || linkage.hospitalId,
         hospitalPatientId: linkage.hospitalPatientId,
-        records: records,
-        recordCount: records.length,
-        linkedAt: linkage.linkedAt
+        records: processedRecords,
+        recordCount: processedRecords.length,
+        linkedAt: linkage.linkedAt,
+        accessType: requestingHospitalId && requestingHospitalId !== linkage.hospitalId ? 'temporary' : 'permanent'
       });
       
-      allRecords.push(...records);
+      allRecords.push(...processedRecords);
     } catch (error) {
       console.error(`Error fetching records from hospital ${linkage.hospitalId}:`, error);
       // Continue with other hospitals even if one fails

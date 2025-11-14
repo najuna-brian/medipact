@@ -13,9 +13,14 @@ import { Hbar } from '@hashgraph/sdk';
 /**
  * Distribute revenue from data sale using patient UPI and hospital ID
  * 
+ * IMPORTANT: The hospitalId parameter must be the ORIGINAL hospital that collected the patient's data.
+ * This ensures that only the hospital that originally collected the data receives revenue from it.
+ * 
+ * Revenue Split: 60% patient, 25% hospital (original collector), 15% platform
+ * 
  * @param {Object} params
  *   - patientUPI: string - Patient UPI
- *   - hospitalId: string - Hospital ID
+ *   - hospitalId: string - Hospital ID (MUST be the original hospital that collected this patient's data)
  *   - totalAmount: number - Total revenue in tinybars
  *   - revenueSplitterAddress: string (optional) - RevenueSplitter contract address
  * @returns {Promise<Object>} Distribution result
@@ -140,8 +145,21 @@ export async function distributeBulkRevenue(sales, revenueSplitterAddress = null
 
 /**
  * Distribute revenue for a dataset purchase
- * Splits total payment equally among all patients, then distributes 60/25/15 per patient
- * Each patient's 25% goes to the hospital that provided their data
+ * 
+ * IMPORTANT: Revenue Distribution Model
+ * - Total payment is split equally among all patients in the dataset
+ * - For each patient, revenue is split: 60% patient, 25% hospital, 15% platform
+ * - Each patient's 25% hospital share goes to the ORIGINAL hospital that collected that patient's data
+ * - This ensures the hospital that originally collected the data is the sole beneficiary
+ * - If a patient's data was collected by Hospital A, only Hospital A receives revenue from that patient's data
+ * - Multiple hospitals can be in a dataset, but each receives revenue only for their own patients
+ * 
+ * Example:
+ * - Dataset has 100 patients: 60 from Hospital A, 40 from Hospital B
+ * - Total payment: 1000 HBAR
+ * - Amount per patient: 10 HBAR
+ * - Hospital A receives: 60 patients × 10 HBAR × 25% = 150 HBAR
+ * - Hospital B receives: 40 patients × 10 HBAR × 25% = 100 HBAR
  * 
  * @param {Object} params
  *   - datasetId: string - Dataset ID
@@ -184,6 +202,7 @@ export async function distributeDatasetRevenue({
     }
     
     // Get all patients in the dataset with their hospital IDs
+    // Each patient is linked to their ORIGINAL hospital that collected their data
     const patients = await getPatientsWithHospitals(queryFilters);
     
     if (patients.length === 0) {
@@ -204,6 +223,7 @@ export async function distributeDatasetRevenue({
     }
     
     // Prepare sales array with equal amounts per patient
+    // CRITICAL: Each patient's revenue goes to their ORIGINAL hospital (the one that collected their data)
     const sales = [];
     for (let i = 0; i < patients.length; i++) {
       const patient = patients[i];
@@ -212,9 +232,11 @@ export async function distributeDatasetRevenue({
         ? amountPerPatient + remainder 
         : amountPerPatient;
       
+      // Each patient's hospitalId is the ORIGINAL hospital that collected their data
+      // This ensures the collecting hospital is the sole beneficiary
       sales.push({
         patientUPI: patient.upi,
-        hospitalId: patient.hospitalId, // Each patient's specific hospital
+        hospitalId: patient.hospitalId, // Original hospital that collected this patient's data
         amount: patientAmount
       });
     }

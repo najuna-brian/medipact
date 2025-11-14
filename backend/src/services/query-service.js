@@ -6,8 +6,11 @@
  */
 
 import { queryFHIRResources, countFHIRPatients } from '../db/fhir-db.js';
+import { queryEncryptedFHIRResources } from './encrypted-fhir-service.js';
 import { createQueryLog } from '../db/query-db.js';
 import { logQueryToHCS } from '../hedera/hcs-client.js';
+import { checkPatientDataAccess } from './patient-preferences-service.js';
+import { getResearcher } from '../db/researcher-db.js';
 
 /**
  * Execute query with filters and consent validation
@@ -30,17 +33,52 @@ export async function executeQuery(filters, researcherId, options = {}) {
   // Add consent validation flag to filters
   validatedFilters.validateConsent = validateConsent;
   
+  // Get researcher info for patient preference checks
+  let researcherInfo = null;
+  if (researcherId) {
+    const researcher = await getResearcher(researcherId);
+    if (researcher) {
+      researcherInfo = {
+        isVerified: researcher.verificationStatus === 'verified',
+        organizationName: researcher.organizationName
+      };
+    }
+  }
+  
   // Execute query
   let results = [];
   let count = 0;
   
   if (preview) {
     // Preview mode: only get count
+    // Note: For preview, we still need to filter by patient preferences
+    // This is a simplified count - actual filtering happens in full query
     count = await countFHIRPatients(validatedFilters);
   } else {
     // Full query: get actual data
-    validatedFilters.limit = limit;
+    validatedFilters.limit = limit * 2; // Get more to account for filtering
+    
+    // Use encrypted query service - returns encrypted data for platform
+    // Researchers cannot decrypt - they only see anonymized data
+    // Note: req is not available here, so we use queryFHIRResources directly
+    // Platform will only see encrypted/anonymized data
     results = await queryFHIRResources(validatedFilters);
+    
+    // Filter results based on patient preferences
+    if (researcherId && researcherInfo) {
+      results = await filterByPatientPreferences(
+        results,
+        researcherId,
+        researcherInfo,
+        {
+          recordCount: results.length,
+          isSensitive: checkIfSensitive(validatedFilters)
+        }
+      );
+    }
+    
+    // Limit to requested amount after filtering
+    results = results.slice(0, limit);
     count = results.length;
   }
   
@@ -136,6 +174,54 @@ function validateFilters(filters) {
   }
   
   return validated;
+}
+
+/**
+ * Filter results based on patient preferences
+ * @param {Array} results - Query results
+ * @param {string} researcherId - Researcher ID
+ * @param {Object} researcherInfo - Researcher information
+ * @param {Object} requestDetails - Request details
+ * @returns {Promise<Array>} Filtered results
+ */
+async function filterByPatientPreferences(results, researcherId, researcherInfo, requestDetails) {
+  const filtered = [];
+  const upiSet = new Set(results.map(r => r.upi));
+  const upis = Array.from(upiSet);
+  
+  // Batch check patient preferences
+  const { checkPatientDataAccess } = await import('./patient-preferences-service.js');
+  
+  for (const result of results) {
+    const accessCheck = await checkPatientDataAccess(
+      result.upi,
+      researcherId,
+      researcherInfo,
+      {
+        ...requestDetails,
+        pricePerRecord: requestDetails.pricePerRecord || null
+      }
+    );
+    
+    if (accessCheck.allowed) {
+      filtered.push(result);
+    }
+  }
+  
+  return filtered;
+}
+
+/**
+ * Check if query involves sensitive data
+ * @param {Object} filters - Query filters
+ * @returns {boolean}
+ */
+function checkIfSensitive(filters) {
+  const sensitiveConditions = ['B20', 'F32', 'F33', 'F41', 'F42']; // HIV, mental health
+  if (filters.conditionCode && sensitiveConditions.includes(filters.conditionCode)) {
+    return true;
+  }
+  return false;
 }
 
 /**

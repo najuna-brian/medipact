@@ -34,6 +34,12 @@ export async function createDataset(datasetData) {
     dateRangeEnd,
     conditionCodes,
     price,
+    priceUSD,
+    pricePerRecordHBAR,
+    pricePerRecordUSD,
+    pricingCategoryId,
+    pricingCategory,
+    volumeDiscount = 0,
     currency = 'HBAR',
     format = 'FHIR',
     consentType,
@@ -50,14 +56,18 @@ export async function createDataset(datasetData) {
     const result = await db.query(
       `INSERT INTO datasets (
         id, name, description, hospital_id, country, record_count,
-        date_range_start, date_range_end, condition_codes, price, currency,
-        format, consent_type, hcs_topic_id, consent_topic_id, data_topic_id, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+        date_range_start, date_range_end, condition_codes, price, price_usd,
+        price_per_record_hbar, price_per_record_usd, pricing_category_id,
+        pricing_category, volume_discount, currency, format, consent_type,
+        hcs_topic_id, consent_topic_id, data_topic_id, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
       RETURNING *`,
       [
         datasetId, name, description, hospitalId, country, recordCount,
-        dateRangeStart, dateRangeEnd, conditionCodesJson, price, currency,
-        format, consentType, hcsTopicId, consentTopicId, dataTopicId, status
+        dateRangeStart, dateRangeEnd, conditionCodesJson, price, priceUSD,
+        pricePerRecordHBAR, pricePerRecordUSD, pricingCategoryId,
+        pricingCategory, volumeDiscount, currency, format, consentType,
+        hcsTopicId, consentTopicId, dataTopicId, status
       ]
     );
     
@@ -70,13 +80,17 @@ export async function createDataset(datasetData) {
     await run(
       `INSERT INTO datasets (
         id, name, description, hospital_id, country, record_count,
-        date_range_start, date_range_end, condition_codes, price, currency,
-        format, consent_type, hcs_topic_id, consent_topic_id, data_topic_id, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        date_range_start, date_range_end, condition_codes, price, price_usd,
+        price_per_record_hbar, price_per_record_usd, pricing_category_id,
+        pricing_category, volume_discount, currency, format, consent_type,
+        hcs_topic_id, consent_topic_id, data_topic_id, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         datasetId, name, description, hospitalId, country, recordCount,
-        dateRangeStart, dateRangeEnd, conditionCodesJson, price, currency,
-        format, consentType, hcsTopicId, consentTopicId, dataTopicId, status
+        dateRangeStart, dateRangeEnd, conditionCodesJson, price, priceUSD,
+        pricePerRecordHBAR, pricePerRecordUSD, pricingCategoryId,
+        pricingCategory, volumeDiscount, currency, format, consentType,
+        hcsTopicId, consentTopicId, dataTopicId, status
       ]
     );
     
@@ -91,18 +105,33 @@ export async function getDataset(datasetId) {
   const db = getDatabase();
   const dbType = db.constructor.name;
   
+  let dataset;
   if (dbType === 'Client') {
     // PostgreSQL
     const result = await db.query('SELECT * FROM datasets WHERE id = $1', [datasetId]);
     if (result.rows.length === 0) return null;
-    return mapDatasetRow(result.rows[0]);
+    dataset = mapDatasetRow(result.rows[0]);
   } else {
     // SQLite
     const get = promisify(db.get.bind(db));
     const row = await get('SELECT * FROM datasets WHERE id = ?', [datasetId]);
     if (!row) return null;
-    return mapDatasetRow(row);
+    dataset = mapDatasetRow(row);
   }
+  
+  // Ensure USD prices are included
+  const { hbarToUSD } = await import('../services/pricing-service.js');
+  if (!dataset.priceUSD && dataset.price) {
+    dataset.priceUSD = hbarToUSD(dataset.price);
+  }
+  if (!dataset.pricePerRecordUSD && dataset.pricePerRecordHBAR) {
+    dataset.pricePerRecordUSD = hbarToUSD(dataset.pricePerRecordHBAR);
+  } else if (!dataset.pricePerRecordUSD && dataset.price && dataset.recordCount > 0) {
+    dataset.pricePerRecordUSD = hbarToUSD(dataset.price / dataset.recordCount);
+    dataset.pricePerRecordHBAR = dataset.price / dataset.recordCount;
+  }
+  
+  return dataset;
 }
 
 /**
@@ -135,16 +164,32 @@ export async function getAllDatasets(filters = {}) {
     query = query.replace(/\?/g, () => `$${paramIndex++}`);
   }
   
+  let datasets;
   if (dbType === 'Client') {
     // PostgreSQL
     const result = await db.query(query, params);
-    return result.rows.map(mapDatasetRow);
+    datasets = result.rows.map(mapDatasetRow);
   } else {
     // SQLite
     const all = promisify(db.all.bind(db));
     const rows = await all(query, params);
-    return rows.map(mapDatasetRow);
+    datasets = rows.map(mapDatasetRow);
   }
+  
+  // Ensure USD prices are included for all datasets
+  const { hbarToUSD } = await import('../services/pricing-service.js');
+  return datasets.map(dataset => {
+    if (!dataset.priceUSD && dataset.price) {
+      dataset.priceUSD = hbarToUSD(dataset.price);
+    }
+    if (!dataset.pricePerRecordUSD && dataset.pricePerRecordHBAR) {
+      dataset.pricePerRecordUSD = hbarToUSD(dataset.pricePerRecordHBAR);
+    } else if (!dataset.pricePerRecordUSD && dataset.price && dataset.recordCount > 0) {
+      dataset.pricePerRecordUSD = hbarToUSD(dataset.price / dataset.recordCount);
+      dataset.pricePerRecordHBAR = dataset.price / dataset.recordCount;
+    }
+    return dataset;
+  });
 }
 
 /**
@@ -156,8 +201,9 @@ export async function updateDataset(datasetId, updates) {
   
   const allowedFields = [
     'name', 'description', 'record_count', 'date_range_start', 'date_range_end',
-    'condition_codes', 'price', 'currency', 'format', 'status', 'hcs_topic_id',
-    'consent_topic_id', 'data_topic_id'
+    'condition_codes', 'price', 'price_usd', 'price_per_record_hbar', 'price_per_record_usd',
+    'pricing_category_id', 'pricing_category', 'volume_discount', 'currency', 'format',
+    'status', 'hcs_topic_id', 'consent_topic_id', 'data_topic_id'
   ];
   
   const updateFields = [];
@@ -216,6 +262,12 @@ function mapDatasetRow(row) {
     dateRangeEnd: row.date_range_end,
     conditionCodes: row.condition_codes ? JSON.parse(row.condition_codes) : null,
     price: parseFloat(row.price),
+    priceUSD: row.price_usd ? parseFloat(row.price_usd) : null,
+    pricePerRecordHBAR: row.price_per_record_hbar ? parseFloat(row.price_per_record_hbar) : null,
+    pricePerRecordUSD: row.price_per_record_usd ? parseFloat(row.price_per_record_usd) : null,
+    pricingCategoryId: row.pricing_category_id,
+    pricingCategory: row.pricing_category,
+    volumeDiscount: row.volume_discount ? parseFloat(row.volume_discount) : 0,
     currency: row.currency,
     format: row.format,
     consentType: row.consent_type,
