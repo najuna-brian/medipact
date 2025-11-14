@@ -464,6 +464,226 @@ async function createPostgreSQLTables() {
     // Column already exists or error, ignore
   }
 
+  // Add payment method columns to patient_identities (for migration - PostgreSQL)
+  try {
+    const checkPatientPayment = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='patient_identities' AND column_name='payment_method'
+    `);
+    if (checkPatientPayment.rows.length === 0) {
+      await client.query(`ALTER TABLE patient_identities ADD COLUMN payment_method VARCHAR(50)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkPatientBank = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='patient_identities' AND column_name='bank_account_number'
+    `);
+    if (checkPatientBank.rows.length === 0) {
+      await client.query(`ALTER TABLE patient_identities ADD COLUMN bank_account_number VARCHAR(255)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkPatientBankName = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='patient_identities' AND column_name='bank_name'
+    `);
+    if (checkPatientBankName.rows.length === 0) {
+      await client.query(`ALTER TABLE patient_identities ADD COLUMN bank_name VARCHAR(255)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkPatientMobile = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='patient_identities' AND column_name='mobile_money_provider'
+    `);
+    if (checkPatientMobile.rows.length === 0) {
+      await client.query(`ALTER TABLE patient_identities ADD COLUMN mobile_money_provider VARCHAR(50)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkPatientMobileNum = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='patient_identities' AND column_name='mobile_money_number'
+    `);
+    if (checkPatientMobileNum.rows.length === 0) {
+      await client.query(`ALTER TABLE patient_identities ADD COLUMN mobile_money_number VARCHAR(50)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkPatientThreshold = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='patient_identities' AND column_name='withdrawal_threshold_usd'
+    `);
+    if (checkPatientThreshold.rows.length === 0) {
+      await client.query(`ALTER TABLE patient_identities ADD COLUMN withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 10.00`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkPatientAuto = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='patient_identities' AND column_name='auto_withdraw_enabled'
+    `);
+    if (checkPatientAuto.rows.length === 0) {
+      await client.query(`ALTER TABLE patient_identities ADD COLUMN auto_withdraw_enabled BOOLEAN DEFAULT true`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkPatientLastWithdraw = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='patient_identities' AND column_name='last_withdrawal_at'
+    `);
+    if (checkPatientLastWithdraw.rows.length === 0) {
+      await client.query(`ALTER TABLE patient_identities ADD COLUMN last_withdrawal_at TIMESTAMP`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkPatientTotal = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='patient_identities' AND column_name='total_withdrawn_usd'
+    `);
+    if (checkPatientTotal.rows.length === 0) {
+      await client.query(`ALTER TABLE patient_identities ADD COLUMN total_withdrawn_usd DECIMAL(10, 2) DEFAULT 0.00`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+
+  // Add payment method columns to hospitals (for migration - PostgreSQL)
+  try {
+    const checkHospitalPayment = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='hospitals' AND column_name='payment_method'
+    `);
+    if (checkHospitalPayment.rows.length === 0) {
+      await client.query(`ALTER TABLE hospitals ADD COLUMN payment_method VARCHAR(50)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkHospitalBank = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='hospitals' AND column_name='bank_account_number'
+    `);
+    if (checkHospitalBank.rows.length === 0) {
+      await client.query(`ALTER TABLE hospitals ADD COLUMN bank_account_number VARCHAR(255)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkHospitalBankName = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='hospitals' AND column_name='bank_name'
+    `);
+    if (checkHospitalBankName.rows.length === 0) {
+      await client.query(`ALTER TABLE hospitals ADD COLUMN bank_name VARCHAR(255)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkHospitalMobile = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='hospitals' AND column_name='mobile_money_provider'
+    `);
+    if (checkHospitalMobile.rows.length === 0) {
+      await client.query(`ALTER TABLE hospitals ADD COLUMN mobile_money_provider VARCHAR(50)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkHospitalMobileNum = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='hospitals' AND column_name='mobile_money_number'
+    `);
+    if (checkHospitalMobileNum.rows.length === 0) {
+      await client.query(`ALTER TABLE hospitals ADD COLUMN mobile_money_number VARCHAR(50)`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkHospitalThreshold = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='hospitals' AND column_name='withdrawal_threshold_usd'
+    `);
+    if (checkHospitalThreshold.rows.length === 0) {
+      await client.query(`ALTER TABLE hospitals ADD COLUMN withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 100.00`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkHospitalAuto = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='hospitals' AND column_name='auto_withdraw_enabled'
+    `);
+    if (checkHospitalAuto.rows.length === 0) {
+      await client.query(`ALTER TABLE hospitals ADD COLUMN auto_withdraw_enabled BOOLEAN DEFAULT true`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkHospitalLastWithdraw = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='hospitals' AND column_name='last_withdrawal_at'
+    `);
+    if (checkHospitalLastWithdraw.rows.length === 0) {
+      await client.query(`ALTER TABLE hospitals ADD COLUMN last_withdrawal_at TIMESTAMP`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+  try {
+    const checkHospitalTotal = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name='hospitals' AND column_name='total_withdrawn_usd'
+    `);
+    if (checkHospitalTotal.rows.length === 0) {
+      await client.query(`ALTER TABLE hospitals ADD COLUMN total_withdrawn_usd DECIMAL(10, 2) DEFAULT 0.00`);
+    }
+  } catch (e) {
+    // Column already exists or error, ignore
+  }
+
   // FHIR Patients Table
   await client.query(`
     CREATE TABLE IF NOT EXISTS fhir_patients (
