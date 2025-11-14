@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "setup-admin": "node scripts/setup-admin.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "vitest run tests/integration/end-to-end-flow.test.js"
   },
   "keywords": [
     "medipact",
@@ -20,9 +22,11 @@
   "license": "MIT",
   "dependencies": {
     "@hashgraph/sdk": "^2.76.0",
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.3",
     "sqlite3": "^5.1.6",
@@ -31,5 +35,8 @@
   },
   "notes": {
     "database": "Currently using SQLite for development. PostgreSQL (pg) will be used for production. See docs/DATABASE_MIGRATION.md"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.9"
   }
 }

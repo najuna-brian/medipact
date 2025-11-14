@@ -192,10 +192,13 @@ flowchart LR
 **How It Works**:
 1. Researcher purchases dataset (pays in HBAR)
 2. RevenueSplitter contract receives payment
-3. **Automatically distributes**: 60% Patient, 25% Hospital, 15% Platform
-4. All transactions verifiable on HashScan
+3. **Automatically distributes**: 60% Patient, 25% Hospital (original collector), 15% Platform
+4. Each patient's 25% goes to the hospital that originally collected their data
+5. All transactions verifiable on HashScan
 
-**Benefits**: Trustless, Transparent, Instant, Low fees
+**Benefits**: Trustless, Transparent, Instant, Low fees, Fair attribution
+
+**Revenue Model**: The hospital that originally collected the data is the sole beneficiary. See [Revenue Distribution Model](./docs/REVENUE_DISTRIBUTION_MODEL.md) for details.
 
 ---
 
@@ -410,12 +413,18 @@ graph TB
 | **FHIR R4 Compliant** | Interoperable with global medical record systems |
 | **K-Anonymity Enforcement** | Privacy by design (minimum 5 records per group) |
 | **HCS Immutable Proof Storage** | Unchangeable audit trail on Hedera Consensus Service |
-| **Secure Data Vault** | Encrypted storage with patient-controlled access |
+| **End-to-End Encryption** | Field-level AES-256-GCM encryption with zero-knowledge architecture |
+| **Patient-Centric Data Control** | Global opt-in/out, researcher approvals, granular preferences |
 | **Automated HBAR Revenue Distribution** | 60/25/15 split managed by smart contract |
+| **Fair Revenue Model** | Original collecting hospital is sole beneficiary of their data |
+| **Category-Based Pricing** | 6 pricing tiers, 40% of market rates, volume discounts, USD display |
 | **Patient Identity System (UPI)** | Cross-hospital identity linking |
+| **Temporary Hospital Access** | Time-limited, patient-approved data sharing for telemedicine |
 | **Consent Validation** | Enforced at the database and smart-contract levels |
 | **Multi-Dimensional Query Engine** | Filter by country, date, condition, demographics |
 | **Smart Contract Integration** | On-chain consent registry and revenue sharing |
+| **Rate Limiting** | Protection against abuse and DDoS attacks |
+| **Bcrypt Security** | Secure password and API key hashing |
 | **Role-Based Dashboards** | Patient, Hospital, Researcher, and Admin portals |
 | **HashScan Verification** | Publicly verifiable transactions on HashScan |
 
