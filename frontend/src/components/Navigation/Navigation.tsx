@@ -12,6 +12,8 @@ import {
   LogOut,
   User,
   ShoppingBag,
+  BookOpen,
+  LogIn,
 } from 'lucide-react';
 import { usePatientSession } from '@/hooks/usePatientSession';
 import { useHospitalSession } from '@/hooks/useHospitalSession';
@@ -29,6 +31,7 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Marketplace', href: '/marketplace', icon: ShoppingBag },
+  { name: 'Documentation', href: '/docs', icon: BookOpen },
   { name: 'For Patients', href: '/for-patients', icon: Users },
   { name: 'For Hospitals', href: '/for-hospitals', icon: Building2 },
   { name: 'For Researchers', href: '/for-researchers', icon: Database },
@@ -146,6 +149,37 @@ export default function Navigation() {
 
           {/* User Context */}
           <div className="flex items-center gap-4">
+            {/* Context-aware login/signup icon */}
+            {!isAnyAuthenticated && (
+              <Link
+                href={
+                  isPatientPage
+                    ? '/patient/login'
+                    : isHospitalPage
+                      ? '/hospital/login'
+                      : isResearcherPage
+                        ? '/researcher/register'
+                        : isAdminPage
+                          ? '/admin/login'
+                          : '/patient/login' // default
+                }
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                title={
+                  isPatientPage
+                    ? 'Patient Login'
+                    : isHospitalPage
+                      ? 'Hospital Login'
+                      : isResearcherPage
+                        ? 'Register as Researcher'
+                        : isAdminPage
+                          ? 'Admin Login'
+                          : 'Login'
+                }
+              >
+                <LogIn className="h-4 w-4" />
+                <span className="hidden md:inline">{isResearcherPage ? 'Register' : 'Login'}</span>
+              </Link>
+            )}
             {isPatientAuthenticated && upi && (
               <div className="hidden items-center gap-2 text-sm md:flex">
                 <User className="h-4 w-4 text-muted-foreground" />
@@ -175,38 +209,6 @@ export default function Navigation() {
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
               </Button>
-            )}
-            {!isAnyAuthenticated && (
-              <div className="flex items-center gap-2">
-                {isPatientPage && (
-                  <Link href="/patient/login">
-                    <Button variant="outline" size="sm">
-                      Patient Login
-                    </Button>
-                  </Link>
-                )}
-                {isHospitalPage && (
-                  <Link href="/hospital/login">
-                    <Button variant="outline" size="sm">
-                      Hospital Login
-                    </Button>
-                  </Link>
-                )}
-                {isResearcherPage && (
-                  <Link href="/researcher/register">
-                    <Button variant="outline" size="sm">
-                      Register
-                    </Button>
-                  </Link>
-                )}
-                {isAdminPage && (
-                  <Link href="/admin/login">
-                    <Button variant="outline" size="sm">
-                      Admin Login
-                    </Button>
-                  </Link>
-                )}
-              </div>
             )}
           </div>
         </div>
