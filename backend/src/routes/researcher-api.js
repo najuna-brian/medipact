@@ -107,7 +107,7 @@ async function authenticateAdmin(req, res, next) {
  */
 router.post('/register', async (req, res) => {
   try {
-    const { email, organizationName, contactName, country, registrationNumber, verificationDocuments } = req.body;
+    const { email, organizationName, contactName, country } = req.body;
     
     if (!email || !organizationName) {
       return res.status(400).json({ 
@@ -115,37 +115,10 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    if (!registrationNumber) {
-      return res.status(400).json({ 
-        error: 'Registration number is required' 
-      });
-    }
-    
-    if (!verificationDocuments) {
-      return res.status(400).json({ 
-        error: 'Verification documents are required' 
-      });
-    }
-    
-    // Validate that at least one verification document is provided
-    const hasOrganizationDoc = verificationDocuments.organizationDocuments && 
-      (verificationDocuments.organizationDocuments.startsWith('data:') || 
-       verificationDocuments.organizationDocuments.startsWith('http://') || 
-       verificationDocuments.organizationDocuments.startsWith('https://'));
-    
-    const hasResearchLicense = verificationDocuments.researchLicense && 
-      (verificationDocuments.researchLicense.startsWith('data:') || 
-       verificationDocuments.researchLicense.startsWith('http://') || 
-       verificationDocuments.researchLicense.startsWith('https://'));
-    
-    if (!hasOrganizationDoc && !hasResearchLicense) {
-      return res.status(400).json({ 
-        error: 'At least one verification document (organization document or research license) is required' 
-      });
-    }
+    // Registration number and verification documents should only be submitted during verification, not registration
     
     const researcher = await registerResearcher(
-      { email, organizationName, contactName, country, registrationNumber, verificationDocuments },
+      { email, organizationName, contactName, country },
       async (email) => {
         return await researcherExists(email);
       },
@@ -160,7 +133,7 @@ router.post('/register', async (req, res) => {
         ...researcher,
         // Always prompt for verification
         verificationPrompt: true,
-        verificationMessage: 'Your verification documents have been submitted and are pending admin review.'
+        verificationMessage: 'Please verify your account to access full features and better pricing.'
       }
     });
   } catch (error) {
@@ -295,14 +268,35 @@ router.get('/:researcherId/verification-status', async (req, res) => {
     }
     
     let verificationDocuments = null;
+    let hasDocuments = false;
     if (researcher.verificationDocuments) {
       try {
         verificationDocuments = typeof researcher.verificationDocuments === 'string' 
           ? JSON.parse(researcher.verificationDocuments) 
           : researcher.verificationDocuments;
+        
+        // Check if documents are actually submitted (not empty object)
+        hasDocuments = verificationDocuments && 
+          Object.keys(verificationDocuments).length > 0 && 
+          (verificationDocuments.organizationDocuments || 
+           verificationDocuments.researchLicense || 
+           verificationDocuments.additionalDocuments);
       } catch (e) {
         verificationDocuments = { raw: researcher.verificationDocuments };
+        hasDocuments = false;
       }
+    }
+    
+    // Determine verification message based on status and whether documents were submitted
+    let verificationMessage = null;
+    if (researcher.verificationStatus === 'verified') {
+      verificationMessage = null; // No prompt needed
+    } else if (researcher.verificationStatus === 'rejected') {
+      verificationMessage = 'Your verification was rejected. Please submit new documents to verify your account.';
+    } else if (hasDocuments) {
+      verificationMessage = 'Your verification is pending review. Please wait for admin approval.';
+    } else {
+      verificationMessage = 'Please verify your account to access full features and better pricing.';
     }
     
     res.json({
@@ -313,9 +307,7 @@ router.get('/:researcherId/verification-status', async (req, res) => {
       verifiedBy: researcher.verifiedBy,
       verificationDocuments: verificationDocuments,
       verificationPrompt: researcher.verificationStatus !== 'verified',
-      verificationMessage: researcher.verificationStatus !== 'verified' 
-        ? 'Please verify your account to access full features and better pricing.'
-        : null
+      verificationMessage: verificationMessage
     });
   } catch (error) {
     console.error('Error fetching verification status:', error);

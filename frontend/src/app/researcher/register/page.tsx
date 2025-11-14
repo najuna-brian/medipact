@@ -21,24 +21,21 @@ export default function ResearcherRegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.email || !formData.organizationName) {
       return;
     }
 
     try {
       const result = await registerMutation.mutateAsync(formData);
-      
+
       // Store researcher ID in session/localStorage
       if (result.researcher?.researcherId) {
         sessionStorage.setItem('researcherId', result.researcher.researcherId);
         sessionStorage.setItem('researcherEmail', result.researcher.email);
       }
-      
-      // Redirect to dashboard after a brief delay
-      setTimeout(() => {
-        router.push(`/researcher/dashboard`);
-      }, 2000);
+
+      // Don't auto-redirect - let user see credentials and verification prompt
     } catch (error: any) {
       console.error('Registration error:', error);
     }
@@ -46,7 +43,7 @@ export default function ResearcherRegisterPage() {
 
   if (registerMutation.isSuccess && registerMutation.data) {
     const researcher = registerMutation.data.researcher;
-    
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
         <Card className="w-full max-w-2xl">
@@ -55,31 +52,26 @@ export default function ResearcherRegisterPage() {
               <CheckCircle2 className="h-6 w-6 text-green-600" />
             </div>
             <CardTitle className="text-2xl font-bold">Registration Successful!</CardTitle>
-            <CardDescription>
-              Your researcher account has been created
-            </CardDescription>
+            <CardDescription>Your researcher account has been created</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg bg-green-50 p-4 space-y-3">
+            <div className="space-y-3 rounded-lg bg-green-50 p-4">
               <div>
                 <p className="text-sm text-muted-foreground">Researcher ID</p>
                 <p className="font-mono text-lg font-semibold">{researcher.researcherId}</p>
               </div>
-              
+
               {researcher.hederaAccountId && (
                 <div>
-                  <HederaAccountId 
-                    accountId={researcher.hederaAccountId}
-                    showLabel={true}
-                  />
+                  <HederaAccountId accountId={researcher.hederaAccountId} showLabel={true} />
                 </div>
               )}
-              
+
               <div>
                 <p className="text-sm text-muted-foreground">Email</p>
                 <p className="font-medium">{researcher.email}</p>
               </div>
-              
+
               <div>
                 <p className="text-sm text-muted-foreground">Organization</p>
                 <p className="font-medium">{researcher.organizationName}</p>
@@ -89,18 +81,19 @@ export default function ResearcherRegisterPage() {
             {researcher.verificationPrompt && (
               <div className="rounded-lg border-yellow-200 bg-yellow-50 p-4">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <AlertCircle className="mt-0.5 h-5 w-5 text-yellow-600" />
                   <div className="flex-1">
                     <p className="font-medium text-yellow-900">Verification Required</p>
-                    <p className="text-sm text-yellow-800 mt-1">
-                      {researcher.verificationMessage || 'Please verify your account to access full features and better pricing.'}
+                    <p className="mt-1 text-sm text-yellow-800">
+                      {researcher.verificationMessage ||
+                        'Please verify your account to access full features and better pricing.'}
                     </p>
                     <Button
                       onClick={() => router.push(`/researcher/${researcher.researcherId}/verify`)}
-                      className="mt-3 bg-yellow-600 hover:bg-yellow-700 text-white"
+                      className="mt-3 bg-yellow-600 text-white hover:bg-yellow-700"
                       size="sm"
                     >
-                      Verify Account
+                      Proceed to Verification
                     </Button>
                   </div>
                 </div>
@@ -108,10 +101,7 @@ export default function ResearcherRegisterPage() {
             )}
 
             <div className="flex gap-3 pt-4">
-              <Button
-                onClick={() => router.push('/researcher/dashboard')}
-                className="flex-1"
-              >
+              <Button onClick={() => router.push('/researcher/dashboard')} className="flex-1">
                 Go to Dashboard
               </Button>
             </div>

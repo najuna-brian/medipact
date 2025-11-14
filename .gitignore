@@ -60,3 +60,30 @@ tmp/
 temp/
 *.tmp
 
+# Documentation files that shouldn't be in git
+PITCH_DECK.md
+PROJECT_DESCRIPTION.md
+DEPLOYMENT_UPDATE.md
+PRODUCTION_SETUP.md
+
+# Frontend internal status/report files
+frontend/*_STATUS*.md
+frontend/*_SUMMARY*.md
+frontend/BRANCH_*.md
+frontend/COMPLETION_*.md
+frontend/COMPREHENSIVE_*.md
+frontend/CREATE_*.md
+frontend/CURRENT_*.md
+frontend/FINAL_*.md
+frontend/IMPLEMENTATION_*.md
+frontend/MAIN_*.md
+frontend/MERGE_*.md
+frontend/MERGED_*.md
+frontend/NEXT_*.md
+frontend/PR_*.md
+frontend/PROJECT_*.md
+frontend/QUICK_*.md
+frontend/STEP_*.md
+frontend/STASH_*.md
+frontend/UNMERGED_*.md
+

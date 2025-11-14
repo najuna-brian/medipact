@@ -279,7 +279,7 @@ export default function HospitalEnrollmentPage() {
                           }
                         }}
                       >
-                        Go to Verification
+                        Proceed to Verification
                       </Button>
                     </div>
                   </div>
