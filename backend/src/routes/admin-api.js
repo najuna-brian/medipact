@@ -11,6 +11,10 @@ import { verifyHospital, rejectHospitalVerification } from '../services/hospital
 import { getAllResearchers, getResearcher, updateResearcher } from '../db/researcher-db.js';
 import { verifyResearcher, rejectResearcherVerification } from '../services/researcher-registry-service.js';
 import { verifyAdminToken, extractTokenFromHeader } from '../services/admin-auth-service.js';
+import { completeWithdrawal, retryFailedWithdrawals } from '../services/withdrawal-service.js';
+import { getPendingWithdrawals, getWithdrawalHistoryForUser } from '../db/withdrawal-db.js';
+import { triggerWithdrawalJob } from '../services/automatic-withdrawal-job.js';
+import { all } from '../db/database.js';
 
 const router = express.Router();
 
@@ -352,6 +356,182 @@ router.post('/researchers/:researcherId/reject', async (req, res) => {
   } catch (error) {
     console.error('Error rejecting researcher:', error);
     res.status(500).json({ error: error.message || 'Failed to reject researcher' });
+  }
+});
+
+/**
+ * POST /api/admin/withdrawals/trigger-monthly
+ * Trigger monthly withdrawals for all users with balance above threshold
+ */
+router.post('/withdrawals/trigger-monthly', async (req, res) => {
+  try {
+    const results = await triggerWithdrawalJob();
+    res.json({
+      message: 'Monthly withdrawals initiated',
+      results: {
+        processed: results.processed,
+        skipped: results.skipped,
+        errors: results.errors.length > 0 ? results.errors : undefined
+      }
+    });
+  } catch (error) {
+    console.error('Error triggering monthly withdrawals:', error);
+    res.status(500).json({ error: error.message || 'Failed to trigger withdrawals' });
+  }
+});
+
+/**
+ * GET /api/admin/withdrawals/pending
+ * Get all pending withdrawals
+ */
+router.get('/withdrawals/pending', async (req, res) => {
+  try {
+    const { limit = 100 } = req.query;
+    const withdrawals = await getPendingWithdrawals(parseInt(limit));
+    res.json(withdrawals);
+  } catch (error) {
+    console.error('Error getting pending withdrawals:', error);
+    res.status(500).json({ error: error.message || 'Failed to get pending withdrawals' });
+  }
+});
+
+/**
+ * POST /api/admin/withdrawals/:withdrawalId/complete
+ * Complete a withdrawal (after processing payment)
+ */
+router.post('/withdrawals/:withdrawalId/complete', async (req, res) => {
+  try {
+    const { withdrawalId } = req.params;
+    const { transactionId } = req.body;
+    
+    const withdrawal = await completeWithdrawal(withdrawalId, transactionId);
+    res.json({
+      message: 'Withdrawal completed',
+      withdrawal
+    });
+  } catch (error) {
+    console.error('Error completing withdrawal:', error);
+    res.status(500).json({ error: error.message || 'Failed to complete withdrawal' });
+  }
+});
+
+/**
+ * GET /api/admin/withdrawals
+ * Get all withdrawals with filters
+ */
+router.get('/withdrawals', async (req, res) => {
+  try {
+    const { status, userType, limit = 100, offset = 0 } = req.query;
+    
+    let query = 'SELECT * FROM withdrawal_history WHERE 1=1';
+    const params = [];
+    
+    if (status) {
+      query += ' AND status = ?';
+      params.push(status);
+    }
+    
+    if (userType) {
+      query += ' AND user_type = ?';
+      params.push(userType);
+    }
+    
+    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    params.push(parseInt(limit), parseInt(offset));
+    
+    const withdrawals = await all(query, params);
+    
+    res.json({
+      withdrawals,
+      count: withdrawals.length,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+  } catch (error) {
+    console.error('Error getting withdrawals:', error);
+    res.status(500).json({ error: error.message || 'Failed to get withdrawals' });
+  }
+});
+
+/**
+ * GET /api/admin/withdrawals/failed
+ * Get all failed withdrawals
+ */
+router.get('/withdrawals/failed', async (req, res) => {
+  try {
+    const { limit = 50 } = req.query;
+    const failedWithdrawals = await all(
+      `SELECT * FROM withdrawal_history 
+       WHERE status = 'failed' 
+       ORDER BY created_at DESC 
+       LIMIT ?`,
+      [parseInt(limit)]
+    );
+    
+    res.json({
+      withdrawals: failedWithdrawals,
+      count: failedWithdrawals.length
+    });
+  } catch (error) {
+    console.error('Error getting failed withdrawals:', error);
+    res.status(500).json({ error: error.message || 'Failed to get failed withdrawals' });
+  }
+});
+
+/**
+ * POST /api/admin/withdrawals/retry-failed
+ * Retry failed withdrawals
+ */
+router.post('/withdrawals/retry-failed', async (req, res) => {
+  try {
+    const { limit = 10 } = req.body;
+    const results = await retryFailedWithdrawals(limit);
+    
+    res.json({
+      message: 'Retry process completed',
+      results
+    });
+  } catch (error) {
+    console.error('Error retrying failed withdrawals:', error);
+    res.status(500).json({ error: error.message || 'Failed to retry withdrawals' });
+  }
+});
+
+/**
+ * GET /api/admin/withdrawals/stats
+ * Get withdrawal statistics
+ */
+router.get('/withdrawals/stats', async (req, res) => {
+  try {
+    const stats = await all(
+      `SELECT 
+        status,
+        user_type,
+        COUNT(*) as count,
+        SUM(amount_usd) as total_usd,
+        SUM(amount_hbar) as total_hbar
+       FROM withdrawal_history
+       GROUP BY status, user_type`
+    );
+    
+    const summary = await all(
+      `SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+        SUM(CASE WHEN status = 'completed' THEN amount_usd ELSE 0 END) as total_completed_usd
+       FROM withdrawal_history`
+    );
+    
+    res.json({
+      summary: summary[0] || {},
+      breakdown: stats
+    });
+  } catch (error) {
+    console.error('Error getting withdrawal stats:', error);
+    res.status(500).json({ error: error.message || 'Failed to get withdrawal stats' });
   }
 });
 
