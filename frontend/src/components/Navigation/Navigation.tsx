@@ -159,7 +159,7 @@ export default function Navigation() {
                 <span className="hidden md:inline">Docs</span>
               </Link>
             )}
-            
+
             {/* Context-aware login/signup icon - only show when NOT authenticated */}
             {!isAnyAuthenticated && (
               <Link
