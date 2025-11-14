@@ -148,17 +148,19 @@ export default function Navigation() {
 
           {/* User Context */}
           <div className="flex items-center gap-4">
-            {/* Documentation link - always visible */}
-            <Link
-              href="/docs"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-              title="Documentation"
-            >
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden md:inline">Docs</span>
-            </Link>
-
-            {/* Context-aware login/signup icon */}
+            {/* Documentation link - only show when NOT authenticated */}
+            {!isAnyAuthenticated && (
+              <Link
+                href="/docs"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                title="Documentation"
+              >
+                <BookOpen className="h-4 w-4" />
+                <span className="hidden md:inline">Docs</span>
+              </Link>
+            )}
+            
+            {/* Context-aware login/signup icon - only show when NOT authenticated */}
             {!isAnyAuthenticated && (
               <Link
                 href={

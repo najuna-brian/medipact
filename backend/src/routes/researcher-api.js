@@ -292,7 +292,17 @@ router.get('/:researcherId/verification-status', async (req, res) => {
     if (researcher.verificationStatus === 'verified') {
       verificationMessage = null; // No prompt needed
     } else if (researcher.verificationStatus === 'rejected') {
-      verificationMessage = 'Your verification was rejected. Please submit new documents to verify your account.';
+      // Check if there's a specific rejection reason
+      let rejectionReason = null;
+      if (verificationDocuments && typeof verificationDocuments === 'object') {
+        rejectionReason = verificationDocuments.rejectionReason;
+      }
+      
+      if (rejectionReason) {
+        verificationMessage = `Your verification was rejected: ${rejectionReason}. Please submit new documents to verify your account.`;
+      } else {
+        verificationMessage = 'Your verification was rejected. Please submit new documents to verify your account.';
+      }
     } else if (hasDocuments) {
       verificationMessage = 'Your verification is pending review. Please wait for admin approval.';
     } else {
