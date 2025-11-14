@@ -146,7 +146,7 @@ async function createPostgreSQLTables() {
       bank_account_number VARCHAR(255),
       bank_name VARCHAR(255),
       mobile_money_provider VARCHAR(50),
-      mobile_money_number VARCHAR(50),
+      mobile_money_number VARCHAR(255),
       withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 10.00,
       auto_withdraw_enabled BOOLEAN DEFAULT true,
       last_withdrawal_at TIMESTAMP,
@@ -515,12 +515,15 @@ async function createPostgreSQLTables() {
   }
   try {
     const checkPatientMobileNum = await client.query(`
-      SELECT column_name 
+      SELECT column_name, character_maximum_length
       FROM information_schema.columns 
       WHERE table_name='patient_identities' AND column_name='mobile_money_number'
     `);
     if (checkPatientMobileNum.rows.length === 0) {
-      await client.query(`ALTER TABLE patient_identities ADD COLUMN mobile_money_number VARCHAR(50)`);
+      await client.query(`ALTER TABLE patient_identities ADD COLUMN mobile_money_number VARCHAR(255)`);
+    } else if (checkPatientMobileNum.rows[0].character_maximum_length < 255) {
+      // Resize existing column if it's too small
+      await client.query(`ALTER TABLE patient_identities ALTER COLUMN mobile_money_number TYPE VARCHAR(255)`);
     }
   } catch (e) {
     // Column already exists or error, ignore
@@ -625,12 +628,15 @@ async function createPostgreSQLTables() {
   }
   try {
     const checkHospitalMobileNum = await client.query(`
-      SELECT column_name 
+      SELECT column_name, character_maximum_length
       FROM information_schema.columns 
       WHERE table_name='hospitals' AND column_name='mobile_money_number'
     `);
     if (checkHospitalMobileNum.rows.length === 0) {
-      await client.query(`ALTER TABLE hospitals ADD COLUMN mobile_money_number VARCHAR(50)`);
+      await client.query(`ALTER TABLE hospitals ADD COLUMN mobile_money_number VARCHAR(255)`);
+    } else if (checkHospitalMobileNum.rows[0].character_maximum_length < 255) {
+      // Resize existing column if it's too small
+      await client.query(`ALTER TABLE hospitals ALTER COLUMN mobile_money_number TYPE VARCHAR(255)`);
     }
   } catch (e) {
     // Column already exists or error, ignore
@@ -886,7 +892,7 @@ async function createSQLiteTables() {
       bank_account_number VARCHAR(255),
       bank_name VARCHAR(255),
       mobile_money_provider VARCHAR(50),
-      mobile_money_number VARCHAR(50),
+      mobile_money_number VARCHAR(255),
       withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 10.00,
       auto_withdraw_enabled BOOLEAN DEFAULT 1,
       last_withdrawal_at TIMESTAMP,
@@ -1248,9 +1254,15 @@ async function createSQLiteTables() {
     // Column already exists, ignore
   }
   try {
-    await run(`ALTER TABLE patient_identities ADD COLUMN mobile_money_number VARCHAR(50)`);
+    await run(`ALTER TABLE patient_identities ADD COLUMN mobile_money_number VARCHAR(255)`);
   } catch (e) {
-    // Column already exists, ignore
+    // Column already exists, try to resize if it's too small
+    try {
+      await run(`ALTER TABLE patient_identities ALTER COLUMN mobile_money_number VARCHAR(255)`);
+    } catch (e2) {
+      // SQLite doesn't support ALTER COLUMN, would need to recreate table
+      // For now, just ignore - existing data will need manual migration
+    }
   }
   try {
     await run(`ALTER TABLE patient_identities ADD COLUMN withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 10.00`);
@@ -1295,9 +1307,15 @@ async function createSQLiteTables() {
     // Column already exists, ignore
   }
   try {
-    await run(`ALTER TABLE hospitals ADD COLUMN mobile_money_number VARCHAR(50)`);
+    await run(`ALTER TABLE hospitals ADD COLUMN mobile_money_number VARCHAR(255)`);
   } catch (e) {
-    // Column already exists, ignore
+    // Column already exists, try to resize if it's too small
+    try {
+      await run(`ALTER TABLE hospitals ALTER COLUMN mobile_money_number VARCHAR(255)`);
+    } catch (e2) {
+      // SQLite doesn't support ALTER COLUMN, would need to recreate table
+      // For now, just ignore - existing data will need manual migration
+    }
   }
   try {
     await run(`ALTER TABLE hospitals ADD COLUMN withdrawal_threshold_usd DECIMAL(10, 2) DEFAULT 100.00`);
