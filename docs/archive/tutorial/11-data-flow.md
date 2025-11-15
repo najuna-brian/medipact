@@ -7,7 +7,7 @@ This lesson explains the complete journey of data from hospital to blockchain to
 ## The Complete Journey
 
 ```
-Hospital EHR → Adapter → Anonymization → Hashing → Blockchain → Verification → Payment
+Hospital EHR → Adapter → Stage 1 Anonymization → Storage → Stage 2 Anonymization → Provenance Hashing → Blockchain → Verification → Payment
 ```
 
 ## Step-by-Step Data Flow
@@ -44,7 +44,7 @@ Hospital EHR → Adapter → Anonymization → Hashing → Blockchain → Verifi
 - Contains medical data (lab tests, results)
 - Structured format (objects/arrays)
 
-### Phase 2: Processing
+### Phase 2: Processing (Double Anonymization)
 
 ```
 ┌─────────────┐
@@ -56,44 +56,68 @@ Hospital EHR → Adapter → Anonymization → Hashing → Blockchain → Verifi
        ├──► Assign Anonymous IDs
        │
        ▼
-┌─────────────┐
-│ Anonymized  │
-│   Records   │
-└──────┬──────┘
+┌─────────────────────┐
+│ Stage 1: Storage    │
+│ Anonymization       │
+│ - Remove PII        │
+│ - 5-year age ranges │
+│ - Exact dates       │
+└──────┬──────────────┘
        │
-       ├──► Generate Consent Hash
-       ├──► Generate Data Hash
+       ├──► Store in Backend
        │
        ▼
-┌─────────────┐
-│   Hashes    │
-└─────────────┘
+┌─────────────────────┐
+│ Stage 2: Chain      │
+│ Anonymization       │
+│ - 10-year ranges    │
+│ - Month/year dates  │
+│ - Remove region     │
+└──────┬──────────────┘
+       │
+       ├──► Generate Storage Hash (H1)
+       ├──► Generate Chain Hash (H2)
+       ├──► Generate Provenance Proof
+       │
+       ▼
+┌─────────────────────┐
+│ Provenance Record   │
+│ - Storage Hash (H1) │
+│ - Chain Hash (H2)   │
+│ - Provenance Proof  │
+└─────────────────────┘
 ```
 
 **What happens**:
 1. Records grouped by patient
 2. Anonymous IDs assigned (PID-001, PID-002)
-3. PII removed (name, ID, address, phone, DOB)
-4. Medical data preserved
-5. Hashes generated (SHA-256)
+3. **Stage 1**: Remove PII, preserve 5-year age ranges, exact dates
+4. Store Stage 1 data in backend
+5. **Stage 2**: Further generalize (10-year ranges, month/year dates)
+6. Generate storage hash (H1) and chain hash (H2)
+7. Create provenance record linking both hashes
 
 **Data at this stage**:
 - No PII (privacy protected)
 - Anonymous IDs (PID-001, etc.)
 - Medical data intact
-- Hashes ready for blockchain
+- Two anonymization levels (storage + chain)
+- Provenance record ready for blockchain
 
 ### Phase 3: Blockchain Storage
 
 ```
-┌─────────────┐
-│   Hashes    │
-└──────┬──────┘
+┌─────────────────────┐
+│ Provenance Records  │
+│ - Storage Hash (H1) │
+│ - Chain Hash (H2)   │
+│ - Provenance Proof   │
+└──────┬──────────────┘
        │
        ├──► Consent Hashes
        │    └──► HCS Consent Topic
        │
-       └──► Data Hashes
+       └──► Provenance Records
             └──► HCS Data Topic
        │
        ▼
@@ -262,33 +286,51 @@ John Doe,ID-12345,123 Main St,0771234567,1990-05-15,Blood Glucose,95
 
 **Contains**: PII + Medical Data
 
-### Stage 2: After Anonymization
+### Stage 2: After Stage 1 (Storage) Anonymization
 
 ```csv
-Anonymous PID,Lab Test,Result
-PID-001,Blood Glucose,95
+Anonymous PID,Age Range,Lab Test,Test Date,Result
+PID-001,35-39,Blood Glucose,2024-01-15,95
 ```
 
-**Contains**: Medical Data Only (PII removed)
+**Contains**: Medical Data + Demographics (5-year age ranges, exact dates)
+**Stored**: Backend database (for researcher queries)
 
-### Stage 3: After Hashing
+### Stage 3: After Stage 2 (Chain) Anonymization
+
+```csv
+Anonymous PID,Age Range,Lab Test,Test Date,Result
+PID-001,30-39,Blood Glucose,2024-01,95
+```
+
+**Contains**: Further Generalized Data (10-year age ranges, month/year dates)
+**Used For**: Blockchain hashing
+
+### Stage 4: After Hashing
 
 ```
-Consent Hash: a1b2c3d4e5f6...
-Data Hash: f6e5d4c3b2a1...
+Storage Hash (H1): abc123... (hash of Stage 1 data)
+Chain Hash (H2): def456... (hash of Stage 2 data)
+Provenance Proof: xyz789... (links H1 → H2)
 ```
 
-**Contains**: Cryptographic fingerprints
+**Contains**: Cryptographic fingerprints with provenance
 
-### Stage 4: On Blockchain
+### Stage 5: On Blockchain
 
 ```
 HCS Topic 0.0.xxxxx:
   - Consent Hash: a1b2c3d4e5f6...
-  - Data Hash: f6e5d4c3b2a1...
+  
+HCS Topic 0.0.yyyyy:
+  - Provenance Record:
+    - Storage Hash (H1): abc123...
+    - Chain Hash (H2): def456...
+    - Derived From: abc123... (proves H2 came from H1)
+    - Provenance Proof: xyz789...
 ```
 
-**Contains**: Immutable proof hashes
+**Contains**: Immutable proof hashes with provenance tracking
 
 ### Stage 5: Final Output
 

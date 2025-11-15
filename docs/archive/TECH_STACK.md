@@ -1,87 +1,67 @@
 # MediPact - Tech Stack
 
-## Blockchain & Consensus
-- **Hedera Hashgraph** - Public distributed ledger
-- **Hedera Consensus Service (HCS)** - Immutable message log for proof storage
-- **Hedera EVM** - Smart contract execution environment
-- **HBAR** - Native cryptocurrency for micropayments
+## Blockchain & Distributed Ledger
+
+- **Hedera Hashgraph**
+  - Hedera Consensus Service (HCS) - Immutable proof storage
+  - Hedera EVM - Smart contract execution
+  - Hedera Account IDs - Native account management
+  - HBAR - Cryptocurrency for micropayments
+  - HashScan - Transaction explorer
 
 ## Smart Contracts
-- **Solidity 0.8.20** - Smart contract programming language
-- **Hardhat** - Ethereum development environment for Hedera EVM
-- **ConsentManager Contract** - On-chain consent registry
-- **RevenueSplitter Contract** - Automated revenue distribution (60/25/15 split)
 
-## Backend & Runtime
-- **Node.js** - JavaScript runtime environment
-- **Express.js** - Web application framework
-- **@hashgraph/sdk** (v2.76.0) - Official Hedera JavaScript SDK
-- **FHIR R4** - Fast Healthcare Interoperability Resources standard
-- **SHA-256** - Cryptographic hashing algorithm
+- **Solidity** - Smart contract language
+- **Hardhat** - Development environment
+- **ConsentManager.sol** - On-chain consent registry
+- **RevenueSplitter.sol** - Automated revenue distribution (60/25/15 split)
+
+## Backend
+
+- **Node.js** - Runtime environment
+- **Express.js** - Web framework
 - **SQLite** - Development database
-- **PostgreSQL** - Production database (planned)
-- **Swagger UI** - Interactive API documentation
-- **swagger-jsdoc** - OpenAPI documentation from JSDoc comments
-- **Query Engine** - Multi-dimensional filtering with consent validation
-- **Dataset Management** - Metadata, browsing, purchase, export
-
-## Data Formats
-- **CSV** - Legacy hospital data format (supported)
-- **FHIR Bundle** - Modern healthcare data standard in JSON format
-- **JSON** - Configuration and structured data
+- **PostgreSQL** - Production database (via Supabase)
+- **Swagger/OpenAPI** - API documentation
 
 ## Frontend
+
 - **Next.js 15** - React framework with App Router
 - **TypeScript** - Type-safe JavaScript
 - **Tailwind CSS** - Utility-first CSS framework
 - **TanStack Query** - Data fetching and state management
-- **shadcn/ui** - Reusable UI component library
-- **Lucide React** - Icon library
-- **React Hook Form** - Form management
+- **Zustand** - State management
+
+## Data Processing
+
+- **FHIR R4** - Healthcare data standard
+- **CSV Parser** - Custom CSV processing
+- **K-Anonymity** - Privacy-preserving algorithm
+- **SHA-256** - Cryptographic hashing
 
 ## Development Tools
+
 - **Git** - Version control
-- **npm** - Package management
 - **Vitest** - Testing framework
-- **dotenv** - Environment variable management
 - **ESLint** - Code linting
 - **Prettier** - Code formatting
 
-## Infrastructure & Services
-- **GitHub** - Code repository hosting
-- **HashScan** - Hedera blockchain explorer for transaction verification
-- **Hedera Testnet** - Development and testing network
+## Deployment & Infrastructure
 
-## Key Libraries & Dependencies
-- `@hashgraph/sdk` - Hedera network integration
-- `dotenv` - Environment configuration
-- `vitest` - Unit and integration testing
-- `uuid` - Unique identifier generation (for FHIR)
+- **Vercel** - Frontend hosting
+- **Railway** - Backend hosting
+- **Supabase** - Database hosting
+- **Docker** - Containerization (optional)
 
-## Standards & Protocols
-- **FHIR R4** - Healthcare data interoperability standard
-- **RESTful API** - Future FHIR API integration (prepared)
-- **OAuth 2.0** - Future authentication for FHIR APIs (prepared)
+## APIs & Integrations
 
-## Security & Privacy
-- **ECDSA** - Elliptic Curve Digital Signature Algorithm for Hedera keys
-- **SHA-256** - Secure hashing for data proofs
-- **PII Removal** - Automatic anonymization process
-- **Consent Validation** - Database-level filtering in all queries
-- **Access Control** - Smart contract owner-only functions, role-based API auth
+- **Hedera SDK** (`@hashgraph/sdk`) - Hedera network integration
+- **REST API** - Backend API endpoints
+- **Swagger UI** - Interactive API documentation
 
----
+## Standards & Compliance
 
-## Summary (For Submission)
-
-**Primary Technologies:**
-- Hedera Hashgraph (HCS, EVM, HBAR)
-- Solidity (Smart Contracts)
-- Node.js (Backend)
-- FHIR R4 (Healthcare Data Standard)
-
-**Key Integrations:**
-- Hedera Consensus Service for immutable proof storage
-- Hedera EVM for smart contract execution
-- HashScan for transaction verification
+- **FHIR R4** - Fast Healthcare Interoperability Resources
+- **HIPAA** - Healthcare data privacy (future)
+- **GDPR** - Data protection (future)
 

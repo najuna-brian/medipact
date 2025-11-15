@@ -53,11 +53,15 @@ This document explains how patient data is protected throughout the entire MediP
 
 ---
 
-### Phase 3: Anonymization Process (MediPact Adapter)
+### Phase 3: Double Anonymization Process (MediPact Adapter)
 
 **Location**: MediPact Adapter (Processing Server)
 
-**What Happens**:
+**What Happens**: MediPact applies **two-stage anonymization** for maximum privacy protection.
+
+#### Stage 1: Storage Anonymization
+
+**Purpose**: Optimized for research queries while protecting privacy
 
 #### Step 3.1: Load Hospital Configuration
 ```javascript
@@ -124,7 +128,79 @@ ID-12346 → PID-002
 - ✅ Mapping **NOT stored** on blockchain
 - ✅ Mapping kept **encrypted at hospital** (off-chain)
 
-#### Step 3.5: K-Anonymity Enforcement
+#### Step 3.5: Generate Storage Hash
+
+**What Happens**:
+```javascript
+storageHash = SHA-256(Stage1AnonymizedData)
+```
+
+**Storage Hash (H1)**: Cryptographic hash of Stage 1 anonymized data
+- Used for backend storage verification
+- Links to Stage 2 hash via provenance record
+
+#### Step 3.6: Apply Stage 2 (Chain) Anonymization
+
+**Purpose**: Maximum privacy for immutable blockchain storage
+
+**Additional Generalizations**:
+- Age Range: 5-year → 10-year (e.g., "35-39" → "30-39")
+- Dates: Exact → Month/Year (e.g., "2024-03-15" → "2024-03")
+- Location: Remove region/district (keep only country)
+- Occupation: Further generalize (e.g., "Healthcare Worker" → "Healthcare")
+- Suppress rare values
+
+**Output After Stage 2**:
+```csv
+Anonymous PID,Age Range,Country,Gender,Occupation Category,Lab Test,Test Date,Result
+PID-001,30-39,Uganda,Male,Healthcare,Blood Glucose,2024-01,95
+```
+
+**Privacy Protection**:
+- ✅ Extra generalization for immutable blockchain storage
+- ✅ Maximum privacy protection
+- ✅ Cannot be reversed or deleted
+
+#### Step 3.7: Generate Chain Hash and Provenance Proof
+
+**What Happens**:
+```javascript
+chainHash = SHA-256(Stage2AnonymizedData)
+provenanceProof = SHA-256({
+  storageHash,
+  chainHash,
+  anonymousPatientId,
+  resourceType
+})
+```
+
+**Chain Hash (H2)**: Cryptographic hash of Stage 2 anonymized data
+**Provenance Proof**: Links both hashes together
+
+#### Step 3.8: Create Provenance Record
+
+**What Happens**:
+```json
+{
+  "storage": {
+    "hash": "abc123...",
+    "anonymizationLevel": "storage"
+  },
+  "chain": {
+    "hash": "def456...",
+    "anonymizationLevel": "chain",
+    "derivedFrom": "abc123..."
+  },
+  "provenanceProof": "xyz789..."
+}
+```
+
+**Privacy Protection**:
+- ✅ Both hashes prove same source
+- ✅ Chain hash derived from storage hash (verifiable)
+- ✅ Complete transformation chain on blockchain
+
+#### Step 3.9: K-Anonymity Enforcement
 
 **Process**:
 1. Group records by: Country, Age Range, Gender, Occupation Category
@@ -246,6 +322,8 @@ submitMessage(client, dataTopicId, dataHash)
 - ✅ Only hashes stored (data not exposed)
 - ✅ Immutable proof of data integrity
 - ✅ Verifiable without revealing data
+- ✅ Provenance tracking (both hashes linked)
+- ✅ Transformation proof (chain derived from storage)
 
 #### Step 5.3: Store Consent Record on Smart Contract
 
@@ -477,9 +555,13 @@ PID-002,40-44,Uganda,Female,Education Worker,Blood Glucose,110,mg/dL
 
 - ✅ Anonymous patient IDs (PID-001, PID-002, etc.)
 - ✅ Cryptographic hashes (SHA-256)
+  - Storage hashes (H1) - Stage 1 anonymization
+  - Chain hashes (H2) - Stage 2 anonymization
+  - Provenance proofs - Links both hashes together
 - ✅ HCS topic IDs
 - ✅ Timestamps
 - ✅ Consent validity status
+- ✅ Provenance records (both hashes with transformation proof)
 
 ---
 
@@ -501,26 +583,41 @@ PID-002,40-44,Uganda,Female,Education Worker,Blood Glucose,110,mg/dL
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ PHASE 3: Anonymization                                      │
+│ PHASE 3: Double Anonymization                               │
+│                                                             │
+│ Stage 1: Storage Anonymization                              │
 │ - Remove PII (Name, ID, Address, Phone, DOB)               │
-│ - Generalize demographics (Age Range, Country, Gender,      │
-│   Occupation Category)                                      │
+│ - Generalize demographics (5-year Age Range, Country,        │
+│   Gender, Occupation Category)                               │
+│ - Preserve exact dates, region/district                     │
 │ - Generate Anonymous IDs (PID-001, PID-002)                │
+│ - Generate Storage Hash (H1)                                │
+│ - Store in Backend Database                                 │
+│                                                             │
+│ Stage 2: Chain Anonymization                                │
+│ - Further generalize (10-year Age Range)                     │
+│ - Round dates (month/year)                                  │
+│ - Remove region/district                                    │
+│ - Generalize occupation further                             │
+│ - Generate Chain Hash (H2)                                  │
+│ - Create Provenance Record (H1 + H2 + Proof)                │
+│                                                             │
 │ - Enforce K-Anonymity (minimum 5 records per group)         │
 │ - Patient mapping: Hospital memory (encrypted, off-chain)   │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ PHASE 4: Hash Generation                                    │
-│ - Generate data hashes (SHA-256)                            │
-│ - Generate consent hashes (SHA-256)                        │
+│ PHASE 4: Provenance Record Creation                         │
+│ - Storage Hash (H1)                                         │
+│ - Chain Hash (H2)                                           │
+│ - Provenance Proof (links H1 → H2)                         │
 │ - NO original patient IDs in hashes                        │
 └─────────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ PHASE 5: Blockchain Storage                                 │
 │ - Consent hashes → HCS Topic                                │
-│ - Data hashes → HCS Topic                                   │
+│ - Provenance records → HCS Topic (H1 + H2 + Proof)         │
 │ - Consent records → Smart Contract (anonymous IDs only)    │
 │ - NO PII stored on blockchain                               │
 └─────────────────────────────────────────────────────────────┘

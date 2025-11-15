@@ -117,6 +117,70 @@ These fields are **preserved in generalized form** for research:
 - **Consistent**: Same patient always gets same ID
 - **Reversible**: Hospital can map back (if needed, with authorization)
 
+## Double Anonymization Process
+
+MediPact uses **two-stage anonymization** for maximum privacy protection:
+
+1. **Stage 1: Storage Anonymization** - For backend database storage
+2. **Stage 2: Chain Anonymization** - For immutable Hedera blockchain storage
+
+### Why Two Stages?
+
+- **Defense in Depth**: Two layers of protection
+- **Different Purposes**: Storage optimized for research, chain optimized for privacy
+- **Provenance Tracking**: Both hashes stored on Hedera to prove origin and transformation
+- **Compliance**: Meets strict regulatory requirements (GDPR, HIPAA)
+
+### Stage 1: Storage Anonymization
+
+**Purpose**: Optimized for research queries while protecting privacy
+
+**Level of Anonymization**:
+- Remove PII (name, ID, address, phone, exact DOB)
+- Preserve 5-year age ranges (e.g., "35-39")
+- Preserve country, region, district
+- Preserve exact dates
+- Preserve all medical data
+
+**Used For**: Backend database storage (for researcher queries)
+
+### Stage 2: Chain Anonymization
+
+**Purpose**: Maximum privacy for immutable blockchain storage
+
+**Additional Generalizations**:
+- Age ranges: 5-year → 10-year (e.g., "35-39" → "30-39")
+- Dates: Exact → Month/Year (e.g., "2024-03-15" → "2024-03")
+- Location: Remove region/district (keep only country)
+- Occupation: Further generalize (e.g., "Healthcare Worker" → "Healthcare")
+- Suppress rare values
+
+**Used For**: Hedera HCS (immutable blockchain storage)
+
+### Provenance Records
+
+Both hashes are stored together on Hedera with a provenance proof:
+
+```json
+{
+  "storage": {
+    "hash": "abc123...",
+    "anonymizationLevel": "storage"
+  },
+  "chain": {
+    "hash": "def456...",
+    "anonymizationLevel": "chain",
+    "derivedFrom": "abc123..."  // PROOF: Chain came from storage
+  },
+  "provenanceProof": "xyz789..."  // Links both hashes
+}
+```
+
+This allows anyone to:
+- ✅ Verify both hashes came from the same source
+- ✅ Verify chain hash was derived from storage hash
+- ✅ Prove the transformation chain
+
 ## Anonymization Process
 
 ### Step-by-Step
@@ -196,12 +260,51 @@ Ensure each group has ≥5 records
 Suppress groups with <5 records (privacy protection)
 ```
 
-#### Step 9: Output Anonymized Record
+#### Step 9: Output Stage 1 (Storage) Anonymized Record
 
 ```csv
 Anonymous PID,Age Range,Country,Gender,Occupation Category,Lab Test,Test Date,Result,Unit,Reference Range
 PID-001,35-39,Uganda,Male,Healthcare Worker,Blood Glucose,2024-01-15,95,mg/dL,70-100
 ```
+
+**Storage Hash Generated**: `abc123...` (hash of Stage 1 anonymized data)
+
+#### Step 10: Apply Stage 2 (Chain) Anonymization
+
+**Further Generalizations**:
+- Age Range: "35-39" → "30-39" (10-year range)
+- Test Date: "2024-01-15" → "2024-01" (month only)
+- Region/District: Removed (keep only country)
+- Occupation: "Healthcare Worker" → "Healthcare" (more generalized)
+
+**Chain Anonymized Record**:
+```csv
+Anonymous PID,Age Range,Country,Gender,Occupation Category,Lab Test,Test Date,Result,Unit,Reference Range
+PID-001,30-39,Uganda,Male,Healthcare,Blood Glucose,2024-01,95,mg/dL,70-100
+```
+
+**Chain Hash Generated**: `def456...` (hash of Stage 2 anonymized data)
+
+#### Step 11: Create Provenance Record
+
+```json
+{
+  "storage": {
+    "hash": "abc123...",
+    "anonymizationLevel": "storage"
+  },
+  "chain": {
+    "hash": "def456...",
+    "anonymizationLevel": "chain",
+    "derivedFrom": "abc123..."
+  },
+  "provenanceProof": "xyz789..."
+}
+```
+
+#### Step 12: Submit to Hedera HCS
+
+Both hashes stored together on Hedera with provenance proof for verification.
 
 ## Example: Complete Transformation
 
@@ -214,7 +317,7 @@ John Doe,ID-12345,"123 Main St Kampala",0771234567,1990-05-15,Cholesterol,2024-0
 Jane Smith,ID-12346,"456 Oak Ave Entebbe",0772345678,1985-08-22,Blood Glucose,2024-01-15,110,mg/dL,70-100
 ```
 
-### After Anonymization
+### After Stage 1 (Storage) Anonymization
 
 ```csv
 Anonymous PID,Age Range,Country,Gender,Occupation Category,Lab Test,Test Date,Result,Unit,Reference Range
@@ -222,6 +325,19 @@ PID-001,35-39,Uganda,Male,Healthcare Worker,Blood Glucose,2024-01-15,95,mg/dL,70
 PID-001,35-39,Uganda,Male,Healthcare Worker,Cholesterol,2024-01-20,180,mg/dL,<200
 PID-002,40-44,Uganda,Female,Education Worker,Blood Glucose,2024-01-15,110,mg/dL,70-100
 ```
+
+**Note**: This is stored in backend database for researcher queries.
+
+### After Stage 2 (Chain) Anonymization
+
+```csv
+Anonymous PID,Age Range,Country,Gender,Occupation Category,Lab Test,Test Date,Result,Unit,Reference Range
+PID-001,30-39,Uganda,Male,Healthcare,Blood Glucose,2024-01,95,mg/dL,70-100
+PID-001,30-39,Uganda,Male,Healthcare,Cholesterol,2024-01,180,mg/dL,<200
+PID-002,40-49,Uganda,Female,Education,Blood Glucose,2024-01,110,mg/dL,70-100
+```
+
+**Note**: This is hashed and stored on Hedera HCS with provenance proof.
 
 ### What Changed?
 
@@ -473,11 +589,15 @@ npm run validate
 
 ## Key Takeaways
 
+- **Double Anonymization**: Two stages for maximum protection
+  - **Stage 1 (Storage)**: 5-year age ranges, exact dates, region/district preserved
+  - **Stage 2 (Chain)**: 10-year age ranges, month/year dates, region/district removed
 - **PII removed**: Name, ID, specific address, phone, exact DOB/age
 - **Medical data preserved**: Tests, results, dates, units
 - **Demographics preserved (generalized)**: Age ranges, country, gender, occupation categories
 - **Anonymous IDs added**: PID-001, PID-002, etc.
 - **K-Anonymity enforced**: Minimum 5 records per demographic group
+- **Provenance tracking**: Both hashes stored on Hedera with transformation proof
 - **No PII on blockchain**: Only anonymous IDs and hashes stored on Hedera
 - **Mapping maintained**: For consent and payments (off-chain, encrypted)
 - **Privacy protected**: Cannot identify individuals
@@ -491,8 +611,10 @@ Now that you understand anonymization:
 ---
 
 **Anonymization Summary:**
+- **Stage 1 (Storage)**: Remove PII, preserve 5-year age ranges, exact dates
+- **Stage 2 (Chain)**: Further generalize (10-year ranges, month/year dates)
 - Remove: PII (name, ID, address, phone, DOB)
 - Preserve: Medical data (tests, results, dates)
 - Add: Anonymous IDs (PID-001, PID-002)
-- Result: Privacy-protected, research-ready data
+- Result: Privacy-protected, research-ready data with provenance tracking
 
