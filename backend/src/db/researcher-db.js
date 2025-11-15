@@ -79,27 +79,50 @@ export async function researcherExists(email) {
  * Get researcher by ID
  */
 export async function getResearcher(researcherId) {
-  return await get(
-    `SELECT 
-      researcher_id as researcherId,
-      hedera_account_id as hederaAccountId,
-      evm_address as evmAddress,
-      email,
-      organization_name as organizationName,
-      contact_name as contactName,
-      country,
-      registration_number as registrationNumber,
-      verification_status as verificationStatus,
-      verification_documents as verificationDocuments,
-      verified_at as verifiedAt,
-      verified_by as verifiedBy,
-      access_level as accessLevel,
-      registered_at as registeredAt,
-      status
-    FROM researchers 
-    WHERE researcher_id = ? AND status = 'active'`,
-    [researcherId]
-  );
+  const { getDatabaseType } = await import('./database.js');
+  const dbType = getDatabaseType();
+  
+  // PostgreSQL lowercases unquoted identifiers, so we need to quote aliases
+  // Also, remove status filter to match getAllResearchers() behavior
+  const sql = dbType === 'postgresql'
+    ? `SELECT 
+        researcher_id as "researcherId",
+        hedera_account_id as "hederaAccountId",
+        evm_address as "evmAddress",
+        email,
+        organization_name as "organizationName",
+        contact_name as "contactName",
+        country,
+        registration_number as "registrationNumber",
+        verification_status as "verificationStatus",
+        verification_documents as "verificationDocuments",
+        verified_at as "verifiedAt",
+        verified_by as "verifiedBy",
+        access_level as "accessLevel",
+        registered_at as "registeredAt",
+        status
+      FROM researchers 
+      WHERE researcher_id = $1`
+    : `SELECT 
+        researcher_id as researcherId,
+        hedera_account_id as hederaAccountId,
+        evm_address as evmAddress,
+        email,
+        organization_name as organizationName,
+        contact_name as contactName,
+        country,
+        registration_number as registrationNumber,
+        verification_status as verificationStatus,
+        verification_documents as verificationDocuments,
+        verified_at as verifiedAt,
+        verified_by as verifiedBy,
+        access_level as accessLevel,
+        registered_at as registeredAt,
+        status
+      FROM researchers 
+      WHERE researcher_id = ?`;
+  
+  return await get(sql, [researcherId]);
 }
 
 /**
