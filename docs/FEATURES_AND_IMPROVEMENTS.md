@@ -2,7 +2,52 @@
 
 ## Overview
 
-This document outlines all the features and improvements implemented in the MediPact platform, including recent enhancements for pricing, patient control, security, encryption, and cross-hospital data sharing.
+This document outlines all the features and improvements implemented in the MediPact platform, including recent enhancements for pricing, patient control, security, encryption, cross-hospital data sharing, and **double anonymization with provenance tracking**.
+
+---
+
+## 🔒 Double Anonymization with Provenance Tracking
+
+### Overview
+
+MediPact implements **two-stage anonymization** with provenance tracking for maximum privacy protection and verifiable data transformation on the Hedera blockchain.
+
+### Features Implemented
+
+1. **Stage 1: Storage Anonymization**
+   - Remove PII (name, ID, address, phone, exact DOB)
+   - Preserve 5-year age ranges (e.g., "35-39")
+   - Preserve exact dates, region/district
+   - Optimized for research queries
+   - Stored in backend database
+
+2. **Stage 2: Chain Anonymization**
+   - Further generalize age ranges (5-year → 10-year)
+   - Round dates (exact → month/year)
+   - Remove region/district
+   - Generalize occupation further
+   - Maximum privacy for immutable blockchain storage
+
+3. **Provenance Records**
+   - Storage hash (H1) - Stage 1 anonymization
+   - Chain hash (H2) - Stage 2 anonymization
+   - Provenance proof - Links both hashes together
+   - Transformation proof - Chain derived from storage
+   - Stored on Hedera HCS for public verification
+
+### Benefits
+
+- ✅ **Double Protection**: Two layers of anonymization
+- ✅ **Defense in Depth**: If one layer fails, the other protects
+- ✅ **Provenance Tracking**: Verifiable transformation chain on Hedera
+- ✅ **Compliance Ready**: Meets strict regulatory requirements (GDPR, HIPAA)
+- ✅ **Public Verification**: Anyone can verify on HashScan
+
+### Documentation
+
+- [Double Anonymization Guide](./archive/DOUBLE_ANONYMIZATION.md) - Complete implementation guide
+- [Anonymization Tutorial](../archive/tutorial/13-anonymization.md) - Detailed process
+- [Data Flow Tutorial](../archive/tutorial/11-data-flow.md) - Complete data journey
 
 ---
 
