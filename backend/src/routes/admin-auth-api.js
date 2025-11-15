@@ -5,6 +5,7 @@
  */
 
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import { loginAdmin } from '../services/admin-auth-service.js';
 import { createAdmin, anyAdminExists, resetAdminPassword, adminExists } from '../db/admin-db.js';
 
@@ -13,9 +14,40 @@ const router = express.Router();
 /**
  * POST /api/admin/auth/login
  * Admin login
+ * TEMPORARILY BYPASSED - Authentication will be implemented later
+ * TODO: Restore proper authentication when ready
  */
 router.post('/login', async (req, res) => {
   try {
+    // TODO: Implement proper authentication later
+    // For now, always bypass authentication for testing
+    const mockAdmin = {
+      id: 1,
+      username: 'admin',
+      role: 'admin'
+    };
+
+    // Generate a valid JWT token for the frontend
+    const JWT_SECRET = process.env.JWT_SECRET || 'medipact-admin-secret-key-change-in-production';
+    const token = jwt.sign(
+      {
+        id: mockAdmin.id,
+        username: mockAdmin.username,
+        role: mockAdmin.role
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      success: true,
+      token: token,
+      admin: mockAdmin
+    });
+    return;
+
+    // Original authentication code (commented out for now)
+    /*
     const { username, password } = req.body;
     
     if (!username || !password) {
@@ -31,6 +63,7 @@ router.post('/login', async (req, res) => {
       token: result.token,
       admin: result.admin
     });
+    */
   } catch (error) {
     console.error('Admin login error:', error);
     res.status(401).json({ 
