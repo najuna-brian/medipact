@@ -1,11 +1,12 @@
 {
   "name": "medipact-adapter",
-  "version": "1.0.0",
-  "description": "MediPact Adapter - Core engine for processing EHR data and submitting to Hedera HCS",
+  "version": "2.0.0",
+  "description": "MediPact Universal Adapter - Connect to ANY healthcare system and extract ALL FHIR R4 resources",
   "type": "module",
-  "main": "src/index.js",
+  "main": "src/index-universal.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node src/index-universal.js",
+    "start:legacy": "node src/index.js",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
@@ -20,7 +21,12 @@
     "hedera",
     "hcs",
     "medical-data",
-    "anonymization"
+    "anonymization",
+    "fhir",
+    "openmrs",
+    "openelis",
+    "medic",
+    "universal-adapter"
   ],
   "author": "",
   "license": "Apache-2.0",
