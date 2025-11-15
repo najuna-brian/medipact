@@ -159,22 +159,46 @@ function AdminHospitalsPageContent() {
   const renderCertificate = (certificate: string | undefined) => {
     if (!certificate) return null;
 
-    // Check if it's a URL
-    if (certificate.startsWith('http://') || certificate.startsWith('https://')) {
+    // Check if it's already a data URL (starts with "data:")
+    if (certificate.startsWith('data:')) {
+      // Extract file type from data URL
+      const isPDF = certificate.includes('application/pdf');
+      const fileType = isPDF ? 'PDF' : 'Image';
+      
       return (
-        <a
-          href={certificate}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 text-blue-600 hover:underline"
-        >
-          <ExternalLink className="h-4 w-4" />
-          View Certificate URL
-        </a>
+        <div className="mt-2">
+          <a
+            href={certificate}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-blue-600 hover:underline"
+            download={`certificate.${isPDF ? 'pdf' : 'png'}`}
+          >
+            <FileText className="h-4 w-4" />
+            View {fileType} Certificate (opens in new tab)
+          </a>
+        </div>
       );
     }
 
-    // Check if it's base64
+    // Check if it's a URL
+    if (certificate.startsWith('http://') || certificate.startsWith('https://')) {
+      return (
+        <div className="mt-2">
+          <a
+            href={certificate}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-blue-600 hover:underline"
+          >
+            <ExternalLink className="h-4 w-4" />
+            View Certificate URL
+          </a>
+        </div>
+      );
+    }
+
+    // Check if it's plain base64 (without data: prefix)
     if (isBase64(certificate)) {
       // Try to determine file type
       const isPDF = certificate.length > 100; // Simple heuristic
@@ -189,9 +213,10 @@ function AdminHospitalsPageContent() {
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-blue-600 hover:underline"
+            download={`certificate.${isPDF ? 'pdf' : 'png'}`}
           >
             <FileText className="h-4 w-4" />
-            View Certificate
+            View Certificate (opens in new tab)
           </a>
         </div>
       );

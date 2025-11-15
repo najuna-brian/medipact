@@ -159,22 +159,46 @@ function AdminResearchersPageContent() {
   const renderDocument = (document: string | undefined) => {
     if (!document) return null;
 
-    // Check if it's a URL
-    if (document.startsWith('http://') || document.startsWith('https://')) {
+    // Check if it's already a data URL (starts with "data:")
+    if (document.startsWith('data:')) {
+      // Extract file type from data URL
+      const isPDF = document.includes('application/pdf');
+      const fileType = isPDF ? 'PDF' : 'Image';
+      
       return (
-        <a
-          href={document}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 text-blue-600 hover:underline"
-        >
-          <ExternalLink className="h-4 w-4" />
-          View Document URL
-        </a>
+        <div className="mt-2">
+          <a
+            href={document}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-blue-600 hover:underline"
+            download={`document.${isPDF ? 'pdf' : 'png'}`}
+          >
+            <FileText className="h-4 w-4" />
+            View {fileType} Document (opens in new tab)
+          </a>
+        </div>
       );
     }
 
-    // Check if it's base64
+    // Check if it's a URL
+    if (document.startsWith('http://') || document.startsWith('https://')) {
+      return (
+        <div className="mt-2">
+          <a
+            href={document}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-blue-600 hover:underline"
+          >
+            <ExternalLink className="h-4 w-4" />
+            View Document URL
+          </a>
+        </div>
+      );
+    }
+
+    // Check if it's plain base64 (without data: prefix)
     if (isBase64(document)) {
       const isPDF = document.length > 100;
       const dataUrl = isPDF
@@ -188,9 +212,10 @@ function AdminResearchersPageContent() {
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-blue-600 hover:underline"
+            download={`document.${isPDF ? 'pdf' : 'png'}`}
           >
             <FileText className="h-4 w-4" />
-            View Document
+            View Document (opens in new tab)
           </a>
         </div>
       );
