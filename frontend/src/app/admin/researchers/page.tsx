@@ -23,26 +23,12 @@ import {
   useRejectResearcher,
   useAdminResearcherDetail,
 } from '@/hooks/useAdminResearchers';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { AdminProtectedRoute } from '@/components/AdminProtectedRoute/AdminProtectedRoute';
 import { AdminSidebar } from '@/components/Sidebar/AdminSidebar';
 
 function AdminResearchersPageContent() {
   const [selectedResearcherId, setSelectedResearcherId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [researcherToReject, setResearcherToReject] = useState<string | null>(null);
-  const [showApproveDialog, setShowApproveDialog] = useState(false);
-  const [researcherToApprove, setResearcherToApprove] = useState<string | null>(null);
   const [approvalMessage, setApprovalMessage] = useState(
     'Your researcher verification has been approved. You can now purchase datasets and access the marketplace.'
   );
@@ -76,21 +62,15 @@ function AdminResearchersPageContent() {
     }
   };
 
-  const openApproveDialog = (researcherId: string) => {
-    setResearcherToApprove(researcherId);
-    setApprovalMessage(
-      'Your researcher verification has been approved. You can now purchase datasets and access the marketplace.'
-    );
-    setShowApproveDialog(true);
-  };
-
   const handleApprove = async () => {
-    if (!researcherToApprove) return;
+    if (!selectedResearcherId) return;
 
     try {
-      await approveMutation.mutateAsync({ researcherId: researcherToApprove });
-      setShowApproveDialog(false);
-      setResearcherToApprove(null);
+      await approveMutation.mutateAsync({ researcherId: selectedResearcherId });
+      setSelectedResearcherId(null);
+      setApprovalMessage(
+        'Your researcher verification has been approved. You can now purchase datasets and access the marketplace.'
+      );
 
       setTimeout(() => {
         window.dispatchEvent(new Event('researcher-verified'));
@@ -101,26 +81,20 @@ function AdminResearchersPageContent() {
   };
 
   const handleReject = async () => {
-    if (!researcherToReject || !rejectReason.trim()) {
+    if (!selectedResearcherId || !rejectReason.trim()) {
       return;
     }
 
     try {
       await rejectMutation.mutateAsync({
-        researcherId: researcherToReject,
+        researcherId: selectedResearcherId,
         reason: rejectReason.trim(),
       });
-      setShowRejectDialog(false);
-      setResearcherToReject(null);
+      setSelectedResearcherId(null);
       setRejectReason('');
     } catch (err) {
       console.error('Failed to reject researcher:', err);
     }
-  };
-
-  const openRejectDialog = (researcherId: string) => {
-    setResearcherToReject(researcherId);
-    setShowRejectDialog(true);
   };
 
   const viewDocuments = (researcherId: string) => {
@@ -287,28 +261,8 @@ function AdminResearchersPageContent() {
                             className="text-xs md:text-sm"
                           >
                             <Eye className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
-                            <span className="hidden sm:inline">View Documents</span>
+                            <span className="hidden sm:inline">View & Review</span>
                             <span className="sm:hidden">View</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openApproveDialog(researcher.researcherId)}
-                            disabled={approveMutation.isPending}
-                            className="border-green-200 text-xs text-green-700 hover:bg-green-50 md:text-sm"
-                          >
-                            <CheckCircle2 className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
-                            Approve
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openRejectDialog(researcher.researcherId)}
-                            disabled={rejectMutation.isPending}
-                            className="border-red-200 text-xs text-red-700 hover:bg-red-50 md:text-sm"
-                          >
-                            <XCircle className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
-                            Reject
                           </Button>
                         </div>
                       </div>
@@ -361,33 +315,8 @@ function AdminResearchersPageContent() {
                           onClick={() => viewDocuments(researcher.researcherId)}
                         >
                           <Eye className="mr-2 h-4 w-4" />
-                          View
+                          View & Review
                         </Button>
-                        {researcher.verificationStatus === 'pending' &&
-                          researcher.verificationDocuments && (
-                            <>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openApproveDialog(researcher.researcherId)}
-                                disabled={approveMutation.isPending}
-                                className="border-green-200 text-green-700 hover:bg-green-50"
-                              >
-                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Approve
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => openRejectDialog(researcher.researcherId)}
-                                disabled={rejectMutation.isPending}
-                                className="border-red-200 text-red-700 hover:bg-red-50"
-                              >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Reject
-                              </Button>
-                            </>
-                          )}
                       </div>
                     </div>
                   </CardHeader>
@@ -508,33 +437,100 @@ function AdminResearchersPageContent() {
                         </div>
                       )}
 
-                      <div className="flex justify-end gap-2">
+                      {/* Approve/Reject Actions - Only show for pending researchers */}
+                      {researcherDetail.verificationStatus === 'pending' &&
+                        researcherDetail.verificationDocuments && (
+                          <div className="space-y-4 border-t pt-4">
+                            {/* Approve Section */}
+                            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                              <h3 className="mb-3 font-semibold text-green-900">
+                                Approve Verification
+                              </h3>
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="mb-2 block text-sm font-medium text-green-900">
+                                    Approval Message (Optional)
+                                  </label>
+                                  <textarea
+                                    value={approvalMessage}
+                                    onChange={(e) => setApprovalMessage(e.target.value)}
+                                    placeholder="Optional message to include with approval..."
+                                    className="w-full rounded-lg border border-green-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
+                                    rows={3}
+                                  />
+                                  <p className="mt-1 text-xs text-green-700">
+                                    This message can be used for internal notes or notifications.
+                                  </p>
+                                </div>
+                                <Button
+                                  onClick={handleApprove}
+                                  disabled={approveMutation.isPending}
+                                  className="w-full bg-green-600 hover:bg-green-700"
+                                >
+                                  {approveMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Approving...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                                      Approve Researcher
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+
+                            {/* Reject Section */}
+                            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                              <h3 className="mb-3 font-semibold text-red-900">
+                                Reject Verification
+                              </h3>
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="mb-2 block text-sm font-medium text-red-900">
+                                    Rejection Reason <span className="text-red-600">*</span>
+                                  </label>
+                                  <textarea
+                                    value={rejectReason}
+                                    onChange={(e) => setRejectReason(e.target.value)}
+                                    placeholder="Enter the reason for rejection..."
+                                    className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200"
+                                    rows={4}
+                                    required
+                                  />
+                                  <p className="mt-1 text-xs text-red-700">
+                                    This reason will be visible to the researcher.
+                                  </p>
+                                </div>
+                                <Button
+                                  onClick={handleReject}
+                                  disabled={!rejectReason.trim() || rejectMutation.isPending}
+                                  variant="destructive"
+                                  className="w-full"
+                                >
+                                  {rejectMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Rejecting...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                      Reject Researcher
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                      <div className="flex justify-end gap-2 border-t pt-4">
                         <Button variant="outline" onClick={() => setSelectedResearcherId(null)}>
                           Close
                         </Button>
-                        {researcherDetail.verificationStatus === 'pending' &&
-                          researcherDetail.verificationDocuments && (
-                            <>
-                              <Button
-                                variant="outline"
-                                onClick={() => openApproveDialog(researcherDetail.researcherId)}
-                                disabled={approveMutation.isPending}
-                                className="border-green-200 text-green-700 hover:bg-green-50"
-                              >
-                                <CheckCircle2 className="mr-2 h-4 w-4" />
-                                Approve
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => openRejectDialog(researcherDetail.researcherId)}
-                                disabled={rejectMutation.isPending}
-                                className="border-red-200 text-red-700 hover:bg-red-50"
-                              >
-                                <XCircle className="mr-2 h-4 w-4" />
-                                Reject
-                              </Button>
-                            </>
-                          )}
                       </div>
                     </>
                   ) : null}
@@ -543,106 +539,6 @@ function AdminResearchersPageContent() {
             </div>
           )}
 
-          {/* Approve Dialog */}
-          <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Approve Researcher Verification</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Confirm approval of this researcher&apos;s verification. The researcher will be
-                  notified and will be able to purchase datasets and access the marketplace.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium">
-                    Approval Message (Optional)
-                  </label>
-                  <textarea
-                    value={approvalMessage}
-                    onChange={(e) => setApprovalMessage(e.target.value)}
-                    placeholder="Optional message to include with approval..."
-                    className="w-full rounded-lg border px-3 py-2"
-                    rows={3}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    This message can be used for internal notes or notifications.
-                  </p>
-                </div>
-              </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel
-                  onClick={() =>
-                    setApprovalMessage(
-                      'Your researcher verification has been approved. You can now purchase datasets and access the marketplace.'
-                    )
-                  }
-                >
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleApprove}
-                  disabled={approveMutation.isPending}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {approveMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Approving...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Confirm Approval
-                    </>
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          {/* Reject Dialog */}
-          <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reject Researcher Verification</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Please provide a reason for rejecting this researcher&apos;s verification request.
-                  This reason will be visible to the researcher.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Rejection Reason *</label>
-                  <textarea
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="Enter the reason for rejection..."
-                    className="w-full rounded-lg border px-3 py-2"
-                    rows={4}
-                    required
-                  />
-                </div>
-              </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setRejectReason('')}>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleReject}
-                  disabled={!rejectReason.trim() || rejectMutation.isPending}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  {rejectMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Rejecting...
-                    </>
-                  ) : (
-                    'Reject'
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
     </div>

@@ -21,26 +21,12 @@ import {
   useRejectHospital,
   useAdminHospitalDetail,
 } from '@/hooks/useAdminHospitals';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { AdminProtectedRoute } from '@/components/AdminProtectedRoute/AdminProtectedRoute';
 import { AdminSidebar } from '@/components/Sidebar/AdminSidebar';
 
 function AdminHospitalsPageContent() {
   const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [hospitalToReject, setHospitalToReject] = useState<string | null>(null);
-  const [showApproveDialog, setShowApproveDialog] = useState(false);
-  const [hospitalToApprove, setHospitalToApprove] = useState<string | null>(null);
   const [approvalMessage, setApprovalMessage] = useState(
     'Your hospital verification has been approved. You can now register patients and use all features.'
   );
@@ -75,21 +61,15 @@ function AdminHospitalsPageContent() {
     }
   };
 
-  const openApproveDialog = (hospitalId: string) => {
-    setHospitalToApprove(hospitalId);
-    setApprovalMessage(
-      'Your hospital verification has been approved. You can now register patients and use all features.'
-    );
-    setShowApproveDialog(true);
-  };
-
   const handleApprove = async () => {
-    if (!hospitalToApprove) return;
+    if (!selectedHospitalId) return;
 
     try {
-      await approveMutation.mutateAsync({ hospitalId: hospitalToApprove });
-      setShowApproveDialog(false);
-      setHospitalToApprove(null);
+      await approveMutation.mutateAsync({ hospitalId: selectedHospitalId });
+      setSelectedHospitalId(null);
+      setApprovalMessage(
+        'Your hospital verification has been approved. You can now register patients and use all features.'
+      );
 
       // Force refetch after a short delay to ensure cache is updated
       setTimeout(() => {
@@ -102,26 +82,20 @@ function AdminHospitalsPageContent() {
   };
 
   const handleReject = async () => {
-    if (!hospitalToReject || !rejectReason.trim()) {
+    if (!selectedHospitalId || !rejectReason.trim()) {
       return;
     }
 
     try {
       await rejectMutation.mutateAsync({
-        hospitalId: hospitalToReject,
+        hospitalId: selectedHospitalId,
         reason: rejectReason.trim(),
       });
-      setShowRejectDialog(false);
-      setHospitalToReject(null);
+      setSelectedHospitalId(null);
       setRejectReason('');
     } catch (err) {
       console.error('Failed to reject hospital:', err);
     }
-  };
-
-  const openRejectDialog = (hospitalId: string) => {
-    setHospitalToReject(hospitalId);
-    setShowRejectDialog(true);
   };
 
   const viewDocuments = (hospitalId: string) => {
@@ -266,8 +240,8 @@ function AdminHospitalsPageContent() {
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold md:text-xl">Pending Verifications</h2>
               <div className="space-y-4">
-                {pendingHospitals.map((hospital) => (
-                  <Card key={hospital.hospitalId} className="border-yellow-200">
+                {pendingHospitals.map((hospital, index) => (
+                  <Card key={hospital.hospitalId || `pending-hospital-${index}`} className="border-yellow-200">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -289,28 +263,8 @@ function AdminHospitalsPageContent() {
                             className="text-xs md:text-sm"
                           >
                             <Eye className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
-                            <span className="hidden sm:inline">View Documents</span>
+                            <span className="hidden sm:inline">View & Review</span>
                             <span className="sm:hidden">View</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openApproveDialog(hospital.hospitalId)}
-                            disabled={approveMutation.isPending}
-                            className="border-green-200 text-xs text-green-700 hover:bg-green-50 md:text-sm"
-                          >
-                            <CheckCircle2 className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
-                            Approve
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => openRejectDialog(hospital.hospitalId)}
-                            disabled={rejectMutation.isPending}
-                            className="border-red-200 text-xs text-red-700 hover:bg-red-50 md:text-sm"
-                          >
-                            <XCircle className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
-                            Reject
                           </Button>
                         </div>
                       </div>
@@ -325,9 +279,9 @@ function AdminHospitalsPageContent() {
           <div>
             <h2 className="mb-4 text-lg font-semibold md:text-xl">All Hospitals</h2>
             <div className="space-y-4">
-              {hospitals.map((hospital) => (
+              {hospitals.map((hospital, index) => (
                 <Card
-                  key={hospital.hospitalId}
+                  key={hospital.hospitalId || `hospital-${index}`}
                   className={
                     hospital.verificationStatus === 'verified'
                       ? 'border-green-200'
@@ -363,32 +317,8 @@ function AdminHospitalsPageContent() {
                           onClick={() => viewDocuments(hospital.hospitalId)}
                         >
                           <Eye className="mr-2 h-4 w-4" />
-                          View
+                          View & Review
                         </Button>
-                        {hospital.verificationStatus === 'pending' && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openApproveDialog(hospital.hospitalId)}
-                              disabled={approveMutation.isPending}
-                              className="border-green-200 text-green-700 hover:bg-green-50"
-                            >
-                              <CheckCircle2 className="mr-2 h-4 w-4" />
-                              Approve
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => openRejectDialog(hospital.hospitalId)}
-                              disabled={rejectMutation.isPending}
-                              className="border-red-200 text-red-700 hover:bg-red-50"
-                            >
-                              <XCircle className="mr-2 h-4 w-4" />
-                              Reject
-                            </Button>
-                          </>
-                        )}
                       </div>
                     </div>
                   </CardHeader>
@@ -521,32 +451,97 @@ function AdminHospitalsPageContent() {
                         </div>
                       )}
 
-                      <div className="flex justify-end gap-2">
+                      {/* Approve/Reject Actions - Only show for pending hospitals */}
+                      {hospitalDetail.verificationStatus === 'pending' && (
+                        <div className="space-y-4 border-t pt-4">
+                          {/* Approve Section */}
+                          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                            <h3 className="mb-3 font-semibold text-green-900">
+                              Approve Verification
+                            </h3>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="mb-2 block text-sm font-medium text-green-900">
+                                  Approval Message (Optional)
+                                </label>
+                                <textarea
+                                  value={approvalMessage}
+                                  onChange={(e) => setApprovalMessage(e.target.value)}
+                                  placeholder="Optional message to include with approval..."
+                                  className="w-full rounded-lg border border-green-300 bg-white px-3 py-2 text-sm focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200"
+                                  rows={3}
+                                />
+                                <p className="mt-1 text-xs text-green-700">
+                                  This message can be used for internal notes or notifications.
+                                </p>
+                              </div>
+                              <Button
+                                onClick={handleApprove}
+                                disabled={approveMutation.isPending}
+                                className="w-full bg-green-600 hover:bg-green-700"
+                              >
+                                {approveMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Approving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                                    Approve Hospital
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Reject Section */}
+                          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                            <h3 className="mb-3 font-semibold text-red-900">Reject Verification</h3>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="mb-2 block text-sm font-medium text-red-900">
+                                  Rejection Reason <span className="text-red-600">*</span>
+                                </label>
+                                <textarea
+                                  value={rejectReason}
+                                  onChange={(e) => setRejectReason(e.target.value)}
+                                  placeholder="Enter the reason for rejection..."
+                                  className="w-full rounded-lg border border-red-300 bg-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200"
+                                  rows={4}
+                                  required
+                                />
+                                <p className="mt-1 text-xs text-red-700">
+                                  This reason will be visible to the hospital.
+                                </p>
+                              </div>
+                              <Button
+                                onClick={handleReject}
+                                disabled={!rejectReason.trim() || rejectMutation.isPending}
+                                variant="destructive"
+                                className="w-full"
+                              >
+                                {rejectMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Rejecting...
+                                  </>
+                                ) : (
+                                  <>
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Reject Hospital
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end gap-2 border-t pt-4">
                         <Button variant="outline" onClick={() => setSelectedHospitalId(null)}>
                           Close
                         </Button>
-                        {hospitalDetail.verificationStatus === 'pending' && (
-                          <>
-                            <Button
-                              variant="outline"
-                              onClick={() => openApproveDialog(hospitalDetail.hospitalId)}
-                              disabled={approveMutation.isPending}
-                              className="border-green-200 text-green-700 hover:bg-green-50"
-                            >
-                              <CheckCircle2 className="mr-2 h-4 w-4" />
-                              Approve
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => openRejectDialog(hospitalDetail.hospitalId)}
-                              disabled={rejectMutation.isPending}
-                              className="border-red-200 text-red-700 hover:bg-red-50"
-                            >
-                              <XCircle className="mr-2 h-4 w-4" />
-                              Reject
-                            </Button>
-                          </>
-                        )}
                       </div>
                     </>
                   ) : null}
@@ -554,107 +549,6 @@ function AdminHospitalsPageContent() {
               </Card>
             </div>
           )}
-
-          {/* Approve Dialog */}
-          <AlertDialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Approve Hospital Verification</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Confirm approval of this hospital&apos;s verification. The hospital will be
-                  notified and will be able to register patients and use all features.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium">
-                    Approval Message (Optional)
-                  </label>
-                  <textarea
-                    value={approvalMessage}
-                    onChange={(e) => setApprovalMessage(e.target.value)}
-                    placeholder="Optional message to include with approval..."
-                    className="w-full rounded-lg border px-3 py-2"
-                    rows={3}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    This message can be used for internal notes or notifications.
-                  </p>
-                </div>
-              </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel
-                  onClick={() =>
-                    setApprovalMessage(
-                      'Your hospital verification has been approved. You can now register patients and use all features.'
-                    )
-                  }
-                >
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleApprove}
-                  disabled={approveMutation.isPending}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {approveMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Approving...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Confirm Approval
-                    </>
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          {/* Reject Dialog */}
-          <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reject Hospital Verification</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Please provide a reason for rejecting this hospital&apos;s verification request.
-                  This reason will be visible to the hospital.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Rejection Reason *</label>
-                  <textarea
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="Enter the reason for rejection..."
-                    className="w-full rounded-lg border px-3 py-2"
-                    rows={4}
-                    required
-                  />
-                </div>
-              </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setRejectReason('')}>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleReject}
-                  disabled={!rejectReason.trim() || rejectMutation.isPending}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  {rejectMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Rejecting...
-                    </>
-                  ) : (
-                    'Reject'
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
     </div>
