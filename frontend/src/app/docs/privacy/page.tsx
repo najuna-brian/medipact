@@ -123,11 +123,24 @@ export default function PrivacyPage() {
           <div className="flex items-start space-x-3 rounded-lg border border-green-200 bg-green-50 p-4">
             <span className="text-green-600">✅</span>
             <div>
-              <h3 className="font-semibold text-gray-900">Demographics Generalized</h3>
+              <h3 className="font-semibold text-gray-900">Double Anonymization</h3>
               <p className="mt-1 text-sm text-gray-700">
-                Exact dates of birth are converted to age ranges. Specific addresses are removed,
-                keeping only country-level information. This prevents re-identification through
-                demographic matching.
+                <strong>Stage 1 (Storage):</strong> 5-year age ranges, exact dates, region/district
+                preserved for research queries.
+                <strong>Stage 2 (Chain):</strong> 10-year age ranges, month/year dates,
+                region/district removed for maximum blockchain privacy. Both hashes stored with
+                provenance proof for verifiable transformation.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start space-x-3 rounded-lg border border-green-200 bg-green-50 p-4">
+            <span className="text-green-600">✅</span>
+            <div>
+              <h3 className="font-semibold text-gray-900">Provenance Tracking</h3>
+              <p className="mt-1 text-sm text-gray-700">
+                Both storage and chain hashes are stored together on Hedera with a provenance proof,
+                allowing anyone to verify that the chain hash was derived from the storage hash.
+                This provides complete audit trail and transformation verification.
               </p>
             </div>
           </div>
@@ -155,27 +168,53 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Anonymization Process</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Double Anonymization Process</h2>
+        <div className="mt-4 rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-6">
+          <h3 className="text-lg font-semibold text-[#00A9CE]">Two-Stage Protection</h3>
+          <p className="mt-2 text-gray-700">
+            MediPact implements <strong>double anonymization</strong> with provenance tracking for
+            maximum privacy protection:
+          </p>
+          <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
+            <li>
+              <strong>Stage 1 (Storage):</strong> Optimized for research queries - 5-year age
+              ranges, exact dates
+            </li>
+            <li>
+              <strong>Stage 2 (Chain):</strong> Maximum privacy for blockchain - 10-year age ranges,
+              month/year dates
+            </li>
+            <li>
+              <strong>Provenance Tracking:</strong> Both hashes stored on Hedera with transformation
+              proof
+            </li>
+          </ul>
+        </div>
         <MermaidDiagram
           chart={`flowchart TD
     A[Raw Patient Data] --> B{Contains PII?}
-    B -->|Yes| C[Remove PII]
+    B -->|Yes| C[Stage 1: Remove PII]
     B -->|No| D[Keep Medical Data]
-    C --> E[Generalize Demographics]
+    C --> E[Generalize Demographics<br/>5-year age ranges<br/>Exact dates]
     E --> F[Generate Anonymous ID]
     F --> G[Group by Demographics]
     G --> H{K-Anonymity<br/>Check}
     H -->|Group Size < 5| I[Suppress Record]
-    H -->|Group Size >= 5| J[Include in Dataset]
+    H -->|Group Size >= 5| J[Store in Backend]
     D --> J
-    J --> K[Generate Hash]
-    K --> L[Submit to HCS]
-    I --> M[Log Suppression]
+    J --> K[Stage 2: Further Generalize<br/>10-year age ranges<br/>Month/year dates]
+    K --> L[Generate Storage Hash H1]
+    K --> M[Generate Chain Hash H2]
+    L --> N[Create Provenance Record]
+    M --> N
+    N --> O[Submit to HCS]
+    I --> P[Log Suppression]
     
     style A fill:#FFCDD2,stroke:#D32F2F,stroke-width:2px
     style C fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
     style E fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
-    style L fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style K fill:#E1BEE7,stroke:#7B1FA2,stroke-width:2px
+    style O fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
     style I fill:#FFE0B2,stroke:#F57C00,stroke-width:2px`}
         />
       </section>

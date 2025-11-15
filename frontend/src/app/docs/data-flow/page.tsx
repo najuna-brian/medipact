@@ -23,9 +23,11 @@ export default function DataFlowPage() {
     participant R as Researcher
     
     H->>A: Export EHR Data
-    A->>A: Anonymize PII<br/>Generate Anonymous IDs
+    A->>A: Stage 1: Storage Anonymization<br/>Remove PII, 5-year age ranges
+    A->>B: Store Stage 1 Data
+    A->>A: Stage 2: Chain Anonymization<br/>10-year ranges, month/year dates
     A->>HCS: Submit Consent Proof
-    A->>HCS: Submit Data Proof
+    A->>HCS: Submit Provenance Record<br/>(Storage Hash + Chain Hash)
     A->>SC: Record Consent
     A->>B: Store Anonymized Data
     B->>B: Create Dataset
@@ -57,22 +59,29 @@ export default function DataFlowPage() {
         <MermaidDiagram
           chart={`flowchart LR
     A[Raw EHR Data] --> B[Parse & Validate]
-    B --> C[Anonymize PII]
-    C --> D[Preserve Demographics]
+    B --> C[Stage 1: Storage Anonymization]
+    C --> D[Remove PII<br/>5-year age ranges<br/>Exact dates]
     D --> E[Generate Anonymous IDs]
     E --> F[Enforce K-Anonymity]
-    F --> G[Generate Hashes]
-    G --> H[Submit to HCS]
-    H --> I[Record on Contract]
-    I --> J[Store in Backend]
-    J --> K[Marketplace Ready]
+    F --> G[Store in Backend]
+    G --> H[Stage 2: Chain Anonymization]
+    H --> I[10-year ranges<br/>Month/year dates<br/>Remove region]
+    I --> J[Generate Storage Hash H1]
+    I --> K[Generate Chain Hash H2]
+    J --> L[Create Provenance Record]
+    K --> L
+    L --> M[Submit to HCS]
+    M --> N[Record on Contract]
+    N --> O[Marketplace Ready]
     
     style A fill:#FFCDD2,stroke:#D32F2F,stroke-width:2px
     style C fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
     style D fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
-    style H fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style I fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style K fill:#BBDEFB,stroke:#1976D2,stroke-width:2px`}
+    style H fill:#E1BEE7,stroke:#7B1FA2,stroke-width:2px
+    style I fill:#E1BEE7,stroke:#7B1FA2,stroke-width:2px
+    style M fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style N fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style O fill:#BBDEFB,stroke:#1976D2,stroke-width:2px`}
         />
       </section>
 
@@ -88,14 +97,44 @@ export default function DataFlowPage() {
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">2. Anonymization</h3>
-            <p className="mt-2 text-gray-700">The adapter service processes the raw data:</p>
-            <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
-              <li>Removes PII: names, addresses, phone numbers, exact dates of birth</li>
-              <li>Preserves demographics: age ranges, country, gender, occupation</li>
-              <li>Generates anonymous patient IDs (PID-001, PID-002, etc.)</li>
-              <li>Enforces K-anonymity (minimum 5 records per demographic group)</li>
-            </ul>
+            <h3 className="text-lg font-semibold text-gray-900">2. Double Anonymization</h3>
+            <p className="mt-2 text-gray-700">
+              The adapter service applies <strong>two-stage anonymization</strong> for maximum
+              privacy:
+            </p>
+            <div className="mt-4 space-y-4">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <h4 className="font-semibold text-gray-900">Stage 1: Storage Anonymization</h4>
+                <ul className="mt-2 list-disc space-y-1 pl-6 text-sm text-gray-700">
+                  <li>Removes PII: names, addresses, phone numbers, exact dates of birth</li>
+                  <li>Preserves 5-year age ranges (e.g., "35-39")</li>
+                  <li>Preserves exact dates, region/district</li>
+                  <li>Generates anonymous patient IDs (PID-001, PID-002, etc.)</li>
+                  <li>Stored in backend database for researcher queries</li>
+                </ul>
+              </div>
+              <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
+                <h4 className="font-semibold text-gray-900">Stage 2: Chain Anonymization</h4>
+                <ul className="mt-2 list-disc space-y-1 pl-6 text-sm text-gray-700">
+                  <li>Further generalizes age ranges (5-year → 10-year)</li>
+                  <li>Rounds dates (exact → month/year)</li>
+                  <li>Removes region/district (keep only country)</li>
+                  <li>Generalizes occupation further</li>
+                  <li>Used for immutable blockchain storage</li>
+                </ul>
+              </div>
+              <div className="rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-4">
+                <h4 className="font-semibold text-[#00A9CE]">Provenance Records</h4>
+                <p className="mt-2 text-sm text-gray-700">
+                  Both hashes (Storage H1 + Chain H2) are stored together on Hedera with a
+                  provenance proof linking them, allowing anyone to verify the transformation chain.
+                </p>
+              </div>
+            </div>
+            <p className="mt-4 text-sm text-gray-600">
+              <strong>K-anonymity enforced:</strong> Minimum 5 records per demographic group at both
+              stages.
+            </p>
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-6">
@@ -107,13 +146,23 @@ export default function DataFlowPage() {
                 timestamp
               </li>
               <li>
-                <strong>HCS Data Topic:</strong> Cryptographic hash of the anonymized dataset
+                <strong>HCS Data Topic:</strong> Provenance records containing:
+                <ul className="mt-1 list-disc space-y-1 pl-6">
+                  <li>Storage hash (H1) - Stage 1 anonymization</li>
+                  <li>Chain hash (H2) - Stage 2 anonymization</li>
+                  <li>Provenance proof - Links both hashes together</li>
+                  <li>Transformation proof - Chain derived from storage</li>
+                </ul>
               </li>
               <li>
                 <strong>ConsentManager Contract:</strong> Records consent with anonymous ID and data
                 hash
               </li>
             </ul>
+            <p className="mt-4 text-sm text-gray-600">
+              Both hashes are stored together, allowing public verification of origin and
+              transformation on HashScan.
+            </p>
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-6">
@@ -210,7 +259,11 @@ export default function DataFlowPage() {
           </p>
           <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
             <li>
-              <strong>HCS Messages:</strong> View consent and data proof submissions
+              <strong>HCS Messages:</strong> View consent and provenance record submissions
+            </li>
+            <li>
+              <strong>Provenance Records:</strong> Verify both storage and chain hashes, and the
+              transformation proof linking them
             </li>
             <li>
               <strong>Smart Contract Calls:</strong> Verify consent records and revenue

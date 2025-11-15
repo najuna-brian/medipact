@@ -16,7 +16,8 @@ export default function APIPage() {
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
           <CodeBlock code="http://localhost:3002" language="text" />
           <p className="mt-4 text-gray-700">
-            All API endpoints are prefixed with the base URL. For production, replace with your production API URL.
+            All API endpoints are prefixed with the base URL. For production, replace with your
+            production API URL.
           </p>
         </div>
       </section>
@@ -30,7 +31,8 @@ export default function APIPage() {
           </p>
           <CodeBlock code="http://localhost:3002/api-docs" language="text" />
           <p className="mt-4 text-sm text-gray-600">
-            The Swagger UI provides a complete interface to explore all endpoints, test requests, and view response schemas.
+            The Swagger UI provides a complete interface to explore all endpoints, test requests,
+            and view response schemas.
           </p>
         </div>
       </section>
@@ -39,7 +41,9 @@ export default function APIPage() {
         <h2 className="text-2xl font-bold text-gray-900">Authentication</h2>
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
           <h3 className="text-lg font-semibold text-gray-900">Hospital Authentication</h3>
-          <p className="mt-2 text-gray-700">Hospitals authenticate using hospital_id and api_key:</p>
+          <p className="mt-2 text-gray-700">
+            Hospitals authenticate using hospital_id and api_key:
+          </p>
           <CodeBlock
             code={`POST /api/hospital/login
 Content-Type: application/json
@@ -86,10 +90,7 @@ Content-Type: application/json
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">Get Patient by UPI</h3>
-            <CodeBlock
-              code={`GET /api/patient/:upi`}
-              language="text"
-            />
+            <CodeBlock code={`GET /api/patient/:upi`} language="text" />
           </div>
         </div>
       </section>
@@ -204,9 +205,7 @@ Content-Type: application/json
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">Purchase Dataset</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Purchase flow with payment verification:
-            </p>
+            <p className="mt-2 text-sm text-gray-600">Purchase flow with payment verification:</p>
             <CodeBlock
               code={`# Step 1: Initiate purchase (without transaction ID)
 POST /api/marketplace/purchase
@@ -436,7 +435,7 @@ Content-Type: application/json
               language="json"
             />
             <p className="mt-2 text-sm text-gray-600">
-              Use the token in subsequent requests: <code>Authorization: Bearer {token}</code>
+              Use the token in subsequent requests: <code>Authorization: Bearer {'{token}'}</code>
             </p>
           </div>
 
@@ -444,8 +443,8 @@ Content-Type: application/json
             <h3 className="text-lg font-semibold text-gray-900">List All Hospitals</h3>
             <p className="mt-2 text-sm text-gray-600">
               Retrieve all hospitals with their verification status and document submission status.
-              Hospitals are categorized by verification status (pending/verified/rejected) and whether
-              they have submitted documents.
+              Hospitals are categorized by verification status (pending/verified/rejected) and
+              whether they have submitted documents.
             </p>
             <CodeBlock
               code={`GET /api/admin/hospitals
@@ -475,8 +474,9 @@ Authorization: Bearer {token}
             <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
               <p className="text-sm text-blue-900">
                 <strong>Note:</strong> Hospitals without submitted documents will have{' '}
-                <code>verificationDocuments: null</code>. Only hospitals with actual document content
-                (license number, certificate, etc.) will have the documents object populated.
+                <code>verificationDocuments: null</code>. Only hospitals with actual document
+                content (license number, certificate, etc.) will have the documents object
+                populated.
               </p>
             </div>
           </div>
@@ -518,11 +518,12 @@ Authorization: Bearer {token}
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-6 text-sm text-green-800">
                 <li>
-                  <strong>Data URLs:</strong> <code>data:application/pdf;base64,...</code> (base64-encoded PDFs)
+                  <strong>Data URLs:</strong> <code>data:application/pdf;base64,...</code>{' '}
+                  (base64-encoded PDFs)
                 </li>
                 <li>
-                  <strong>External URLs:</strong> <code>https://example.com/certificate.pdf</code> (publicly
-                  accessible links)
+                  <strong>External URLs:</strong> <code>https://example.com/certificate.pdf</code>{' '}
+                  (publicly accessible links)
                 </li>
               </ul>
             </div>
@@ -561,8 +562,8 @@ Content-Type: application/json
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">Reject Hospital Verification</h3>
             <p className="mt-2 text-sm text-gray-600">
-              Reject a hospital's verification request with a reason. The hospital will be notified and
-              can resubmit documents after addressing the issues.
+              Reject a hospital's verification request with a reason. The hospital will be notified
+              and can resubmit documents after addressing the issues.
             </p>
             <CodeBlock
               code={`POST /api/admin/hospitals/:hospitalId/reject
@@ -596,7 +597,8 @@ Content-Type: application/json
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">List All Researchers</h3>
             <p className="mt-2 text-sm text-gray-600">
-              Retrieve all researchers with their verification status and document submission status.
+              Retrieve all researchers with their verification status and document submission
+              status.
             </p>
             <CodeBlock
               code={`GET /api/admin/researchers
@@ -699,10 +701,7 @@ Content-Type: application/json
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">Get Transaction Details</h3>
-            <CodeBlock
-              code={`GET /api/hedera/transactions/:transactionId`}
-              language="text"
-            />
+            <CodeBlock code={`GET /api/hedera/transactions/:transactionId`} language="text" />
           </div>
         </div>
       </section>
@@ -721,11 +720,21 @@ Content-Type: application/json
           <div className="mt-4">
             <h4 className="font-semibold text-gray-900">Common Status Codes:</h4>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-sm text-gray-700">
-              <li><code>400</code> - Bad Request</li>
-              <li><code>401</code> - Unauthorized</li>
-              <li><code>403</code> - Forbidden</li>
-              <li><code>404</code> - Not Found</li>
-              <li><code>500</code> - Internal Server Error</li>
+              <li>
+                <code>400</code> - Bad Request
+              </li>
+              <li>
+                <code>401</code> - Unauthorized
+              </li>
+              <li>
+                <code>403</code> - Forbidden
+              </li>
+              <li>
+                <code>404</code> - Not Found
+              </li>
+              <li>
+                <code>500</code> - Internal Server Error
+              </li>
             </ul>
           </div>
         </div>

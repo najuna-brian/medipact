@@ -339,6 +339,16 @@ export default function DocsOverviewPage() {
             </p>
           </a>
           <a
+            href="/docs/double-anonymization"
+            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+          >
+            <h3 className="text-lg font-semibold text-[#00A9CE]">Double Anonymization</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Learn about our two-stage anonymization process with provenance tracking for maximum
+              privacy protection.
+            </p>
+          </a>
+          <a
             href="/docs/smart-contracts"
             className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
           >
