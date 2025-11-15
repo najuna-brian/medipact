@@ -56,10 +56,10 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-7xl">
-        {/* Sidebar */}
-        <aside className="hidden w-64 border-r border-gray-200 bg-white lg:block">
-          <nav className="sticky top-0 p-4">
+      <div className="mx-auto flex max-w-7xl flex-col md:flex-row">
+        {/* Desktop Sidebar - Show on md and above */}
+        <aside className="hidden w-64 flex-shrink-0 border-r border-gray-200 bg-white md:block">
+          <nav className="sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto p-4">
             <ul className="space-y-1">
               {docsNav.map((item) => {
                 const Icon = item.icon;
@@ -74,7 +74,7 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-4 w-4 flex-shrink-0" />
                       <span>{item.label}</span>
                     </Link>
                   </li>
@@ -84,15 +84,15 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
           </nav>
         </aside>
 
-        {/* Mobile Sidebar */}
-        <aside className="w-full border-b border-gray-200 bg-white lg:hidden">
+        {/* Mobile/Tablet Horizontal Sidebar - Show on small screens only */}
+        <aside className="w-full border-b border-gray-200 bg-white md:hidden">
           <nav className="overflow-x-auto p-4">
             <ul className="flex space-x-2">
               {docsNav.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
                 return (
-                  <li key={item.href}>
+                  <li key={item.href} className="flex-shrink-0">
                     <Link
                       href={item.href}
                       className={`flex items-center space-x-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -101,7 +101,7 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
                           : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon className="h-4 w-4 flex-shrink-0" />
                       <span>{item.label}</span>
                     </Link>
                   </li>
@@ -112,9 +112,11 @@ export default function DocsLayout({ children }: DocsLayoutProps) {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-4xl prose prose-lg prose-slate">
-            {children}
+        <main className="min-w-0 flex-1 px-4 py-8 sm:px-6 md:px-8">
+          <div className="mx-auto max-w-4xl">
+            <div className="prose prose-sm sm:prose-base md:prose-lg prose-slate max-w-none">
+              {children}
+            </div>
           </div>
         </main>
       </div>
