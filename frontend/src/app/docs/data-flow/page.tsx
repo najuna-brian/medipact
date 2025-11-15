@@ -2,16 +2,16 @@ import MermaidDiagram from '@/components/docs/MermaidDiagram';
 
 export default function DataFlowPage() {
   return (
-    <div className="space-y-8">
-      <div className="border-b border-gray-200 pb-8">
-        <h1 className="text-4xl font-bold text-gray-900">Data Flow</h1>
-        <p className="mt-4 text-lg text-gray-600">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="border-b border-gray-200 pb-4 sm:pb-6 md:pb-8">
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl md:text-4xl">Data Flow</h1>
+        <p className="mt-2 text-sm text-gray-600 sm:mt-3 sm:text-base md:mt-4 md:text-lg">
           Complete data flow from EHR export to marketplace purchase and revenue distribution.
         </p>
       </div>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Complete Data Flow Sequence</h2>
+        <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">Complete Data Flow Sequence</h2>
         <MermaidDiagram
           chart={`sequenceDiagram
     participant H as Hospital EHR
@@ -55,7 +55,7 @@ export default function DataFlowPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Processing Pipeline</h2>
+        <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">Processing Pipeline</h2>
         <MermaidDiagram
           chart={`flowchart LR
     A[Raw EHR Data] --> B[Parse & Validate]
@@ -86,26 +86,30 @@ export default function DataFlowPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Step-by-Step Process</h2>
-        <div className="mt-4 space-y-6">
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">1. Data Export</h3>
+        <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">Step-by-Step Process</h2>
+        <div className="mt-3 space-y-4 sm:mt-4 sm:space-y-6">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base font-semibold text-gray-900 sm:text-lg">1. Data Export</h3>
             <p className="mt-2 text-gray-700">
               Hospitals export EHR data in FHIR R4 format. The data includes patient records,
               conditions, observations, and other medical information.
             </p>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">2. Double Anonymization</h3>
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
+              2. Double Anonymization
+            </h3>
             <p className="mt-2 text-gray-700">
               The adapter service applies <strong>two-stage anonymization</strong> for maximum
               privacy:
             </p>
             <div className="mt-4 space-y-4">
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <h4 className="font-semibold text-gray-900">Stage 1: Storage Anonymization</h4>
-                <ul className="mt-2 list-disc space-y-1 pl-6 text-sm text-gray-700">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 sm:p-4">
+                <h4 className="text-sm font-semibold text-gray-900 sm:text-base">
+                  Stage 1: Storage Anonymization
+                </h4>
+                <ul className="mt-1.5 list-disc space-y-1 pl-5 text-xs text-gray-700 sm:mt-2 sm:pl-6 sm:text-sm">
                   <li>Removes PII: names, addresses, phone numbers, exact dates of birth</li>
                   <li>Preserves 5-year age ranges (e.g., "35-39")</li>
                   <li>Preserves exact dates, region/district</li>
@@ -113,9 +117,11 @@ export default function DataFlowPage() {
                   <li>Stored in backend database for researcher queries</li>
                 </ul>
               </div>
-              <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
-                <h4 className="font-semibold text-gray-900">Stage 2: Chain Anonymization</h4>
-                <ul className="mt-2 list-disc space-y-1 pl-6 text-sm text-gray-700">
+              <div className="rounded-lg border border-purple-200 bg-purple-50 p-3 sm:p-4">
+                <h4 className="text-sm font-semibold text-gray-900 sm:text-base">
+                  Stage 2: Chain Anonymization
+                </h4>
+                <ul className="mt-1.5 list-disc space-y-1 pl-5 text-xs text-gray-700 sm:mt-2 sm:pl-6 sm:text-sm">
                   <li>Further generalizes age ranges (5-year → 10-year)</li>
                   <li>Rounds dates (exact → month/year)</li>
                   <li>Removes region/district (keep only country)</li>
@@ -123,9 +129,11 @@ export default function DataFlowPage() {
                   <li>Used for immutable blockchain storage</li>
                 </ul>
               </div>
-              <div className="rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-4">
-                <h4 className="font-semibold text-[#00A9CE]">Provenance Records</h4>
-                <p className="mt-2 text-sm text-gray-700">
+              <div className="rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-3 sm:p-4">
+                <h4 className="text-sm font-semibold text-[#00A9CE] sm:text-base">
+                  Provenance Records
+                </h4>
+                <p className="mt-1.5 text-xs text-gray-700 sm:mt-2 sm:text-sm">
                   Both hashes (Storage H1 + Chain H2) are stored together on Hedera with a
                   provenance proof linking them, allowing anyone to verify the transformation chain.
                 </p>
@@ -137,8 +145,10 @@ export default function DataFlowPage() {
             </p>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">3. Hedera Integration</h3>
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
+              3. Hedera Integration
+            </h3>
             <p className="mt-2 text-gray-700">Anonymized data is submitted to Hedera:</p>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
               <li>
@@ -165,8 +175,10 @@ export default function DataFlowPage() {
             </p>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">4. Dataset Creation</h3>
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
+              4. Dataset Creation
+            </h3>
             <p className="mt-2 text-gray-700">The backend creates a dataset entry with:</p>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
               <li>Dataset metadata (hospital ID, creation date, demographics)</li>
@@ -176,8 +188,10 @@ export default function DataFlowPage() {
             </ul>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">5. Researcher Query</h3>
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
+              5. Researcher Query
+            </h3>
             <p className="mt-2 text-gray-700">
               Researchers browse the marketplace and query datasets:
             </p>
@@ -188,8 +202,8 @@ export default function DataFlowPage() {
             </ul>
           </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
               6. Purchase & Payment Verification
             </h3>
             <p className="mt-2 text-gray-700">When a researcher purchases a dataset:</p>
@@ -214,8 +228,8 @@ export default function DataFlowPage() {
               <li>Researcher gains access to download anonymized data</li>
             </ol>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
               7. Revenue Distribution & Withdrawal
             </h3>
             <p className="mt-2 text-gray-700">After revenue distribution:</p>
@@ -233,9 +247,9 @@ export default function DataFlowPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Revenue Distribution Flow</h2>
-        <div className="mt-4 rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-6">
-          <h3 className="text-lg font-semibold text-[#00A9CE]">How It Works</h3>
+        <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">Revenue Distribution Flow</h2>
+        <div className="mt-3 rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-4 sm:mt-4 sm:p-5 md:p-6">
+          <h3 className="text-base font-semibold text-[#00A9CE] sm:text-lg">How It Works</h3>
           <ol className="mt-2 list-decimal space-y-2 pl-6 text-gray-700">
             <li>Researcher purchases dataset (pays in HBAR)</li>
             <li>RevenueSplitter contract receives payment</li>
@@ -251,9 +265,11 @@ export default function DataFlowPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Verification & Audit</h2>
-        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="text-lg font-semibold text-gray-900">HashScan Verification</h3>
+        <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">Verification & Audit</h2>
+        <div className="mt-3 rounded-lg border border-gray-200 bg-white p-4 sm:mt-4 sm:p-5 md:p-6">
+          <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
+            HashScan Verification
+          </h3>
           <p className="mt-2 text-gray-700">
             All Hedera transactions are publicly verifiable on HashScan:
           </p>

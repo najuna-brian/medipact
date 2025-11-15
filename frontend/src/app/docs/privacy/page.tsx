@@ -2,66 +2,68 @@ import MermaidDiagram from '@/components/docs/MermaidDiagram';
 
 export default function PrivacyPage() {
   return (
-    <div className="space-y-8">
-      <div className="border-b border-gray-200 pb-8">
-        <h1 className="text-4xl font-bold text-gray-900">Privacy & Security</h1>
-        <p className="mt-4 text-lg text-gray-600">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="border-b border-gray-200 pb-4 sm:pb-6 md:pb-8">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">Privacy & Security</h1>
+        <p className="mt-2 sm:mt-3 md:mt-4 text-sm sm:text-base md:text-lg text-gray-600">
           Comprehensive privacy guarantees and anonymization techniques protecting patient data.
         </p>
       </div>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Before vs. After Anonymization</h2>
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
-            <thead className="bg-gray-50">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Before vs. After Anonymization</h2>
+        <div className="mt-3 sm:mt-4 overflow-x-auto -mx-3 sm:mx-0">
+          <div className="inline-block min-w-full align-middle">
+            <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-900">
+                    Before (Raw)
+                  </th>
+                  <th className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-900">
+                    After (Anonymized)
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                <tr>
+                  <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">❌ Name: "John Doe"</td>
+                  <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">✅ Anonymous ID: "PID-001"</td>
+                </tr>
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                  Before (Raw)
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                  After (Anonymized)
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              <tr>
-                <td className="px-4 py-3 text-sm text-gray-600">❌ Name: "John Doe"</td>
-                <td className="px-4 py-3 text-sm text-gray-600">✅ Anonymous ID: "PID-001"</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm text-gray-600">❌ ID: "P-12345"</td>
-                <td className="px-4 py-3 text-sm text-gray-600">✅ Removed</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm text-gray-600">❌ Address: "123 Main St"</td>
-                <td className="px-4 py-3 text-sm text-gray-600">✅ Country Only: "Uganda"</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">❌ ID: "P-12345"</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">✅ Removed</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm text-gray-600">❌ Phone: "+256-123-4567"</td>
-                <td className="px-4 py-3 text-sm text-gray-600">✅ Removed</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">❌ Address: "123 Main St"</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">✅ Country Only: "Uganda"</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm text-gray-600">❌ DOB: "1990-01-15"</td>
-                <td className="px-4 py-3 text-sm text-gray-600">✅ Age Range: "35-39"</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">❌ Phone: "+256-123-4567"</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">✅ Removed</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm text-gray-600">✅ Medical Data</td>
-                <td className="px-4 py-3 text-sm text-gray-600">✅ Medical Data: Preserved</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">❌ DOB: "1990-01-15"</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">✅ Age Range: "35-39"</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm text-gray-600">✅ Demographics</td>
-                <td className="px-4 py-3 text-sm text-gray-600">✅ Demographics: Preserved</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">✅ Medical Data</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">✅ Medical Data: Preserved</td>
+              </tr>
+              <tr>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">✅ Demographics</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">✅ Demographics: Preserved</td>
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">K-Anonymity Protection</h2>
-        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="text-lg font-semibold text-gray-900">What is K-Anonymity?</h3>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">K-Anonymity Protection</h2>
+        <div className="mt-3 sm:mt-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">What is K-Anonymity?</h3>
           <p className="mt-2 text-gray-700">
             K-anonymity is a privacy model that ensures each record in a dataset cannot be
             distinguished from at least K-1 other records. MediPact enforces K=5, meaning each
@@ -69,28 +71,28 @@ export default function PrivacyPage() {
             characteristics.
           </p>
         </div>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <h3 className="font-semibold text-gray-900">Minimum 5 Records</h3>
-            <p className="mt-2 text-sm text-gray-600">
+        <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900">Minimum 5 Records</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Each demographic group must contain at least 5 records to prevent re-identification.
             </p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <h3 className="font-semibold text-gray-900">Grouping Criteria</h3>
-            <p className="mt-2 text-sm text-gray-600">
+          <div className="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900">Grouping Criteria</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Groups are formed by: Country, Age Range, Gender, Occupation
             </p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <h3 className="font-semibold text-gray-900">Record Suppression</h3>
-            <p className="mt-2 text-sm text-gray-600">
+          <div className="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900">Record Suppression</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Records with fewer than 5 matches are suppressed from the dataset.
             </p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <h3 className="font-semibold text-gray-900">Privacy Guarantee</h3>
-            <p className="mt-2 text-sm text-gray-600">
+          <div className="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900">Privacy Guarantee</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Even with external knowledge, an attacker cannot identify individuals with confidence.
             </p>
           </div>
@@ -98,13 +100,13 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Privacy Guarantees</h2>
-        <div className="mt-4 space-y-4">
-          <div className="flex items-start space-x-3 rounded-lg border border-green-200 bg-green-50 p-4">
-            <span className="text-green-600">✅</span>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Privacy Guarantees</h2>
+        <div className="mt-3 sm:mt-4 space-y-3 sm:space-y-4">
+          <div className="flex items-start space-x-2 sm:space-x-3 rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
+            <span className="text-green-600 text-sm sm:text-base">✅</span>
             <div>
-              <h3 className="font-semibold text-gray-900">No PII on Blockchain</h3>
-              <p className="mt-1 text-sm text-gray-700">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900">No PII on Blockchain</h3>
+              <p className="mt-1 text-xs sm:text-sm text-gray-700">
                 Only anonymous IDs and hashes are stored on Hedera. No personally identifiable
                 information is ever written to the blockchain.
               </p>
@@ -168,9 +170,9 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Double Anonymization Process</h2>
-        <div className="mt-4 rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-6">
-          <h3 className="text-lg font-semibold text-[#00A9CE]">Two-Stage Protection</h3>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Double Anonymization Process</h2>
+        <div className="mt-3 sm:mt-4 rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-4 sm:p-5 md:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">Two-Stage Protection</h3>
           <p className="mt-2 text-gray-700">
             MediPact implements <strong>double anonymization</strong> with provenance tracking for
             maximum privacy protection:
@@ -220,10 +222,10 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">End-to-End Encryption</h2>
-        <div className="mt-4 space-y-4">
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">Field-Level Encryption</h3>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">End-to-End Encryption</h2>
+        <div className="mt-3 sm:mt-4 space-y-3 sm:space-y-4">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Field-Level Encryption</h3>
             <p className="mt-2 text-gray-700">
               MediPact uses AES-256-GCM encryption for sensitive patient and medical data fields.
               Each field is encrypted individually, allowing granular access control.
@@ -244,31 +246,31 @@ export default function PrivacyPage() {
               </li>
             </ul>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">Zero-Knowledge Architecture</h3>
-            <p className="mt-2 text-gray-700">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Zero-Knowledge Architecture</h3>
+            <p className="mt-1.5 sm:mt-2 text-sm sm:text-base text-gray-700">
               The platform operates on a zero-knowledge model where encrypted data is returned to
               the platform, but only hospitals and patients can decrypt their own data.
             </p>
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                <h4 className="font-semibold text-gray-900">Hospital Access</h4>
-                <p className="mt-1 text-sm text-gray-700">
+            <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 sm:p-4">
+                <h4 className="text-sm sm:text-base font-semibold text-gray-900">Hospital Access</h4>
+                <p className="mt-1 text-xs sm:text-sm text-gray-700">
                   Only the hospital that collected the data can decrypt it using their
                   hospital-specific key.
                 </p>
               </div>
-              <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-                <h4 className="font-semibold text-gray-900">Patient Access</h4>
-                <p className="mt-1 text-sm text-gray-700">
+              <div className="rounded-lg border border-green-200 bg-green-50 p-3 sm:p-4">
+                <h4 className="text-sm sm:text-base font-semibold text-gray-900">Patient Access</h4>
+                <p className="mt-1 text-xs sm:text-sm text-gray-700">
                   Patients can decrypt their own data using their patient-specific key derived from
                   their UPI.
                 </p>
               </div>
             </div>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">
               Re-Encryption for Temporary Access
             </h3>
             <p className="mt-2 text-gray-700">
@@ -281,10 +283,10 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Security Measures</h2>
-        <div className="mt-4 space-y-4">
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">Password & API Key Security</h3>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Security Measures</h2>
+        <div className="mt-3 sm:mt-4 space-y-3 sm:space-y-4">
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Password & API Key Security</h3>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
               <li>
                 <strong>Bcrypt Hashing:</strong> All passwords and API keys hashed with bcrypt (12
@@ -300,8 +302,8 @@ export default function PrivacyPage() {
               </li>
             </ul>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h3 className="text-lg font-semibold text-gray-900">Rate Limiting</h3>
+          <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Rate Limiting</h3>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
               <li>
                 <strong>General API:</strong> 100 requests per 15 minutes per IP
@@ -344,9 +346,9 @@ export default function PrivacyPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Compliance</h2>
-        <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
-          <p className="text-gray-700">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Compliance</h2>
+        <div className="mt-3 sm:mt-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6">
+          <p className="text-sm sm:text-base text-gray-700">
             MediPact's privacy and anonymization techniques are designed to comply with healthcare
             data protection regulations including GDPR, HIPAA (where applicable), and other regional
             data protection laws. The K-anonymity model and PII removal ensure that datasets cannot

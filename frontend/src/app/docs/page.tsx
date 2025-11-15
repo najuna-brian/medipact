@@ -4,16 +4,16 @@ import CodeBlock from '@/components/docs/CodeBlock';
 export default function DocsOverviewPage() {
   return (
     <div className="space-y-8">
-      <div className="border-b border-gray-200 pb-8">
-        <h1 className="text-4xl font-bold text-gray-900">MediPact Documentation</h1>
-        <p className="mt-4 text-lg text-gray-600">
+      <div className="border-b border-gray-200 pb-4 sm:pb-6 md:pb-8">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900">MediPact Documentation</h1>
+        <p className="mt-2 sm:mt-3 md:mt-4 text-sm sm:text-base md:text-lg text-gray-600">
           A comprehensive guide to the MediPact verifiable health data marketplace built on Hedera
           Hashgraph.
         </p>
       </div>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">What is MediPact?</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">What is MediPact?</h2>
         <p className="mt-4 text-gray-700">
           <strong>MediPact</strong> is a verifiable medical data marketplace that empowers patients
           to control and monetize their anonymized medical data for research. Built on Hedera
@@ -37,8 +37,8 @@ export default function DocsOverviewPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Why Hedera?</h2>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Why Hedera?</h2>
+        <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <h3 className="font-semibold text-[#00A9CE]">HCS is Unique</h3>
             <p className="mt-2 text-sm text-gray-600">
@@ -79,187 +79,189 @@ export default function DocsOverviewPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Key Features</h2>
-        <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
-            <thead className="bg-gray-50">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Key Features</h2>
+        <div className="mt-3 sm:mt-4 overflow-x-auto -mx-3 sm:mx-0">
+          <div className="inline-block min-w-full align-middle">
+            <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-900">Feature</th>
+                  <th className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-semibold text-gray-900">
+                    Description
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                <tr>
+                  <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">FHIR R4 Compliant</td>
+                  <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
+                    Interoperable with global medical record systems
+                  </td>
+                </tr>
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Feature</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
-                  Description
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">FHIR R4 Compliant</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
-                  Interoperable with global medical record systems
-                </td>
-              </tr>
-              <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   K-Anonymity Enforcement
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Privacy by design (minimum 5 records per group)
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   HCS Immutable Proof Storage
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Unchangeable audit trail on Hedera Consensus Service
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">Secure Data Vault</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">Secure Data Vault</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Encrypted storage with patient-controlled access
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   Automated HBAR Revenue Distribution
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   60/25/15 split managed by smart contract
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   Patient Identity System (UPI)
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">Cross-hospital identity linking</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">Cross-hospital identity linking</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">Consent Validation</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">Consent Validation</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Enforced at the database and smart-contract levels
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   Multi-Dimensional Query Engine
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Filter by country, date, condition, demographics
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   Smart Contract Integration
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   On-chain consent registry and revenue sharing
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   Role-Based Dashboards
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Patient, Hospital, Researcher, and Admin portals
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   HashScan Verification
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Publicly verifiable transactions on HashScan
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   End-to-End Encryption
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Field-level AES-256-GCM encryption with zero-knowledge architecture
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   Patient-Centric Data Control
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Global opt-in/out, researcher approvals, granular preferences
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">Fair Revenue Model</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">Fair Revenue Model</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Original collecting hospital is sole beneficiary of their data
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   Category-Based Pricing
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   6 pricing tiers, 40% of market rates, volume discounts, USD display
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   Temporary Hospital Access
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Time-limited, patient-approved data sharing for telemedicine
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">Rate Limiting</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">Rate Limiting</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Protection against abuse and DDoS attacks
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">Bcrypt Security</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">Bcrypt Security</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Secure password and API key hashing
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">Automatic Wallets</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">Automatic Wallets</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Hedera accounts created automatically, users never manage wallets
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">USD-First Display</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">USD-First Display</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   All balances shown in USD with HBAR below, dynamic exchange rates
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">Bank & Mobile Money</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">Bank & Mobile Money</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Direct withdrawals to bank accounts or mobile money providers
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">Auto-Withdrawals</td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">Auto-Withdrawals</td>
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Automatic withdrawals when balance reaches user-defined threshold
                 </td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium text-gray-900">
                   Withdrawal Notifications
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-600">
+                <td className="px-2 sm:px-3 md:px-4 py-2 sm:py-3 text-xs sm:text-sm text-gray-600">
                   Email and SMS notifications for withdrawal status changes
                 </td>
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Technology Stack</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Technology Stack</h2>
         <MermaidDiagram
           chart={`graph TB
     subgraph "Frontend"
@@ -299,106 +301,106 @@ export default function DocsOverviewPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Documentation Sections</h2>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Documentation Sections</h2>
+        <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <a
             href="/docs/hedera"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+            className="block rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Hedera Integration</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">Hedera Integration</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Learn how MediPact leverages HCS, EVM, Accounts, and HBAR for immutable proofs and
               micropayments.
             </p>
           </a>
           <a
             href="/docs/architecture"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+            className="block rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">System Architecture</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">System Architecture</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Understand the complete system architecture and component interactions.
             </p>
           </a>
           <a
             href="/docs/data-flow"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+            className="block rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Data Flow</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">Data Flow</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Follow the complete data flow from EHR export to marketplace purchase.
             </p>
           </a>
           <a
             href="/docs/privacy"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+            className="block rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Privacy & Security</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">Privacy & Security</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Explore our privacy guarantees, anonymization techniques, and K-anonymity enforcement.
             </p>
           </a>
           <a
             href="/docs/double-anonymization"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+            className="block rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Double Anonymization</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">Double Anonymization</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Learn about our two-stage anonymization process with provenance tracking for maximum
               privacy protection.
             </p>
           </a>
           <a
             href="/docs/smart-contracts"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+            className="block rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Smart Contracts</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">Smart Contracts</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Detailed documentation of ConsentManager and RevenueSplitter contracts.
             </p>
           </a>
           <a
             href="/docs/quick-start"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+            className="block rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Quick Start</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">Quick Start</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Get started with MediPact in minutes with our setup guide.
             </p>
           </a>
           <a
             href="/docs/pricing"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+            className="block rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Pricing & Revenue</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">Pricing & Revenue</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Learn about our category-based pricing model and fair revenue distribution.
             </p>
           </a>
           <a
             href="/docs/patient-controls"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+            className="block rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Patient Data Controls</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">Patient Data Controls</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Understand how patients control their data sharing and researcher access.
             </p>
           </a>
           <a
             href="/docs/wallet"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+            className="block rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Wallet & Payments</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">Wallet & Payments</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Learn about automatic wallet creation, withdrawals, and payment methods.
             </p>
           </a>
           <a
             href="/docs/production"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+            className="block rounded-lg border border-gray-200 bg-white p-4 sm:p-5 md:p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Production Deployment</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base sm:text-lg font-semibold text-[#00A9CE]">Production Deployment</h3>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600">
               Production configuration, security, monitoring, and deployment best practices.
             </p>
           </a>
