@@ -119,36 +119,68 @@ export async function hospitalExists(hospitalId) {
  * Get hospital by ID
  */
 export async function getHospital(hospitalId) {
-  const hospital = await get(
-    `SELECT 
-      hospital_id as hospitalId,
-      hedera_account_id as hederaAccountId,
-      evm_address as evmAddress,
-      name,
-      country,
-      location,
-      fhir_endpoint as fhirEndpoint,
-      contact_email as contactEmail,
-      registration_number as registrationNumber,
-      payment_method as paymentMethod,
-      bank_account_number as bankAccountNumber,
-      bank_name as bankName,
-      mobile_money_provider as mobileMoneyProvider,
-      mobile_money_number as mobileMoneyNumber,
-      withdrawal_threshold_usd as withdrawalThresholdUSD,
-      auto_withdraw_enabled as autoWithdrawEnabled,
-      last_withdrawal_at as lastWithdrawalAt,
-      total_withdrawn_usd as totalWithdrawnUSD,
-      registered_at as registeredAt,
-      status,
-      verification_status as verificationStatus,
-      verification_documents as verificationDocuments,
-      verified_at as verifiedAt,
-      verified_by as verifiedBy
-    FROM hospitals 
-    WHERE hospital_id = ? AND status = 'active'`,
-    [hospitalId]
-  );
+  const { getDatabaseType } = await import('./database.js');
+  const dbType = getDatabaseType();
+  
+  // PostgreSQL lowercases unquoted identifiers, so we need to quote aliases
+  // Also, remove status filter to match getAllHospitals() behavior
+  const sql = dbType === 'postgresql'
+    ? `SELECT 
+        hospital_id as "hospitalId",
+        hedera_account_id as "hederaAccountId",
+        evm_address as "evmAddress",
+        name,
+        country,
+        location,
+        fhir_endpoint as "fhirEndpoint",
+        contact_email as "contactEmail",
+        registration_number as "registrationNumber",
+        payment_method as "paymentMethod",
+        bank_account_number as "bankAccountNumber",
+        bank_name as "bankName",
+        mobile_money_provider as "mobileMoneyProvider",
+        mobile_money_number as "mobileMoneyNumber",
+        withdrawal_threshold_usd as "withdrawalThresholdUSD",
+        auto_withdraw_enabled as "autoWithdrawEnabled",
+        last_withdrawal_at as "lastWithdrawalAt",
+        total_withdrawn_usd as "totalWithdrawnUSD",
+        registered_at as "registeredAt",
+        status,
+        verification_status as "verificationStatus",
+        verification_documents as "verificationDocuments",
+        verified_at as "verifiedAt",
+        verified_by as "verifiedBy"
+      FROM hospitals 
+      WHERE hospital_id = $1`
+    : `SELECT 
+        hospital_id as hospitalId,
+        hedera_account_id as hederaAccountId,
+        evm_address as evmAddress,
+        name,
+        country,
+        location,
+        fhir_endpoint as fhirEndpoint,
+        contact_email as contactEmail,
+        registration_number as registrationNumber,
+        payment_method as paymentMethod,
+        bank_account_number as bankAccountNumber,
+        bank_name as bankName,
+        mobile_money_provider as mobileMoneyProvider,
+        mobile_money_number as mobileMoneyNumber,
+        withdrawal_threshold_usd as withdrawalThresholdUSD,
+        auto_withdraw_enabled as autoWithdrawEnabled,
+        last_withdrawal_at as lastWithdrawalAt,
+        total_withdrawn_usd as totalWithdrawnUSD,
+        registered_at as registeredAt,
+        status,
+        verification_status as verificationStatus,
+        verification_documents as verificationDocuments,
+        verified_at as verifiedAt,
+        verified_by as verifiedBy
+      FROM hospitals 
+      WHERE hospital_id = ?`;
+  
+  const hospital = await get(sql, [hospitalId]);
   
   // Decrypt sensitive payment data
   if (hospital) {
