@@ -20,7 +20,7 @@ import { HospitalSidebar } from '@/components/Sidebar/HospitalSidebar';
 import { getHospitalBalance } from '@/lib/api/wallet';
 import { useRouter } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3002';
 
 function PaymentSettingsContent() {
   const router = useRouter();
