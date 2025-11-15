@@ -97,12 +97,16 @@ router.get('/hospitals', async (req, res) => {
 
       return {
         hospitalId: hospital.hospitalId,
+        hederaAccountId: hospital.hederaAccountId,
+        evmAddress: hospital.evmAddress,
         name: hospital.name,
         country: hospital.country,
         location: hospital.location,
+        fhirEndpoint: hospital.fhirEndpoint,
         contactEmail: hospital.contactEmail,
         registrationNumber: hospital.registrationNumber,
         registeredAt: hospital.registeredAt,
+        status: hospital.status,
         verificationStatus: hospital.verificationStatus || 'pending',
         verifiedAt: hospital.verifiedAt,
         verifiedBy: hospital.verifiedBy,
@@ -144,6 +148,8 @@ router.get('/hospitals/:hospitalId', async (req, res) => {
 
     res.json({
       hospitalId: hospital.hospitalId,
+      hederaAccountId: hospital.hederaAccountId,
+      evmAddress: hospital.evmAddress,
       name: hospital.name,
       country: hospital.country,
       location: hospital.location,
@@ -151,10 +157,15 @@ router.get('/hospitals/:hospitalId', async (req, res) => {
       contactEmail: hospital.contactEmail,
       registrationNumber: hospital.registrationNumber,
       registeredAt: hospital.registeredAt,
+      status: hospital.status,
       verificationStatus: hospital.verificationStatus || 'pending',
       verifiedAt: hospital.verifiedAt,
       verifiedBy: hospital.verifiedBy,
-      verificationDocuments: verificationDocuments
+      verificationDocuments: verificationDocuments,
+      // Payment method info (encrypted fields are already decrypted by getHospital)
+      paymentMethod: hospital.paymentMethod,
+      bankName: hospital.bankName,
+      mobileMoneyProvider: hospital.mobileMoneyProvider
     });
   } catch (error) {
     console.error('Error fetching hospital:', error);

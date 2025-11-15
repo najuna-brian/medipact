@@ -49,7 +49,7 @@ export async function createResearcher(researcherData) {
       researcherData.organizationName,
       researcherData.contactName || null,
       researcherData.country || null,
-      researcherData.registrationNumber || null,
+      researcherData.registrationNumber || 'PENDING', // Default to 'PENDING' for NOT NULL constraint
       researcherData.verificationStatus || 'pending',
       verificationDocumentsJson,
       researcherData.accessLevel || 'basic'
@@ -159,14 +159,43 @@ export async function updateResearcher(researcherId, updates) {
   const fields = [];
   const values = [];
 
+  if (updates.email !== undefined) {
+    fields.push('email = ?');
+    values.push(updates.email);
+  }
+
+  if (updates.organizationName !== undefined) {
+    fields.push('organization_name = ?');
+    values.push(updates.organizationName);
+  }
+
+  if (updates.contactName !== undefined) {
+    fields.push('contact_name = ?');
+    values.push(updates.contactName);
+  }
+
+  if (updates.country !== undefined) {
+    fields.push('country = ?');
+    values.push(updates.country);
+  }
+
+  if (updates.registrationNumber !== undefined) {
+    fields.push('registration_number = ?');
+    values.push(updates.registrationNumber);
+  }
+
   if (updates.verificationStatus) {
     fields.push('verification_status = ?');
     values.push(updates.verificationStatus);
   }
 
   if (updates.verificationDocuments !== undefined) {
+    // Ensure verification documents are stored as JSON string
+    const verificationDocumentsJson = typeof updates.verificationDocuments === 'string' 
+      ? updates.verificationDocuments 
+      : JSON.stringify(updates.verificationDocuments || {});
     fields.push('verification_documents = ?');
-    values.push(updates.verificationDocuments);
+    values.push(verificationDocumentsJson);
   }
 
   if (updates.verifiedAt !== undefined) {
@@ -197,6 +226,11 @@ export async function updateResearcher(researcherId, updates) {
   if (updates.encryptedPrivateKey) {
     fields.push('encrypted_private_key = ?');
     values.push(updates.encryptedPrivateKey);
+  }
+
+  if (updates.status) {
+    fields.push('status = ?');
+    values.push(updates.status);
   }
 
   if (fields.length > 0) {

@@ -304,7 +304,7 @@ function AdminResearchersPageContent() {
                   console.warn('Skipping invalid researcher object:', researcher);
                   return null;
                 }
-                
+
                 return (
                   <Card
                     key={researcher.researcherId || `researcher-${index}`}

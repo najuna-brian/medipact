@@ -78,7 +78,7 @@ export async function registerResearcher(researcherInfo, researcherExists, resea
     organizationName: researcherInfo.organizationName,
     contactName: researcherInfo.contactName || null,
     country: researcherInfo.country || null,
-    registrationNumber: '', // Will be set during verification (empty string for NOT NULL constraint)
+    registrationNumber: 'PENDING', // Placeholder until verification (NOT NULL constraint - will be updated during verification)
     verificationDocuments: '{}', // Empty JSON object for NOT NULL constraint, will be set during verification
     verificationStatus: 'pending', // Start as pending (database constraint only allows 'pending', 'verified', 'rejected')
     accessLevel: 'basic' // Unverified researchers start with basic access

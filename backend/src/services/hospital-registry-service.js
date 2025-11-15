@@ -82,7 +82,7 @@ export async function registerHospital(hospitalInfo, hospitalExists, hospitalCre
     location: hospitalInfo.location || null,
     fhirEndpoint: hospitalInfo.fhirEndpoint || null,
     contactEmail: hospitalInfo.contactEmail || null,
-    registrationNumber: '', // Will be set during verification (empty string for NOT NULL constraint)
+    registrationNumber: 'PENDING', // Placeholder until verification (NOT NULL constraint - will be updated during verification)
     apiKey: hospitalInfo.apiKey || null, // Include API key for hashing
     verificationDocuments: '{}', // Empty JSON object for NOT NULL constraint, will be set during verification
     verificationStatus: 'pending', // Start as pending (database constraint only allows 'pending', 'verified', 'rejected')

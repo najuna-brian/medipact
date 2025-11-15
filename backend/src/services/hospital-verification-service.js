@@ -37,7 +37,8 @@ export async function submitVerificationDocuments(hospitalId, documents, hospita
   
   const updates = {
     verification_documents: verificationDocuments,
-    verification_status: 'pending' // Reset to pending when new documents submitted
+    verification_status: 'pending', // Reset to pending when new documents submitted
+    registration_number: documents.licenseNumber.trim() // Store license number as registration number
   };
   
   return await hospitalUpdate(hospitalId, updates);

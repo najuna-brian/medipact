@@ -58,7 +58,7 @@ export async function createHospital(hospitalData) {
       hospitalData.location || null,
       hospitalData.fhirEndpoint || null,
       hospitalData.contactEmail || null,
-      hospitalData.registrationNumber || null,
+      hospitalData.registrationNumber || 'PENDING', // Default to 'PENDING' for NOT NULL constraint
       apiKeyHash,
       hospitalData.verificationStatus || 'pending',
       hospitalData.verificationDocuments || null,
@@ -304,6 +304,10 @@ export async function updateHospital(hospitalId, updates) {
   if (updates.encryptedPrivateKey !== undefined) {
     fields.push('encrypted_private_key = ?');
     values.push(updates.encryptedPrivateKey);
+  }
+  if (updates.registration_number !== undefined) {
+    fields.push('registration_number = ?');
+    values.push(updates.registration_number);
   }
 
   if (fields.length > 0) {
