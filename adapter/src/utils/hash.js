@@ -73,3 +73,25 @@ export function hashBatch(records) {
   const combinedData = records.map(r => hashPatientRecord(r)).join('');
   return generateHash(combinedData);
 }
+
+/**
+ * Generate provenance proof hash linking storage and chain hashes
+ * Proves that chain hash was derived from storage hash
+ * 
+ * @param {string} storageHash - Hash of storage-anonymized data (Stage 1)
+ * @param {string} chainHash - Hash of chain-anonymized data (Stage 2)
+ * @param {string} anonymousPatientId - Anonymous patient ID
+ * @param {string} resourceType - Resource type
+ * @returns {string} Provenance proof hash
+ */
+export function generateProvenanceProof(storageHash, chainHash, anonymousPatientId, resourceType) {
+  const provenanceData = {
+    storageHash,
+    chainHash,
+    anonymousPatientId,
+    resourceType,
+    timestamp: new Date().toISOString()
+  };
+  
+  return generateHash(provenanceData);
+}

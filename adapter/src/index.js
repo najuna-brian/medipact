@@ -9,8 +9,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { parseCSV, writeAnonymizedCSV } from './anonymizer/anonymize.js';
-import { anonymizeWithDemographics } from './anonymizer/demographic-anonymize.js';
-import { hashPatientRecord, hashConsentForm, hashBatch } from './utils/hash.js';
+import { anonymizeWithDemographics, anonymizeCSVRecordsForChain } from './anonymizer/demographic-anonymize.js';
+import { hashPatientRecord, hashConsentForm, hashBatch, generateProvenanceProof } from './utils/hash.js';
 import { formatHbar, hbarToUsd, usdToLocal, formatCurrency, calculateRevenueSplit } from './utils/currency.js';
 import { 
   createHederaClient, 
@@ -35,22 +35,55 @@ const INPUT_FILE = path.join(__dirname, '../data/raw_data.csv');
 const OUTPUT_FILE = path.join(__dirname, '../data/anonymized_data.csv');
 
 /**
- * Process a single patient record
- * @param {Object} anonymizedRecord - Anonymized patient record
+ * Process a single patient record with double anonymization
+ * @param {Object} storageAnonymizedRecord - Storage-anonymized record (Stage 1)
+ * @param {Object} chainAnonymizedRecord - Chain-anonymized record (Stage 2)
  * @param {string} dataTopicId - HCS topic ID for data proofs
  * @param {Client} client - Hedera client
  * @returns {Promise<Object>} Processing result with transaction info
  */
-async function processPatientRecord(anonymizedRecord, dataTopicId, client) {
-  // Generate hash of the anonymized record
-  const dataHash = hashPatientRecord(anonymizedRecord);
+async function processPatientRecord(storageAnonymizedRecord, chainAnonymizedRecord, dataTopicId, client) {
+  // Stage 1: Storage hash
+  const storageHash = hashPatientRecord(storageAnonymizedRecord);
   
-  // Submit data proof to HCS
-  const transactionId = await submitMessage(client, dataTopicId, dataHash);
+  // Stage 2: Chain hash
+  const chainHash = hashPatientRecord(chainAnonymizedRecord);
+  
+  // Generate provenance proof
+  const provenanceProof = generateProvenanceProof(
+    storageHash,
+    chainHash,
+    storageAnonymizedRecord['Anonymous PID'],
+    'CSVRecord'
+  );
+  
+  // Create provenance record
+  const provenanceRecord = {
+    storage: {
+      hash: storageHash,
+      anonymizationLevel: 'storage',
+      timestamp: new Date().toISOString()
+    },
+    chain: {
+      hash: chainHash,
+      anonymizationLevel: 'chain',
+      derivedFrom: storageHash,
+      timestamp: new Date().toISOString()
+    },
+    anonymousPatientId: storageAnonymizedRecord['Anonymous PID'],
+    resourceType: 'CSVRecord',
+    timestamp: new Date().toISOString(),
+    provenanceProof
+  };
+  
+  // Submit provenance record to HCS
+  const transactionId = await submitMessage(client, dataTopicId, JSON.stringify(provenanceRecord));
   
   return {
-    anonymousPID: anonymizedRecord['Anonymous PID'],
-    dataHash,
+    anonymousPID: storageAnonymizedRecord['Anonymous PID'],
+    storageHash,
+    chainHash,
+    provenanceProof,
     transactionId,
     hashScanLink: getHashScanLink(transactionId)
   };
@@ -180,29 +213,37 @@ async function main() {
     }
     console.log('');
 
-    // Step 8: Process data proofs (one per record)
-    console.log('8. Processing data proofs...');
+    // Step 8: Apply Stage 2 (Chain) anonymization
+    console.log('8. Applying Stage 2 (Chain) anonymization...');
+    const chainAnonymizedRecords = anonymizeCSVRecordsForChain(anonymizedRecords);
+    console.log(`   ✓ Applied chain anonymization to ${chainAnonymizedRecords.length} records\n`);
+
+    // Step 9: Process data proofs with double anonymization (one per record)
+    console.log('9. Processing provenance proofs to HCS...');
     const dataResults = [];
-    for (const record of anonymizedRecords) {
-      const result = await processPatientRecord(record, dataTopicId, client);
+    for (let i = 0; i < anonymizedRecords.length; i++) {
+      const storageRecord = anonymizedRecords[i];
+      const chainRecord = chainAnonymizedRecords[i];
+      
+      const result = await processPatientRecord(storageRecord, chainRecord, dataTopicId, client);
       dataResults.push(result);
-      console.log(`   ✓ Data proof for ${result.anonymousPID}: ${result.hashScanLink}`);
+      console.log(`   ✓ Provenance proof for ${result.anonymousPID}: ${result.hashScanLink}`);
       
       // Small delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     console.log('');
 
-    // Step 9: Display summary
+    // Step 10: Display summary
     console.log('=== Processing Complete ===\n');
     console.log('Summary:');
     console.log(`  - Records processed: ${anonymizedRecords.length}`);
     console.log(`  - Unique patients: ${patientMapping.size}`);
     console.log(`  - Consent proofs: ${consentResults.length}`);
-    console.log(`  - Data proofs: ${dataResults.length}`);
+    console.log(`  - Provenance proofs (double anonymization): ${dataResults.length}`);
     console.log(`  - Output file: ${OUTPUT_FILE}\n`);
 
-    // Step 10: Display topic links
+    // Step 11: Display topic links
     const { getHederaNetwork } = await import('./utils/network-config.js');
     const network = getHederaNetwork();
     const networkPath = network === 'mainnet' ? '' : `${network}.`;
@@ -210,7 +251,7 @@ async function main() {
     console.log(`  Consent Topic: https://hashscan.io/${networkPath}topic/${consentTopicId}`);
     console.log(`  Data Topic: https://hashscan.io/${networkPath}topic/${dataTopicId}\n`);
 
-    // Step 11: Payout simulation (placeholder)
+    // Step 12: Payout simulation (placeholder)
     // Note: This is a simulation for demo purposes.
     // In production, this would use actual HBAR transfers via TransferTransaction.
     // Currency conversion rates are example values and should be fetched from:

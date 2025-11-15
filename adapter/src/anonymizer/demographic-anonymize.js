@@ -478,3 +478,127 @@ export function anonymizeWithDemographics(records, hospitalInfo, upiOptions = nu
   };
 }
 
+/**
+ * Stage 2: Chain Anonymization for CSV Records
+ * Further anonymizes already-anonymized CSV records for immutable chain storage
+ * 
+ * @param {Array<Object>} storageAnonymizedRecords - Already anonymized records (from Stage 1)
+ * @returns {Array<Object>} Further anonymized records for chain storage
+ */
+export function anonymizeCSVRecordsForChain(storageAnonymizedRecords) {
+  return storageAnonymizedRecords.map(record => {
+    const chainAnonymized = { ...record };
+    
+    // Further generalize age ranges (5-year → 10-year)
+    if (chainAnonymized['Age Range']) {
+      chainAnonymized['Age Range'] = generalizeAgeRangeTo10YearCSV(chainAnonymized['Age Range']);
+    }
+    
+    // Round dates to month/year (remove exact dates)
+    if (chainAnonymized['Test Date']) {
+      chainAnonymized['Test Date'] = roundDateToMonthCSV(chainAnonymized['Test Date']);
+    }
+    if (chainAnonymized['Diagnosis Date']) {
+      chainAnonymized['Diagnosis Date'] = roundDateToMonthCSV(chainAnonymized['Diagnosis Date']);
+    }
+    if (chainAnonymized['Encounter Date']) {
+      chainAnonymized['Encounter Date'] = roundDateToMonthCSV(chainAnonymized['Encounter Date']);
+    }
+    
+    // Remove region/district (keep only country)
+    delete chainAnonymized['Region'];
+    delete chainAnonymized['District'];
+    delete chainAnonymized['City'];
+    
+    // Further generalize occupation
+    if (chainAnonymized['Occupation Category']) {
+      chainAnonymized['Occupation Category'] = generalizeOccupationFurtherCSV(
+        chainAnonymized['Occupation Category']
+      );
+    }
+    
+    // Round very specific numeric values
+    if (chainAnonymized['Result']) {
+      const value = parseFloat(chainAnonymized['Result']);
+      if (!isNaN(value) && value > 0) {
+        if (value < 1) {
+          chainAnonymized['Result'] = value.toFixed(2);
+        } else if (value < 10) {
+          chainAnonymized['Result'] = value.toFixed(1);
+        } else {
+          chainAnonymized['Result'] = Math.round(value).toString();
+        }
+      }
+    }
+    
+    return chainAnonymized;
+  });
+}
+
+/**
+ * Generalize 5-year age range to 10-year range (CSV format)
+ */
+function generalizeAgeRangeTo10YearCSV(ageRange) {
+  if (!ageRange || typeof ageRange !== 'string') return ageRange;
+  
+  if (ageRange === '<1') return '<10';
+  if (ageRange === '90+') return '90+';
+  
+  const match = ageRange.match(/(\d+)-(\d+)/);
+  if (!match) return ageRange;
+  
+  const lower = parseInt(match[1], 10);
+  const upper = parseInt(match[2], 10);
+  
+  const lowerBound = Math.floor(lower / 10) * 10;
+  const upperBound = lowerBound + 9;
+  
+  return `${lowerBound}-${upperBound}`;
+}
+
+/**
+ * Round date to month/year (CSV format)
+ */
+function roundDateToMonthCSV(dateString) {
+  if (!dateString) return null;
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    
+    return `${year}-${month}`;
+  } catch (error) {
+    return dateString;
+  }
+}
+
+/**
+ * Further generalize occupation to broader categories (CSV format)
+ */
+function generalizeOccupationFurtherCSV(occupationCategory) {
+  if (!occupationCategory) return 'Unknown';
+  
+  const lower = occupationCategory.toLowerCase();
+  
+  if (lower.includes('health') || lower.includes('medical') || lower.includes('doctor') || lower.includes('nurse')) {
+    return 'Healthcare';
+  }
+  if (lower.includes('education') || lower.includes('teacher')) {
+    return 'Education';
+  }
+  if (lower.includes('agriculture') || lower.includes('farmer')) {
+    return 'Agriculture';
+  }
+  if (lower.includes('technology') || lower.includes('engineer') || lower.includes('tech')) {
+    return 'Technology';
+  }
+  if (lower.includes('business') || lower.includes('commerce') || lower.includes('trade')) {
+    return 'Business';
+  }
+  
+  return 'Other';
+}
+

@@ -117,12 +117,165 @@ export function anonymizeFHIRObservation(fhirObservation, anonymousPID) {
 }
 
 /**
+ * Anonymize ANY FHIR resource
+ * @param {Object} fhirResource - FHIR resource
+ * @param {string} resourceType - Resource type
+ * @param {Object} context - Context with patientMapping, hospitalInfo, etc.
+ * @returns {Object} Anonymized FHIR resource
+ */
+export async function anonymizeFHIRResource(fhirResource, resourceType, context) {
+  const { patientMapping, hospitalInfo } = context;
+  
+  // Create deep copy
+  const anonymized = JSON.parse(JSON.stringify(fhirResource));
+  
+  // Handle Patient resources
+  if (resourceType === 'Patient') {
+    const originalId = anonymized.id || anonymized.identifier?.[0]?.value;
+    const anonymousId = patientMapping?.get(originalId) || generateAnonymousPID(patientMapping?.size || 0);
+    return anonymizeFHIRPatient(anonymized, anonymousId, hospitalInfo);
+  }
+  
+  // For all other resources, update patient references and remove PII
+  const patientRef = getPatientReference(anonymized);
+  if (patientRef) {
+    const originalPatientId = patientRef.split('/').pop();
+    const anonymousId = patientMapping?.get(originalPatientId);
+    if (anonymousId) {
+      updatePatientReference(anonymized, anonymousId);
+    }
+  }
+  
+  // Remove PII from all resources
+  removePIIFromResource(anonymized, resourceType);
+  
+  return anonymized;
+}
+
+/**
+ * Get patient reference from resource
+ */
+function getPatientReference(resource) {
+  return resource.subject?.reference || 
+         resource.patient?.reference || 
+         resource.beneficiary?.reference ||
+         null;
+}
+
+/**
+ * Update patient reference to anonymous ID
+ */
+function updatePatientReference(resource, anonymousId) {
+  if (resource.subject) {
+    resource.subject.reference = `Patient/${anonymousId}`;
+  }
+  if (resource.patient) {
+    resource.patient.reference = `Patient/${anonymousId}`;
+  }
+  if (resource.beneficiary) {
+    resource.beneficiary.reference = `Patient/${anonymousId}`;
+  }
+}
+
+/**
+ * Remove PII from any resource
+ */
+function removePIIFromResource(resource, resourceType) {
+  // Remove names
+  if (resource.name) {
+    if (Array.isArray(resource.name)) {
+      resource.name = resource.name.map(n => ({
+        text: '[REDACTED]'
+      }));
+    } else {
+      resource.name = { text: '[REDACTED]' };
+    }
+  }
+  
+  // Remove addresses (keep only country)
+  if (resource.address) {
+    if (Array.isArray(resource.address)) {
+      resource.address = resource.address.map(addr => ({
+        country: addr.country || null
+      }));
+    } else {
+      resource.address = {
+        country: resource.address.country || null
+      };
+    }
+  }
+  
+  // Remove telecom
+  delete resource.telecom;
+  
+  // Remove identifiers (except for anonymous ones)
+  if (resource.identifier) {
+    resource.identifier = resource.identifier.filter(id => 
+      id.system?.includes('anonymous') || id.system?.includes('medipact')
+    );
+  }
+  
+  // Remove practitioner names
+  if (resource.performer) {
+    resource.performer = resource.performer.map(p => ({
+      ...p,
+      display: p.display ? '[REDACTED]' : undefined
+    }));
+  }
+  
+  if (resource.requester) {
+    resource.requester.display = '[REDACTED]';
+  }
+  
+  if (resource.prescriber) {
+    resource.prescriber.display = '[REDACTED]';
+  }
+  
+  // Remove organization names (keep type only)
+  if (resource.organization) {
+    resource.organization.display = '[REDACTED]';
+  }
+  
+  // Remove location details
+  if (resource.location) {
+    if (Array.isArray(resource.location)) {
+      resource.location = resource.location.map(loc => ({
+        ...loc,
+        location: {
+          ...loc.location,
+          display: '[REDACTED]'
+        }
+      }));
+    }
+  }
+  
+  // Remove notes that might contain PII
+  if (resource.note) {
+    resource.note = resource.note.filter(note => {
+      const text = note.text || '';
+      return !text.match(/\b(name|address|phone|email|ssn|id number)\b/i);
+    });
+  }
+  
+  // Remove extensions that might contain PII
+  if (resource.extension) {
+    resource.extension = resource.extension.filter(ext => {
+      const url = ext.url || '';
+      return !url.includes('name') && 
+             !url.includes('address') && 
+             !url.includes('contact');
+    });
+  }
+}
+
+/**
  * Anonymize FHIR Bundle
  * @param {Object} bundle - FHIR Bundle
  * @param {Map<string, string>} patientMapping - Map of original ID -> anonymous ID
+ * @param {Object} hospitalInfo - Hospital configuration
  * @returns {Object} Anonymized FHIR Bundle
  */
-export function anonymizeFHIRBundle(bundle, patientMapping) {
+export function anonymizeFHIRBundle(bundle, patientMapping, hospitalInfo = {}) {
   const anonymized = JSON.parse(JSON.stringify(bundle));
   
   // Anonymize all entries
@@ -132,30 +285,192 @@ export function anonymizeFHIRBundle(bundle, patientMapping) {
       
       if (!resource) return entry;
       
-      if (resource.resourceType === 'Patient') {
+      const resourceType = resource.resourceType;
+      
+      if (resourceType === 'Patient') {
         const originalId = resource.id || resource.identifier?.[0]?.value;
         const anonymousId = patientMapping.get(originalId);
         if (anonymousId) {
-          entry.resource = anonymizeFHIRPatient(resource, anonymousId);
+          entry.resource = anonymizeFHIRPatient(resource, anonymousId, hospitalInfo);
         }
-      } else if (resource.resourceType === 'Observation') {
-        // Find associated patient
-        const patientRef = resource.subject?.reference;
+      } else {
+        // Anonymize other resources
+        const patientRef = getPatientReference(resource);
         if (patientRef) {
           const originalPatientId = patientRef.split('/').pop();
           const anonymousId = patientMapping.get(originalPatientId);
           if (anonymousId) {
-            entry.resource = anonymizeFHIRObservation(resource, anonymousId);
+            updatePatientReference(resource, anonymousId);
+            removePIIFromResource(resource, resourceType);
           }
+        } else {
+          // Resources without patient reference still need PII removal
+          removePIIFromResource(resource, resourceType);
         }
       }
-      // Consent resources are kept as-is (they reference anonymous IDs)
       
       return entry;
     });
   }
   
   return anonymized;
+}
+
+/**
+ * Stage 2: Chain Anonymization
+ * Further anonymizes already-anonymized data for immutable chain storage
+ * Applies more aggressive generalization than storage anonymization
+ * 
+ * @param {Object} storageAnonymizedResource - Already anonymized resource (from Stage 1)
+ * @param {string} resourceType - Resource type
+ * @param {Object} context - Context with patientMapping, hospitalInfo, etc.
+ * @returns {Object} Further anonymized resource for chain storage
+ */
+export async function anonymizeForChain(storageAnonymizedResource, resourceType, context) {
+  // Create deep copy
+  const chainAnonymized = JSON.parse(JSON.stringify(storageAnonymizedResource));
+  
+  // Further generalize age ranges (5-year → 10-year)
+  if (chainAnonymized.ageRange) {
+    chainAnonymized.ageRange = generalizeAgeRangeTo10Year(chainAnonymized.ageRange);
+  }
+  
+  // Round dates to month/year (remove exact dates)
+  chainAnonymized.effectiveDate = roundDateToMonth(chainAnonymized.effectiveDate);
+  chainAnonymized.onsetDate = roundDateToMonth(chainAnonymized.onsetDate);
+  chainAnonymized.diagnosisDate = roundDateToMonth(chainAnonymized.diagnosisDate);
+  chainAnonymized.abatementDate = roundDateToMonth(chainAnonymized.abatementDate);
+  chainAnonymized.admissionDate = roundDateToMonth(chainAnonymized.admissionDate);
+  chainAnonymized.dischargeDate = roundDateToMonth(chainAnonymized.dischargeDate);
+  chainAnonymized.performedDate = roundDateToMonth(chainAnonymized.performedDate);
+  chainAnonymized.collectionDate = roundDateToMonth(chainAnonymized.collectionDate);
+  
+  // Remove region/district (keep only country)
+  if (chainAnonymized.region) {
+    delete chainAnonymized.region;
+  }
+  if (chainAnonymized.district) {
+    delete chainAnonymized.district;
+  }
+  
+  // Further generalize occupation
+  if (chainAnonymized.occupationCategory) {
+    chainAnonymized.occupationCategory = generalizeOccupationFurther(chainAnonymized.occupationCategory);
+  }
+  
+  // Suppress rare values that could identify individuals
+  suppressRareValues(chainAnonymized, resourceType);
+  
+  return chainAnonymized;
+}
+
+/**
+ * Generalize 5-year age range to 10-year range
+ * @param {string} ageRange - 5-year range (e.g., "35-39")
+ * @returns {string} 10-year range (e.g., "30-39")
+ */
+function generalizeAgeRangeTo10Year(ageRange) {
+  if (!ageRange || typeof ageRange !== 'string') return ageRange;
+  
+  // Handle special cases
+  if (ageRange === '<1') return '<10';
+  if (ageRange === '90+') return '90+';
+  
+  // Extract numbers
+  const match = ageRange.match(/(\d+)-(\d+)/);
+  if (!match) return ageRange;
+  
+  const lower = parseInt(match[1], 10);
+  const upper = parseInt(match[2], 10);
+  
+  // Round down to nearest 10-year boundary
+  const lowerBound = Math.floor(lower / 10) * 10;
+  const upperBound = lowerBound + 9;
+  
+  return `${lowerBound}-${upperBound}`;
+}
+
+/**
+ * Round date to month/year (remove exact day)
+ * @param {string|Date} date - Date string or Date object
+ * @returns {string|null} Date in YYYY-MM format or null
+ */
+function roundDateToMonth(date) {
+  if (!date) return null;
+  
+  try {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    if (isNaN(dateObj.getTime())) return null;
+    
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    
+    return `${year}-${month}`;
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Further generalize occupation to broader categories
+ * @param {string} occupationCategory - Current occupation category
+ * @returns {string} More generalized category
+ */
+function generalizeOccupationFurther(occupationCategory) {
+  if (!occupationCategory) return 'Unknown';
+  
+  const lower = occupationCategory.toLowerCase();
+  
+  // Map to very broad categories
+  if (lower.includes('health') || lower.includes('medical') || lower.includes('doctor') || lower.includes('nurse')) {
+    return 'Healthcare';
+  }
+  if (lower.includes('education') || lower.includes('teacher')) {
+    return 'Education';
+  }
+  if (lower.includes('agriculture') || lower.includes('farmer')) {
+    return 'Agriculture';
+  }
+  if (lower.includes('technology') || lower.includes('engineer') || lower.includes('tech')) {
+    return 'Technology';
+  }
+  if (lower.includes('business') || lower.includes('commerce') || lower.includes('trade')) {
+    return 'Business';
+  }
+  
+  return 'Other';
+}
+
+/**
+ * Suppress rare values that could identify individuals
+ * @param {Object} resource - Resource to suppress rare values in
+ * @param {string} resourceType - Resource type
+ */
+function suppressRareValues(resource, resourceType) {
+  // Suppress very specific codes that might be rare
+  // This is a simplified version - in production, you'd check frequency
+  
+  // Suppress rare condition codes (keep only common ones)
+  if (resourceType === 'Condition' && resource.conditionCodeSnomed) {
+    // In production, check if code appears < 10 times, then suppress
+    // For now, we keep all codes but could add suppression logic
+  }
+  
+  // Suppress rare observation values
+  if (resourceType === 'Observation' && resource.valueQuantity) {
+    // Round very specific values
+    const value = parseFloat(resource.valueQuantity);
+    if (!isNaN(value) && value > 0) {
+      // Round to 2 significant figures for very specific values
+      if (value < 1) {
+        resource.valueQuantity = value.toFixed(2);
+      } else if (value < 10) {
+        resource.valueQuantity = value.toFixed(1);
+      } else {
+        resource.valueQuantity = Math.round(value).toString();
+      }
+    }
+  }
 }
 
 /**
