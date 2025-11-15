@@ -86,14 +86,28 @@ router.get('/hospitals', async (req, res) => {
     // Format hospitals with verification status
     const formattedHospitals = hospitals.map(hospital => {
       let verificationDocuments = null;
+      let hasDocuments = false;
+      
       if (hospital.verificationDocuments) {
         try {
           // If it's already an object, use it; otherwise parse JSON string
           verificationDocuments = typeof hospital.verificationDocuments === 'string' 
             ? JSON.parse(hospital.verificationDocuments) 
             : hospital.verificationDocuments;
+          
+          // Check if it has actual content (not just empty object '{}')
+          hasDocuments = verificationDocuments && 
+            typeof verificationDocuments === 'object' &&
+            Object.keys(verificationDocuments).length > 0 &&
+            (verificationDocuments.licenseNumber || 
+             verificationDocuments.registrationCertificate || 
+             verificationDocuments.additionalDocuments ||
+             verificationDocuments.rejectionReason); // Include rejection reason as "has documents"
         } catch (e) {
+          // If parsing fails, check if it's a non-empty string
           verificationDocuments = { raw: hospital.verificationDocuments };
+          hasDocuments = hospital.verificationDocuments.trim() !== '' && 
+                         hospital.verificationDocuments !== '{}';
         }
       }
 
@@ -112,7 +126,7 @@ router.get('/hospitals', async (req, res) => {
         verificationStatus: hospital.verificationStatus || 'pending',
         verifiedAt: hospital.verifiedAt,
         verifiedBy: hospital.verifiedBy,
-        verificationDocuments: verificationDocuments
+        verificationDocuments: hasDocuments ? verificationDocuments : null // Only set if has actual content
       };
     });
 
@@ -126,6 +140,16 @@ router.get('/hospitals', async (req, res) => {
       withDocuments: formattedHospitals.filter(h => h.verificationDocuments).length,
       withoutDocuments: formattedHospitals.filter(h => !h.verificationDocuments).length
     });
+
+    // Add debug logging to see what's actually in the database
+    console.log(`[ADMIN API] Sample verification_documents from DB:`, 
+      hospitals.slice(0, 3).map(h => ({
+        hospitalId: h.hospitalId,
+        verificationDocuments: h.verificationDocuments,
+        verificationDocumentsType: typeof h.verificationDocuments,
+        verificationDocumentsLength: h.verificationDocuments?.length
+      }))
+    );
 
     res.json({ hospitals: formattedHospitals });
   } catch (error) {
@@ -148,14 +172,27 @@ router.get('/hospitals/:hospitalId', async (req, res) => {
     }
 
     let verificationDocuments = null;
+    let hasDocuments = false;
+    
     if (hospital.verificationDocuments) {
       try {
         // If it's already an object, use it; otherwise parse JSON string
         verificationDocuments = typeof hospital.verificationDocuments === 'string' 
           ? JSON.parse(hospital.verificationDocuments) 
           : hospital.verificationDocuments;
+        
+        // Check if it has actual content
+        hasDocuments = verificationDocuments && 
+          typeof verificationDocuments === 'object' &&
+          Object.keys(verificationDocuments).length > 0 &&
+          (verificationDocuments.licenseNumber || 
+           verificationDocuments.registrationCertificate || 
+           verificationDocuments.additionalDocuments ||
+           verificationDocuments.rejectionReason);
       } catch (e) {
         verificationDocuments = { raw: hospital.verificationDocuments };
+        hasDocuments = hospital.verificationDocuments.trim() !== '' && 
+                       hospital.verificationDocuments !== '{}';
       }
     }
 
@@ -174,7 +211,7 @@ router.get('/hospitals/:hospitalId', async (req, res) => {
       verificationStatus: hospital.verificationStatus || 'pending',
       verifiedAt: hospital.verifiedAt,
       verifiedBy: hospital.verifiedBy,
-      verificationDocuments: verificationDocuments,
+      verificationDocuments: hasDocuments ? verificationDocuments : null,
       // Payment method info (encrypted fields are already decrypted by getHospital)
       paymentMethod: hospital.paymentMethod,
       bankName: hospital.bankName,
@@ -275,13 +312,26 @@ router.get('/researchers', async (req, res) => {
     
     const formattedResearchers = researchers.map(r => {
       let verificationDocuments = null;
+      let hasDocuments = false;
+      
       if (r.verificationDocuments) {
         try {
           verificationDocuments = typeof r.verificationDocuments === 'string' 
             ? JSON.parse(r.verificationDocuments) 
             : r.verificationDocuments;
+          
+          // Check if it has actual content (not just empty object '{}')
+          hasDocuments = verificationDocuments && 
+            typeof verificationDocuments === 'object' &&
+            Object.keys(verificationDocuments).length > 0 &&
+            (verificationDocuments.licenseNumber || 
+             verificationDocuments.registrationCertificate || 
+             verificationDocuments.additionalDocuments ||
+             verificationDocuments.rejectionReason);
         } catch (e) {
           verificationDocuments = { raw: r.verificationDocuments };
+          hasDocuments = r.verificationDocuments.trim() !== '' && 
+                         r.verificationDocuments !== '{}';
         }
       }
       
@@ -298,7 +348,7 @@ router.get('/researchers', async (req, res) => {
         verifiedAt: r.verifiedAt,
         verifiedBy: r.verifiedBy,
         registeredAt: r.registeredAt,
-        verificationDocuments: verificationDocuments
+        verificationDocuments: hasDocuments ? verificationDocuments : null
       };
     });
     
@@ -312,6 +362,16 @@ router.get('/researchers', async (req, res) => {
       withDocuments: formattedResearchers.filter(r => r.verificationDocuments).length,
       withoutDocuments: formattedResearchers.filter(r => !r.verificationDocuments).length
     });
+    
+    // Add debug logging to see what's actually in the database
+    console.log(`[ADMIN API] Sample verification_documents from DB (researchers):`, 
+      researchers.slice(0, 3).map(r => ({
+        researcherId: r.researcherId,
+        verificationDocuments: r.verificationDocuments,
+        verificationDocumentsType: typeof r.verificationDocuments,
+        verificationDocumentsLength: r.verificationDocuments?.length
+      }))
+    );
     
     res.json({ 
       researchers: formattedResearchers,
@@ -337,20 +397,33 @@ router.get('/researchers/:researcherId', async (req, res) => {
     }
     
     let verificationDocuments = null;
+    let hasDocuments = false;
+    
     if (researcher.verificationDocuments) {
       try {
         verificationDocuments = typeof researcher.verificationDocuments === 'string' 
           ? JSON.parse(researcher.verificationDocuments) 
           : researcher.verificationDocuments;
+        
+        // Check if it has actual content
+        hasDocuments = verificationDocuments && 
+          typeof verificationDocuments === 'object' &&
+          Object.keys(verificationDocuments).length > 0 &&
+          (verificationDocuments.licenseNumber || 
+           verificationDocuments.registrationCertificate || 
+           verificationDocuments.additionalDocuments ||
+           verificationDocuments.rejectionReason);
       } catch (e) {
         verificationDocuments = { raw: researcher.verificationDocuments };
+        hasDocuments = researcher.verificationDocuments.trim() !== '' && 
+                       researcher.verificationDocuments !== '{}';
       }
     }
     
     res.json({
       ...researcher,
       registrationNumber: researcher.registrationNumber,
-      verificationDocuments: verificationDocuments
+      verificationDocuments: hasDocuments ? verificationDocuments : null
     });
   } catch (error) {
     console.error('Error fetching researcher:', error);
