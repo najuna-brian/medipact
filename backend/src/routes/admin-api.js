@@ -121,7 +121,10 @@ router.get('/hospitals', async (req, res) => {
       pending: formattedHospitals.filter(h => h.verificationStatus === 'pending').length,
       verified: formattedHospitals.filter(h => h.verificationStatus === 'verified').length,
       rejected: formattedHospitals.filter(h => h.verificationStatus === 'rejected').length,
-      withDocuments: formattedHospitals.filter(h => h.verificationDocuments).length
+    });
+    console.log(`[ADMIN API] Hospitals by document status:`, {
+      withDocuments: formattedHospitals.filter(h => h.verificationDocuments).length,
+      withoutDocuments: formattedHospitals.filter(h => !h.verificationDocuments).length
     });
 
     res.json({ hospitals: formattedHospitals });
@@ -266,7 +269,9 @@ router.post('/hospitals/:hospitalId/reject', async (req, res) => {
  */
 router.get('/researchers', async (req, res) => {
   try {
+    console.log('[ADMIN API] Fetching all researchers...');
     const researchers = await getAllResearchers();
+    console.log(`[ADMIN API] Found ${researchers.length} researchers in database`);
     
     const formattedResearchers = researchers.map(r => {
       let verificationDocuments = null;
@@ -297,12 +302,23 @@ router.get('/researchers', async (req, res) => {
       };
     });
     
+    console.log(`[ADMIN API] Returning ${formattedResearchers.length} formatted researchers`);
+    console.log(`[ADMIN API] Researchers by status:`, {
+      pending: formattedResearchers.filter(r => r.verificationStatus === 'pending').length,
+      verified: formattedResearchers.filter(r => r.verificationStatus === 'verified').length,
+      rejected: formattedResearchers.filter(r => r.verificationStatus === 'rejected').length,
+    });
+    console.log(`[ADMIN API] Researchers by document status:`, {
+      withDocuments: formattedResearchers.filter(r => r.verificationDocuments).length,
+      withoutDocuments: formattedResearchers.filter(r => !r.verificationDocuments).length
+    });
+    
     res.json({ 
       researchers: formattedResearchers,
       total: formattedResearchers.length
     });
   } catch (error) {
-    console.error('Error fetching researchers:', error);
+    console.error('[ADMIN API] Error fetching researchers:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch researchers' });
   }
 });

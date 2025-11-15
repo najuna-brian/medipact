@@ -56,6 +56,7 @@ export interface AdminHospital {
   country: string;
   location?: string;
   contactEmail?: string;
+  fhirEndpoint?: string;
   registeredAt: string;
   verificationStatus: 'pending' | 'verified' | 'rejected';
   verifiedAt?: string | null;

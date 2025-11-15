@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   UserCog,
   CheckCircle2,
@@ -32,6 +33,8 @@ function AdminResearchersPageContent() {
   const [approvalMessage, setApprovalMessage] = useState(
     'Your researcher verification has been approved. You can now purchase datasets and access the marketplace.'
   );
+  const [activeTab, setActiveTab] = useState<string>('all');
+  const [documentFilter, setDocumentFilter] = useState<'all' | 'with-documents' | 'without-documents'>('all');
 
   const { data, isLoading, error } = useAdminResearchers();
   const {
@@ -46,12 +49,47 @@ function AdminResearchersPageContent() {
     (r) => r && r.researcherId && Object.keys(r).length > 0
   ); // Filter out empty or invalid researcher objects
 
-  // Group researchers by verification status
-  const pendingResearchers = researchers.filter(
-    (r) => r.verificationStatus === 'pending' && r.verificationDocuments
+  // Separate researchers by document submission status
+  const researchersWithDocuments = researchers.filter(r => r.verificationDocuments);
+  const researchersWithoutDocuments = researchers.filter(r => !r.verificationDocuments);
+
+  // Group researchers with documents by verification status
+  const pendingResearchers = researchersWithDocuments.filter(
+    (r) => r.verificationStatus === 'pending'
   );
-  const verifiedResearchers = researchers.filter((r) => r.verificationStatus === 'verified');
-  const rejectedResearchers = researchers.filter((r) => r.verificationStatus === 'rejected');
+  const verifiedResearchers = researchersWithDocuments.filter(
+    (r) => r.verificationStatus === 'verified'
+  );
+  const rejectedResearchers = researchersWithDocuments.filter(
+    (r) => r.verificationStatus === 'rejected'
+  );
+
+  // Get researchers to display based on active tab and document filter
+  const getDisplayedResearchers = () => {
+    // First apply document filter
+    let filtered = researchers;
+    if (documentFilter === 'with-documents') {
+      filtered = researchersWithDocuments;
+    } else if (documentFilter === 'without-documents') {
+      filtered = researchersWithoutDocuments;
+    }
+
+    // Then apply status filter (only for researchers with documents)
+    if (activeTab === 'pending') {
+      // For pending tab, show pending researchers with documents OR researchers without documents
+      if (documentFilter === 'without-documents') {
+        return filtered; // Show all researchers without documents
+      }
+      return filtered.filter(r => r.verificationStatus === 'pending');
+    } else if (activeTab === 'verified') {
+      return filtered.filter(r => r.verificationStatus === 'verified');
+    } else if (activeTab === 'rejected') {
+      return filtered.filter(r => r.verificationStatus === 'rejected');
+    }
+    return filtered;
+  };
+
+  const displayedResearchers = getDisplayedResearchers();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -206,7 +244,18 @@ function AdminResearchersPageContent() {
           </div>
 
           {/* Statistics */}
-          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Researchers</p>
+                    <p className="text-xl font-bold md:text-2xl">{researchers.length}</p>
+                  </div>
+                  <UserCog className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -233,138 +282,212 @@ function AdminResearchersPageContent() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Rejected</p>
-                    <p className="text-xl font-bold md:text-2xl">{rejectedResearchers.length}</p>
+                    <p className="text-sm text-muted-foreground">Awaiting Documents</p>
+                    <p className="text-xl font-bold md:text-2xl">{researchersWithoutDocuments.length}</p>
                   </div>
-                  <XCircle className="h-8 w-8 text-red-600" />
+                  <FileText className="h-8 w-8 text-orange-600" />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Pending Verifications */}
-          {pendingResearchers.length > 0 && (
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-semibold md:text-xl">Pending Verifications</h2>
-              <div className="space-y-4">
-                {pendingResearchers.map((researcher, index) => (
-                  <Card
-                    key={researcher.researcherId || `pending-researcher-${index}`}
-                    className="border-yellow-200"
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="mb-2 flex items-center gap-2">
-                            <UserCog className="h-5 w-5 text-muted-foreground" />
-                            <CardTitle>{researcher.organizationName}</CardTitle>
-                            {getStatusBadge(researcher.verificationStatus)}
-                          </div>
-                          <CardDescription>
-                            {researcher.researcherId} • {researcher.email}
-                            {researcher.country && ` • ${researcher.country}`}
-                          </CardDescription>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log('Button clicked, researcherId:', researcher.researcherId);
-                              if (researcher.researcherId) {
-                                viewDocuments(researcher.researcherId);
-                              } else {
-                                console.error('Researcher ID is undefined!', researcher);
-                              }
-                            }}
-                            className="text-xs md:text-sm"
-                          >
-                            <Eye className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
-                            <span className="hidden sm:inline">View & Review</span>
-                            <span className="sm:hidden">View</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* All Researchers */}
-          <div>
-            <h2 className="mb-4 text-lg font-semibold md:text-xl">All Researchers</h2>
-            <div className="space-y-4">
-              {researchers.map((researcher, index) => {
-                // Skip invalid researcher objects
-                if (!researcher || !researcher.researcherId) {
-                  console.warn('Skipping invalid researcher object:', researcher);
-                  return null;
-                }
-
-                return (
-                  <Card
-                    key={researcher.researcherId || `researcher-${index}`}
-                    className={
-                      researcher.verificationStatus === 'verified'
-                        ? 'border-green-200'
-                        : researcher.verificationStatus === 'rejected'
-                          ? 'border-red-200'
-                          : ''
-                    }
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="mb-2 flex items-center gap-2">
-                            <UserCog className="h-5 w-5 text-muted-foreground" />
-                            <CardTitle>{researcher.organizationName}</CardTitle>
-                            {getStatusBadge(researcher.verificationStatus)}
-                          </div>
-                          <CardDescription>
-                            {researcher.researcherId} • {researcher.email}
-                            {researcher.country && ` • ${researcher.country}`}
-                            {researcher.contactName && ` • ${researcher.contactName}`}
-                          </CardDescription>
-                          {researcher.verifiedAt && (
-                            <p className="mt-2 text-xs text-muted-foreground">
-                              Verified on: {new Date(researcher.verifiedAt).toLocaleDateString()}
-                              {researcher.verifiedBy && ` by ${researcher.verifiedBy}`}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log(
-                                'Button clicked (All Researchers), researcherId:',
-                                researcher.researcherId
-                              );
-                              if (researcher.researcherId) {
-                                viewDocuments(researcher.researcherId);
-                              } else {
-                                console.error('Researcher ID is undefined!', researcher);
-                              }
-                            }}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            View & Review
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                );
-              })}
-            </div>
+          {/* Document Filter Toggle */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Button
+              variant={documentFilter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDocumentFilter('all')}
+            >
+              All ({researchers.length})
+            </Button>
+            <Button
+              variant={documentFilter === 'with-documents' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDocumentFilter('with-documents')}
+            >
+              With Documents ({researchersWithDocuments.length})
+            </Button>
+            <Button
+              variant={documentFilter === 'without-documents' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDocumentFilter('without-documents')}
+            >
+              Without Documents ({researchersWithoutDocuments.length})
+            </Button>
           </div>
+
+          {/* Tabs for filtering researchers */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="all" className="flex items-center gap-2">
+                <UserCog className="h-4 w-4" />
+                <span className="hidden sm:inline">All</span>
+                <span className="sm:hidden">All</span>
+                <Badge variant="default" className="ml-2">
+                  {researchers.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="pending" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span className="hidden sm:inline">Pending</span>
+                <span className="sm:hidden">Pending</span>
+                <Badge variant="warning" className="ml-2">
+                  {pendingResearchers.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="verified" className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Verified</span>
+                <span className="sm:hidden">Verified</span>
+                <Badge variant="success" className="ml-2">
+                  {verifiedResearchers.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="rejected" className="flex items-center gap-2">
+                <XCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">Rejected</span>
+                <span className="sm:hidden">Rejected</span>
+                <Badge variant="error" className="ml-2">
+                  {rejectedResearchers.length}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Tab Content - Single unified list */}
+            <TabsContent value={activeTab} className="mt-6">
+              {displayedResearchers.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <UserCog className="mb-4 h-12 w-12 text-muted-foreground" />
+                      <p className="text-lg font-semibold">No researchers found</p>
+                      <p className="text-sm text-muted-foreground">
+                        {activeTab === 'all'
+                          ? 'No researchers have been registered yet.'
+                          : activeTab === 'pending'
+                            ? 'No researchers are pending verification.'
+                            : activeTab === 'verified'
+                              ? 'No researchers have been verified yet.'
+                              : 'No researchers have been rejected.'}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {displayedResearchers.map((researcher, index) => {
+                    if (!researcher || !researcher.researcherId) {
+                      console.warn('Skipping invalid researcher object:', researcher);
+                      return null;
+                    }
+
+                    // Researchers WITHOUT documents - show basic info
+                    if (!researcher.verificationDocuments) {
+                      return (
+                        <Card key={researcher.researcherId} className="border-gray-200">
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="mb-2 flex items-center gap-2">
+                                  <UserCog className="h-5 w-5 text-muted-foreground" />
+                                  <CardTitle>{researcher.organizationName}</CardTitle>
+                                  <Badge variant="warning">Awaiting Document Submission</Badge>
+                                </div>
+                                <CardDescription>
+                                  <div className="space-y-1 mt-2">
+                                    <p><span className="font-medium">Researcher ID:</span> {researcher.researcherId}</p>
+                                    <p><span className="font-medium">Email:</span> {researcher.email}</p>
+                                    {researcher.contactName && (
+                                      <p><span className="font-medium">Contact:</span> {researcher.contactName}</p>
+                                    )}
+                                    {researcher.country && (
+                                      <p><span className="font-medium">Country:</span> {researcher.country}</p>
+                                    )}
+                                    {researcher.registeredAt && (
+                                      <p><span className="font-medium">Registered:</span> {new Date(researcher.registeredAt).toLocaleDateString()}</p>
+                                    )}
+                                  </div>
+                                </CardDescription>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedResearcherId(researcher.researcherId);
+                                  }}
+                                  className="text-xs md:text-sm"
+                                >
+                                  <Eye className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
+                                  <span className="hidden sm:inline">View Details</span>
+                                  <span className="sm:hidden">View</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </Card>
+                      );
+                    }
+
+                    // Researchers WITH documents - show current detailed format
+                    return (
+                      <Card
+                        key={researcher.researcherId || `researcher-${index}`}
+                        className={
+                          researcher.verificationStatus === 'verified'
+                            ? 'border-green-200'
+                            : researcher.verificationStatus === 'rejected'
+                              ? 'border-red-200'
+                              : 'border-yellow-200'
+                        }
+                      >
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="mb-2 flex items-center gap-2">
+                                <UserCog className="h-5 w-5 text-muted-foreground" />
+                                <CardTitle>{researcher.organizationName}</CardTitle>
+                                {getStatusBadge(researcher.verificationStatus)}
+                              </div>
+                              <CardDescription>
+                                {researcher.researcherId} • {researcher.email}
+                                {researcher.country && ` • ${researcher.country}`}
+                                {researcher.contactName && ` • ${researcher.contactName}`}
+                              </CardDescription>
+                              {researcher.verifiedAt && (
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                  Verified on: {new Date(researcher.verifiedAt).toLocaleDateString()}
+                                  {researcher.verifiedBy && ` by ${researcher.verifiedBy}`}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  if (researcher.researcherId) {
+                                    viewDocuments(researcher.researcherId);
+                                  }
+                                }}
+                                className="text-xs md:text-sm"
+                              >
+                                <Eye className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
+                                <span className="hidden sm:inline">View & Review</span>
+                                <span className="sm:hidden">View</span>
+                              </Button>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {/* Researcher Detail Modal/Dialog */}
           {selectedResearcherId && (

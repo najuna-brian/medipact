@@ -32,6 +32,7 @@ function AdminHospitalsPageContent() {
     'Your hospital verification has been approved. You can now register patients and use all features.'
   );
   const [activeTab, setActiveTab] = useState<string>('all');
+  const [documentFilter, setDocumentFilter] = useState<'all' | 'with-documents' | 'without-documents'>('all');
 
   const { data, isLoading, error } = useAdminHospitals();
   const {
@@ -46,26 +47,44 @@ function AdminHospitalsPageContent() {
     (h) => h && h.hospitalId && Object.keys(h).length > 0
   ); // Filter out empty or invalid hospital objects
 
-  // Group hospitals by verification status
-  // Only show pending hospitals that have actually submitted documents
-  const pendingHospitals = hospitals.filter(
-    (h) => h.verificationStatus === 'pending' && h.verificationDocuments
-  );
-  const verifiedHospitals = hospitals.filter((h) => h.verificationStatus === 'verified');
-  const rejectedHospitals = hospitals.filter((h) => h.verificationStatus === 'rejected');
+  // Separate hospitals by document submission status
+  const hospitalsWithDocuments = hospitals.filter(h => h.verificationDocuments);
+  const hospitalsWithoutDocuments = hospitals.filter(h => !h.verificationDocuments);
 
-  // Get hospitals to display based on active tab
+  // Group hospitals with documents by verification status
+  const pendingHospitals = hospitalsWithDocuments.filter(
+    (h) => h.verificationStatus === 'pending'
+  );
+  const verifiedHospitals = hospitalsWithDocuments.filter(
+    (h) => h.verificationStatus === 'verified'
+  );
+  const rejectedHospitals = hospitalsWithDocuments.filter(
+    (h) => h.verificationStatus === 'rejected'
+  );
+
+  // Get hospitals to display based on active tab and document filter
   const getDisplayedHospitals = () => {
-    switch (activeTab) {
-      case 'pending':
-        return pendingHospitals;
-      case 'verified':
-        return verifiedHospitals;
-      case 'rejected':
-        return rejectedHospitals;
-      default:
-        return hospitals;
+    // First apply document filter
+    let filtered = hospitals;
+    if (documentFilter === 'with-documents') {
+      filtered = hospitalsWithDocuments;
+    } else if (documentFilter === 'without-documents') {
+      filtered = hospitalsWithoutDocuments;
     }
+
+    // Then apply status filter (only for hospitals with documents)
+    if (activeTab === 'pending') {
+      // For pending tab, show pending hospitals with documents OR hospitals without documents
+      if (documentFilter === 'without-documents') {
+        return filtered; // Show all hospitals without documents
+      }
+      return filtered.filter(h => h.verificationStatus === 'pending');
+    } else if (activeTab === 'verified') {
+      return filtered.filter(h => h.verificationStatus === 'verified');
+    } else if (activeTab === 'rejected') {
+      return filtered.filter(h => h.verificationStatus === 'rejected');
+    }
+    return filtered;
   };
 
   const displayedHospitals = getDisplayedHospitals();
@@ -226,7 +245,18 @@ function AdminHospitalsPageContent() {
           </div>
 
           {/* Statistics */}
-          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Hospitals</p>
+                    <p className="text-xl font-bold md:text-2xl">{hospitals.length}</p>
+                  </div>
+                  <Building2 className="h-8 w-8 text-blue-600" />
+                </div>
+              </CardContent>
+            </Card>
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -253,13 +283,38 @@ function AdminHospitalsPageContent() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">Rejected</p>
-                    <p className="text-xl font-bold md:text-2xl">{rejectedHospitals.length}</p>
+                    <p className="text-sm text-muted-foreground">Awaiting Documents</p>
+                    <p className="text-xl font-bold md:text-2xl">{hospitalsWithoutDocuments.length}</p>
                   </div>
-                  <XCircle className="h-8 w-8 text-red-600" />
+                  <FileText className="h-8 w-8 text-orange-600" />
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* Document Filter Toggle */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Button
+              variant={documentFilter === 'all' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDocumentFilter('all')}
+            >
+              All ({hospitals.length})
+            </Button>
+            <Button
+              variant={documentFilter === 'with-documents' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDocumentFilter('with-documents')}
+            >
+              With Documents ({hospitalsWithDocuments.length})
+            </Button>
+            <Button
+              variant={documentFilter === 'without-documents' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setDocumentFilter('without-documents')}
+            >
+              Without Documents ({hospitalsWithoutDocuments.length})
+            </Button>
           </div>
 
           {/* Tabs for filtering hospitals */}
@@ -327,6 +382,58 @@ function AdminHospitalsPageContent() {
                       return null;
                     }
 
+                    // Hospitals WITHOUT documents - show basic info
+                    if (!hospital.verificationDocuments) {
+                      return (
+                        <Card key={hospital.hospitalId} className="border-gray-200">
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="mb-2 flex items-center gap-2">
+                                  <Building2 className="h-5 w-5 text-muted-foreground" />
+                                  <CardTitle>{hospital.name}</CardTitle>
+                                  <Badge variant="warning">Awaiting Document Submission</Badge>
+                                </div>
+                                <CardDescription>
+                                  <div className="space-y-1 mt-2">
+                                    <p><span className="font-medium">Hospital ID:</span> {hospital.hospitalId}</p>
+                                    <p><span className="font-medium">Country:</span> {hospital.country}</p>
+                                    {hospital.location && (
+                                      <p><span className="font-medium">Location:</span> {hospital.location}</p>
+                                    )}
+                                    {hospital.contactEmail && (
+                                      <p><span className="font-medium">Email:</span> {hospital.contactEmail}</p>
+                                    )}
+                                    {hospital.fhirEndpoint && (
+                                      <p><span className="font-medium">FHIR Endpoint:</span> {hospital.fhirEndpoint}</p>
+                                    )}
+                                    {hospital.registeredAt && (
+                                      <p><span className="font-medium">Registered:</span> {new Date(hospital.registeredAt).toLocaleDateString()}</p>
+                                    )}
+                                  </div>
+                                </CardDescription>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedHospitalId(hospital.hospitalId);
+                                  }}
+                                  className="text-xs md:text-sm"
+                                >
+                                  <Eye className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
+                                  <span className="hidden sm:inline">View Details</span>
+                                  <span className="sm:hidden">View</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                        </Card>
+                      );
+                    }
+
+                    // Hospitals WITH documents - show current detailed format
                     return (
                       <Card
                         key={hospital.hospitalId || `hospital-${index}`}
