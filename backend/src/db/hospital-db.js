@@ -204,8 +204,9 @@ export async function getHospitalByHederaAccount(hederaAccountId) {
  */
 export async function verifyHospitalApiKey(hospitalId, apiKey) {
   // Get hospital with API key hash
+  // Use quoted alias to preserve case in PostgreSQL
   const hospital = await get(
-    `SELECT api_key_hash as apiKeyHash, name, status
+    `SELECT api_key_hash as "apiKeyHash", name, status
      FROM hospitals 
      WHERE hospital_id = ?`,
     [hospitalId]
@@ -216,29 +217,39 @@ export async function verifyHospitalApiKey(hospitalId, apiKey) {
     return false;
   }
   
+  // Debug: Log all available keys to see what PostgreSQL actually returns
+  console.log(`[AUTH DEBUG] Hospital ${hospitalId} result keys:`, Object.keys(hospital));
+  console.log(`[AUTH DEBUG] Hospital ${hospitalId} apiKeyHash value:`, hospital.apiKeyHash);
+  console.log(`[AUTH DEBUG] Hospital ${hospitalId} api_key_hash value:`, hospital.api_key_hash);
+  console.log(`[AUTH DEBUG] Hospital ${hospitalId} apikeyhash value:`, hospital.apikeyhash);
+  
   if (hospital.status !== 'active') {
     console.error(`[AUTH] Hospital ${hospitalId} (${hospital.name || 'unknown'}) is not active (status: ${hospital.status})`);
     return false;
   }
   
-  if (!hospital.apiKeyHash) {
+  // Try multiple possible column names (PostgreSQL might lowercase differently)
+  const apiKeyHash = hospital.apiKeyHash || hospital.api_key_hash || hospital.apikeyhash;
+  
+  if (!apiKeyHash) {
     console.error(`[AUTH] Hospital ${hospitalId} (${hospital.name || 'unknown'}) has no API key hash stored`);
+    console.error(`[AUTH] Available keys in result:`, Object.keys(hospital));
     return false;
   }
   
   // Check if hash is bcrypt format
-  const isBcryptHash = hospital.apiKeyHash.startsWith('$2a$') || 
-                       hospital.apiKeyHash.startsWith('$2b$') || 
-                       hospital.apiKeyHash.startsWith('$2y$');
+  const isBcryptHash = apiKeyHash.startsWith('$2a$') || 
+                       apiKeyHash.startsWith('$2b$') || 
+                       apiKeyHash.startsWith('$2y$');
   
   if (isBcryptHash) {
     // Use bcrypt comparison
     try {
-      const isValid = await compareApiKey(apiKey, hospital.apiKeyHash);
+      const isValid = await compareApiKey(apiKey, apiKeyHash);
       if (!isValid) {
         console.error(`[AUTH] API key mismatch for hospital ${hospitalId} (${hospital.name || 'unknown'})`);
         console.error(`[AUTH] Received API key length: ${apiKey?.length}, first 10 chars: ${apiKey?.substring(0, 10)}...`);
-        console.error(`[AUTH] Stored hash prefix: ${hospital.apiKeyHash.substring(0, 20)}...`);
+        console.error(`[AUTH] Stored hash prefix: ${apiKeyHash.substring(0, 20)}...`);
       }
       return isValid;
     } catch (error) {
@@ -248,8 +259,8 @@ export async function verifyHospitalApiKey(hospitalId, apiKey) {
   } else {
     // Legacy SHA-256 hash - support for migration
     const crypto = await import('crypto');
-    const apiKeyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
-    const isValid = hospital.apiKeyHash.trim() === apiKeyHash.trim();
+    const apiKeyHashComputed = crypto.createHash('sha256').update(apiKey).digest('hex');
+    const isValid = apiKeyHash.trim() === apiKeyHashComputed.trim();
     if (!isValid) {
       console.error(`[AUTH] API key mismatch for hospital ${hospitalId} (SHA-256 comparison failed)`);
     }
