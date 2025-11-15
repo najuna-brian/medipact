@@ -362,6 +362,7 @@ assert(provenanceRecord.provenanceProof === expectedProof);`}
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </section>
 
