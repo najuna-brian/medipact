@@ -1,4 +1,5 @@
 import CodeBlock from '@/components/docs/CodeBlock';
+import MermaidDiagram from '@/components/docs/MermaidDiagram';
 
 export default function APIPage() {
   return (
@@ -357,6 +358,328 @@ Content-Type: application/json
   "mobileMoneyNumber": "+256123456789",
   "withdrawalThresholdUSD": 100.00,
   "autoWithdrawEnabled": true
+}`}
+              language="json"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900">Admin Endpoints</h2>
+        <p className="mt-4 text-gray-700">
+          Admin endpoints for managing hospital and researcher verifications, viewing documents, and
+          system administration.
+        </p>
+
+        <div className="mt-6">
+          <h3 className="text-xl font-semibold text-gray-900">Verification Workflow</h3>
+          <MermaidDiagram
+            chart={`sequenceDiagram
+    participant H as Hospital/Researcher
+    participant A as Admin
+    participant S as System
+    participant DB as Database
+    
+    H->>S: Register Account
+    S->>DB: Store Registration
+    H->>S: Submit Verification Documents<br/>(License, Certificate)
+    S->>DB: Store Documents (Pending)
+    S->>A: Notification: New Verification Request
+    
+    A->>S: GET /admin/hospitals
+    S->>A: List with Status & Documents
+    A->>S: GET /admin/hospitals/:id
+    S->>A: Full Details + Documents
+    A->>A: Review Documents<br/>(View PDF/URL)
+    
+    alt Approve
+        A->>S: POST /admin/hospitals/:id/verify
+        S->>DB: Update Status: Verified
+        S->>H: Notification: Approved
+        H->>S: Access Granted
+    else Reject
+        A->>S: POST /admin/hospitals/:id/reject<br/>(with reason)
+        S->>DB: Update Status: Rejected
+        S->>H: Notification: Rejected + Reason
+        H->>S: Can Resubmit Documents
+    end
+    
+    Note over A,DB: All actions logged<br/>for audit trail`}
+          />
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Admin Authentication</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              All admin endpoints require JWT authentication. Include the token in the Authorization
+              header for all requests.
+            </p>
+            <CodeBlock
+              code={`POST /api/admin/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "admin-password"
+}
+
+# Response:
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "admin": {
+    "id": "admin-001",
+    "username": "admin"
+  }
+}`}
+              language="json"
+            />
+            <p className="mt-2 text-sm text-gray-600">
+              Use the token in subsequent requests: <code>Authorization: Bearer {token}</code>
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">List All Hospitals</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Retrieve all hospitals with their verification status and document submission status.
+              Hospitals are categorized by verification status (pending/verified/rejected) and whether
+              they have submitted documents.
+            </p>
+            <CodeBlock
+              code={`GET /api/admin/hospitals
+Authorization: Bearer {token}
+
+# Response:
+{
+  "hospitals": [
+    {
+      "hospitalId": "HOSP-001",
+      "name": "City Hospital",
+      "country": "Uganda",
+      "location": "Kampala",
+      "contactEmail": "admin@cityhospital.com",
+      "verificationStatus": "pending",
+      "verificationDocuments": {
+        "licenseNumber": "HOSP-12345",
+        "registrationCertificate": "data:application/pdf;base64,..."
+      },
+      "registeredAt": "2024-01-15T10:30:00Z",
+      "status": "active"
+    }
+  ]
+}`}
+              language="json"
+            />
+            <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <p className="text-sm text-blue-900">
+                <strong>Note:</strong> Hospitals without submitted documents will have{' '}
+                <code>verificationDocuments: null</code>. Only hospitals with actual document content
+                (license number, certificate, etc.) will have the documents object populated.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Get Hospital Details</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Retrieve detailed information about a specific hospital, including full verification
+              documents. Documents can be base64-encoded PDFs/images (data URLs) or external URLs.
+            </p>
+            <CodeBlock
+              code={`GET /api/admin/hospitals/:hospitalId
+Authorization: Bearer {token}
+
+# Response:
+{
+  "hospitalId": "HOSP-001",
+  "name": "City Hospital",
+  "country": "Uganda",
+  "location": "Kampala",
+  "contactEmail": "admin@cityhospital.com",
+  "fhirEndpoint": "https://fhir.example.com/fhir",
+  "registrationNumber": "HOSP-12345",
+  "verificationStatus": "pending",
+  "verificationDocuments": {
+    "licenseNumber": "HOSP-12345",
+    "registrationCertificate": "data:application/pdf;base64,JVBERi0yLjAK..."
+  },
+  "registeredAt": "2024-01-15T10:30:00Z",
+  "status": "active",
+  "paymentMethod": "bank",
+  "bankName": "Bank of Uganda"
+}`}
+              language="json"
+            />
+            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4">
+              <p className="text-sm text-green-900">
+                <strong>Document Formats:</strong> Registration certificates can be:
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-6 text-sm text-green-800">
+                <li>
+                  <strong>Data URLs:</strong> <code>data:application/pdf;base64,...</code> (base64-encoded PDFs)
+                </li>
+                <li>
+                  <strong>External URLs:</strong> <code>https://example.com/certificate.pdf</code> (publicly
+                  accessible links)
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Approve Hospital Verification</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Approve a hospital's verification request. The hospital will be notified and gain full
+              access to register patients and use all platform features.
+            </p>
+            <CodeBlock
+              code={`POST /api/admin/hospitals/:hospitalId/verify
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "message": "Optional approval message for internal notes"
+}
+
+# Response:
+{
+  "success": true,
+  "hospital": {
+    "hospitalId": "HOSP-001",
+    "name": "City Hospital",
+    "verificationStatus": "verified",
+    "verifiedAt": "2024-01-16T14:30:00Z",
+    "verifiedBy": "admin-001"
+  }
+}`}
+              language="json"
+            />
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Reject Hospital Verification</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Reject a hospital's verification request with a reason. The hospital will be notified and
+              can resubmit documents after addressing the issues.
+            </p>
+            <CodeBlock
+              code={`POST /api/admin/hospitals/:hospitalId/reject
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "reason": "Required: Reason for rejection (e.g., 'Invalid license number', 'Certificate expired')"
+}
+
+# Response:
+{
+  "success": true,
+  "hospital": {
+    "hospitalId": "HOSP-001",
+    "name": "City Hospital",
+    "verificationStatus": "rejected",
+    "verifiedBy": "admin-001"
+  }
+}`}
+              language="json"
+            />
+            <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+              <p className="text-sm text-yellow-900">
+                <strong>Important:</strong> The rejection reason will be visible to the hospital and
+                should be clear and constructive to help them address the issues.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">List All Researchers</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Retrieve all researchers with their verification status and document submission status.
+            </p>
+            <CodeBlock
+              code={`GET /api/admin/researchers
+Authorization: Bearer {token}
+
+# Response:
+{
+  "researchers": [
+    {
+      "researcherId": "RES-001",
+      "email": "researcher@university.edu",
+      "organizationName": "University Research Lab",
+      "contactName": "Dr. Jane Smith",
+      "country": "Uganda",
+      "verificationStatus": "pending",
+      "verificationDocuments": {
+        "organizationDocuments": "data:application/pdf;base64,..."
+      },
+      "registeredAt": "2024-01-15T10:30:00Z",
+      "accessLevel": "basic"
+    }
+  ],
+  "total": 10
+}`}
+              language="json"
+            />
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Get Researcher Details</h3>
+            <CodeBlock
+              code={`GET /api/admin/researchers/:researcherId
+Authorization: Bearer {token}
+
+# Response includes full researcher information and verification documents`}
+              language="text"
+            />
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Approve Researcher Verification</h3>
+            <CodeBlock
+              code={`POST /api/admin/researchers/:researcherId/verify
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "message": "Optional approval message"
+}
+
+# Response:
+{
+  "message": "Researcher verified successfully",
+  "researcher": {
+    "researcherId": "RES-001",
+    "verificationStatus": "verified",
+    "verifiedAt": "2024-01-16T14:30:00Z",
+    "verifiedBy": "admin-001"
+  }
+}`}
+              language="json"
+            />
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 className="text-lg font-semibold text-gray-900">Reject Researcher Verification</h3>
+            <CodeBlock
+              code={`POST /api/admin/researchers/:researcherId/reject
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "reason": "Required: Reason for rejection"
+}
+
+# Response:
+{
+  "message": "Researcher verification rejected",
+  "researcher": {
+    "researcherId": "RES-001",
+    "verificationStatus": "rejected",
+    "verifiedBy": "admin-001"
+  }
 }`}
               language="json"
             />
