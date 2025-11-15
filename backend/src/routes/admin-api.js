@@ -79,7 +79,9 @@ router.use(authenticateAdmin);
  */
 router.get('/hospitals', async (req, res) => {
   try {
+    console.log('[ADMIN API] Fetching all hospitals...');
     const hospitals = await getAllHospitals();
+    console.log(`[ADMIN API] Found ${hospitals.length} hospitals in database`);
     
     // Format hospitals with verification status
     const formattedHospitals = hospitals.map(hospital => {
@@ -114,9 +116,17 @@ router.get('/hospitals', async (req, res) => {
       };
     });
 
+    console.log(`[ADMIN API] Returning ${formattedHospitals.length} formatted hospitals`);
+    console.log(`[ADMIN API] Hospitals by status:`, {
+      pending: formattedHospitals.filter(h => h.verificationStatus === 'pending').length,
+      verified: formattedHospitals.filter(h => h.verificationStatus === 'verified').length,
+      rejected: formattedHospitals.filter(h => h.verificationStatus === 'rejected').length,
+      withDocuments: formattedHospitals.filter(h => h.verificationDocuments).length
+    });
+
     res.json({ hospitals: formattedHospitals });
   } catch (error) {
-    console.error('Error fetching hospitals:', error);
+    console.error('[ADMIN API] Error fetching hospitals:', error);
     res.status(500).json({ error: error.message || 'Failed to fetch hospitals' });
   }
 });

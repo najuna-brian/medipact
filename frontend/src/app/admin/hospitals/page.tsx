@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Building2,
   CheckCircle2,
@@ -30,6 +31,7 @@ function AdminHospitalsPageContent() {
   const [approvalMessage, setApprovalMessage] = useState(
     'Your hospital verification has been approved. You can now register patients and use all features.'
   );
+  const [activeTab, setActiveTab] = useState<string>('all');
 
   const { data, isLoading, error } = useAdminHospitals();
   const {
@@ -51,6 +53,22 @@ function AdminHospitalsPageContent() {
   );
   const verifiedHospitals = hospitals.filter((h) => h.verificationStatus === 'verified');
   const rejectedHospitals = hospitals.filter((h) => h.verificationStatus === 'rejected');
+
+  // Get hospitals to display based on active tab
+  const getDisplayedHospitals = () => {
+    switch (activeTab) {
+      case 'pending':
+        return pendingHospitals;
+      case 'verified':
+        return verifiedHospitals;
+      case 'rejected':
+        return rejectedHospitals;
+      default:
+        return hospitals;
+    }
+  };
+
+  const displayedHospitals = getDisplayedHospitals();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -244,126 +262,129 @@ function AdminHospitalsPageContent() {
             </Card>
           </div>
 
-          {/* Pending Verifications */}
-          {pendingHospitals.length > 0 && (
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-semibold md:text-xl">Pending Verifications</h2>
-              <div className="space-y-4">
-                {pendingHospitals.map((hospital, index) => (
-                  <Card
-                    key={hospital.hospitalId || `pending-hospital-${index}`}
-                    className="border-yellow-200"
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="mb-2 flex items-center gap-2">
-                            <Building2 className="h-5 w-5 text-muted-foreground" />
-                            <CardTitle>{hospital.name}</CardTitle>
-                            {getStatusBadge(hospital.verificationStatus)}
-                          </div>
-                          <CardDescription>
-                            {hospital.hospitalId} • {hospital.country}
-                            {hospital.location && ` • ${hospital.location}`}
-                          </CardDescription>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log('Button clicked, hospitalId:', hospital.hospitalId);
-                              if (hospital.hospitalId) {
-                                viewDocuments(hospital.hospitalId);
-                              } else {
-                                console.error('Hospital ID is undefined!', hospital);
-                              }
-                            }}
-                            className="text-xs md:text-sm"
-                          >
-                            <Eye className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
-                            <span className="hidden sm:inline">View & Review</span>
-                            <span className="sm:hidden">View</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Tabs for filtering hospitals */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="all" className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                <span className="hidden sm:inline">All</span>
+                <span className="sm:hidden">All</span>
+                <Badge variant="default" className="ml-2">
+                  {hospitals.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="pending" className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <span className="hidden sm:inline">Pending</span>
+                <span className="sm:hidden">Pending</span>
+                <Badge variant="warning" className="ml-2">
+                  {pendingHospitals.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="verified" className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                <span className="hidden sm:inline">Verified</span>
+                <span className="sm:hidden">Verified</span>
+                <Badge variant="success" className="ml-2">
+                  {verifiedHospitals.length}
+                </Badge>
+              </TabsTrigger>
+              <TabsTrigger value="rejected" className="flex items-center gap-2">
+                <XCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">Rejected</span>
+                <span className="sm:hidden">Rejected</span>
+                <Badge variant="error" className="ml-2">
+                  {rejectedHospitals.length}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
 
-          {/* All Hospitals */}
-          <div>
-            <h2 className="mb-4 text-lg font-semibold md:text-xl">All Hospitals</h2>
-            <div className="space-y-4">
-              {hospitals.map((hospital, index) => {
-                // Skip invalid hospital objects
-                if (!hospital || !hospital.hospitalId) {
-                  console.warn('Skipping invalid hospital object:', hospital);
-                  return null;
-                }
-                
-                return (
-                  <Card
-                    key={hospital.hospitalId || `hospital-${index}`}
-                    className={
-                      hospital.verificationStatus === 'verified'
-                        ? 'border-green-200'
-                        : hospital.verificationStatus === 'rejected'
-                          ? 'border-red-200'
-                          : ''
+            {/* Tab Content - Single unified list */}
+            <TabsContent value={activeTab} className="mt-6">
+              {displayedHospitals.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8">
+                    <div className="flex flex-col items-center justify-center text-center">
+                      <Building2 className="mb-4 h-12 w-12 text-muted-foreground" />
+                      <p className="text-lg font-semibold">No hospitals found</p>
+                      <p className="text-sm text-muted-foreground">
+                        {activeTab === 'all'
+                          ? 'No hospitals have been registered yet.'
+                          : activeTab === 'pending'
+                            ? 'No hospitals are pending verification.'
+                            : activeTab === 'verified'
+                              ? 'No hospitals have been verified yet.'
+                              : 'No hospitals have been rejected.'}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {displayedHospitals.map((hospital, index) => {
+                    if (!hospital || !hospital.hospitalId) {
+                      console.warn('Skipping invalid hospital object:', hospital);
+                      return null;
                     }
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="mb-2 flex items-center gap-2">
-                            <Building2 className="h-5 w-5 text-muted-foreground" />
-                            <CardTitle>{hospital.name}</CardTitle>
-                            {getStatusBadge(hospital.verificationStatus)}
+
+                    return (
+                      <Card
+                        key={hospital.hospitalId || `hospital-${index}`}
+                        className={
+                          hospital.verificationStatus === 'verified'
+                            ? 'border-green-200'
+                            : hospital.verificationStatus === 'rejected'
+                              ? 'border-red-200'
+                              : 'border-yellow-200'
+                        }
+                      >
+                        <CardHeader>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="mb-2 flex items-center gap-2">
+                                <Building2 className="h-5 w-5 text-muted-foreground" />
+                                <CardTitle>{hospital.name}</CardTitle>
+                                {getStatusBadge(hospital.verificationStatus)}
+                              </div>
+                              <CardDescription>
+                                {hospital.hospitalId} • {hospital.country}
+                                {hospital.location && ` • ${hospital.location}`}
+                                {hospital.contactEmail && ` • ${hospital.contactEmail}`}
+                              </CardDescription>
+                              {hospital.verifiedAt && (
+                                <p className="mt-2 text-xs text-muted-foreground">
+                                  Verified on: {new Date(hospital.verifiedAt).toLocaleDateString()}
+                                  {hospital.verifiedBy && ` by ${hospital.verifiedBy}`}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  if (hospital.hospitalId) {
+                                    viewDocuments(hospital.hospitalId);
+                                  }
+                                }}
+                                className="text-xs md:text-sm"
+                              >
+                                <Eye className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
+                                <span className="hidden sm:inline">View & Review</span>
+                                <span className="sm:hidden">View</span>
+                              </Button>
+                            </div>
                           </div>
-                          <CardDescription>
-                            {hospital.hospitalId} • {hospital.country}
-                            {hospital.location && ` • ${hospital.location}`}
-                            {hospital.contactEmail && ` • ${hospital.contactEmail}`}
-                          </CardDescription>
-                          {hospital.verifiedAt && (
-                            <p className="mt-2 text-xs text-muted-foreground">
-                              Verified on: {new Date(hospital.verifiedAt).toLocaleDateString()}
-                              {hospital.verifiedBy && ` by ${hospital.verifiedBy}`}
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log('Button clicked (All Hospitals), hospitalId:', hospital.hospitalId);
-                              if (hospital.hospitalId) {
-                                viewDocuments(hospital.hospitalId);
-                              } else {
-                                console.error('Hospital ID is undefined!', hospital);
-                              }
-                            }}
-                          >
-                            <Eye className="mr-2 h-4 w-4" />
-                            View & Review
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
+                        </CardHeader>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {/* Hospital Detail Modal/Dialog */}
           {selectedHospitalId && (
