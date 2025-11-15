@@ -42,7 +42,9 @@ function AdminResearchersPageContent() {
   const approveMutation = useApproveResearcher();
   const rejectMutation = useRejectResearcher();
 
-  const researchers = data?.researchers || [];
+  const researchers = (data?.researchers || []).filter(
+    (r) => r && r.researcherId && Object.keys(r).length > 0
+  ); // Filter out empty or invalid researcher objects
 
   // Group researchers by verification status
   const pendingResearchers = researchers.filter(

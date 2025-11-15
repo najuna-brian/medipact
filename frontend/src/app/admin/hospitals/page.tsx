@@ -40,7 +40,9 @@ function AdminHospitalsPageContent() {
   const approveMutation = useApproveHospital();
   const rejectMutation = useRejectHospital();
 
-  const hospitals = data?.hospitals || [];
+  const hospitals = (data?.hospitals || []).filter(
+    (h) => h && h.hospitalId && Object.keys(h).length > 0
+  ); // Filter out empty or invalid hospital objects
 
   // Group hospitals by verification status
   // Only show pending hospitals that have actually submitted documents
@@ -298,60 +300,68 @@ function AdminHospitalsPageContent() {
           <div>
             <h2 className="mb-4 text-lg font-semibold md:text-xl">All Hospitals</h2>
             <div className="space-y-4">
-              {hospitals.map((hospital, index) => (
-                <Card
-                  key={hospital.hospitalId || `hospital-${index}`}
-                  className={
-                    hospital.verificationStatus === 'verified'
-                      ? 'border-green-200'
-                      : hospital.verificationStatus === 'rejected'
-                        ? 'border-red-200'
-                        : ''
-                  }
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="mb-2 flex items-center gap-2">
-                          <Building2 className="h-5 w-5 text-muted-foreground" />
-                          <CardTitle>{hospital.name}</CardTitle>
-                          {getStatusBadge(hospital.verificationStatus)}
+              {hospitals.map((hospital, index) => {
+                // Skip invalid hospital objects
+                if (!hospital || !hospital.hospitalId) {
+                  console.warn('Skipping invalid hospital object:', hospital);
+                  return null;
+                }
+                
+                return (
+                  <Card
+                    key={hospital.hospitalId || `hospital-${index}`}
+                    className={
+                      hospital.verificationStatus === 'verified'
+                        ? 'border-green-200'
+                        : hospital.verificationStatus === 'rejected'
+                          ? 'border-red-200'
+                          : ''
+                    }
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="mb-2 flex items-center gap-2">
+                            <Building2 className="h-5 w-5 text-muted-foreground" />
+                            <CardTitle>{hospital.name}</CardTitle>
+                            {getStatusBadge(hospital.verificationStatus)}
+                          </div>
+                          <CardDescription>
+                            {hospital.hospitalId} • {hospital.country}
+                            {hospital.location && ` • ${hospital.location}`}
+                            {hospital.contactEmail && ` • ${hospital.contactEmail}`}
+                          </CardDescription>
+                          {hospital.verifiedAt && (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              Verified on: {new Date(hospital.verifiedAt).toLocaleDateString()}
+                              {hospital.verifiedBy && ` by ${hospital.verifiedBy}`}
+                            </p>
+                          )}
                         </div>
-                        <CardDescription>
-                          {hospital.hospitalId} • {hospital.country}
-                          {hospital.location && ` • ${hospital.location}`}
-                          {hospital.contactEmail && ` • ${hospital.contactEmail}`}
-                        </CardDescription>
-                        {hospital.verifiedAt && (
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            Verified on: {new Date(hospital.verifiedAt).toLocaleDateString()}
-                            {hospital.verifiedBy && ` by ${hospital.verifiedBy}`}
-                          </p>
-                        )}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Button clicked (All Hospitals), hospitalId:', hospital.hospitalId);
+                              if (hospital.hospitalId) {
+                                viewDocuments(hospital.hospitalId);
+                              } else {
+                                console.error('Hospital ID is undefined!', hospital);
+                              }
+                            }}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View & Review
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            console.log('Button clicked (All Hospitals), hospitalId:', hospital.hospitalId);
-                            if (hospital.hospitalId) {
-                              viewDocuments(hospital.hospitalId);
-                            } else {
-                              console.error('Hospital ID is undefined!', hospital);
-                            }
-                          }}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View & Review
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-              ))}
+                    </CardHeader>
+                  </Card>
+                );
+              })}
             </div>
           </div>
 
