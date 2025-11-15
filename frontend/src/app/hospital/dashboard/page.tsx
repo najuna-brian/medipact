@@ -47,16 +47,10 @@ export default function HospitalDashboardPage() {
     };
 
     window.addEventListener('hospital-verified', handleVerificationUpdate);
-    // Also poll for updates every 30 seconds (reduced from 10 seconds to avoid rate limiting)
-    const pollInterval = setInterval(() => {
-      if (hospitalId && apiKey) {
-        refetchVerification();
-      }
-    }, 30000);
+    // No polling interval - users can manually refresh or rely on event-driven updates
 
     return () => {
       window.removeEventListener('hospital-verified', handleVerificationUpdate);
-      clearInterval(pollInterval);
     };
   }, [hospitalId, apiKey, refetchVerification]);
 
@@ -111,7 +105,7 @@ export default function HospitalDashboardPage() {
           </div>
 
           {/* Verification Status Alert */}
-          {!statusLoading && (
+          {!statusLoading &&
             (!verificationStatus || verificationStatus.verificationStatus !== 'verified') && (
               <Card className="mb-6 border-yellow-200 bg-yellow-50">
                 <CardContent className="pt-6">
@@ -124,28 +118,58 @@ export default function HospitalDashboardPage() {
                           {!verificationStatus
                             ? 'Unknown'
                             : verificationStatus.verificationStatus === 'pending'
-                            ? 'Pending'
-                            : 'Not Verified'}
+                              ? 'Pending'
+                              : 'Not Verified'}
                         </Badge>
                       </div>
-                      <p className="mb-3 text-sm text-yellow-800">
+                      <p className="mb-2 text-sm text-yellow-800">
                         {!verificationStatus
                           ? 'Unable to fetch verification status. Please check your credentials or try again later.'
-                          : 'Your hospital account needs to be verified before you can register patients. Complete verification to access all features.'}
+                          : verificationStatus.verificationStatus === 'pending'
+                            ? "Your verification documents are under review. Verification typically takes 24-48 hours during business days. You'll receive an email notification when your status changes."
+                            : 'Your hospital account needs to be verified before you can register patients. Complete verification to access all features.'}
                       </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push('/hospital/verification')}
-                      >
-                        Complete Verification
-                      </Button>
+                      <div className="flex gap-2">
+                        {verificationStatus?.verificationStatus === 'pending' ? (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => refetchVerification()}
+                              disabled={statusLoading}
+                            >
+                              {statusLoading ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Checking...
+                                </>
+                              ) : (
+                                'Check Status'
+                              )}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push('/hospital/verification')}
+                            >
+                              View Details
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push('/hospital/verification')}
+                          >
+                            Complete Verification
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            )
-          )}
+            )}
 
           {verificationStatus && verificationStatus.verificationStatus === 'verified' && (
             <Card className="mb-6 border-green-200 bg-green-50">

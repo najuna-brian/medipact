@@ -77,8 +77,10 @@ export function useResearcherVerificationStatus(researcherId: string | null) {
     queryKey: ['researcher', 'verification', researcherId],
     queryFn: () => getResearcherVerificationStatus(researcherId!),
     enabled: !!researcherId,
-    refetchInterval: 5000, // Poll every 5 seconds
-    refetchOnWindowFocus: true,
+    refetchInterval: false, // No auto-polling - users can manually refresh
+    refetchOnWindowFocus: false, // Don't auto-refetch on window focus
+    retry: 3, // Retry failed requests up to 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 }
 
@@ -90,8 +92,10 @@ export function useResearcherStatus(researcherId: string | null) {
     queryKey: ['researcher', 'status', researcherId],
     queryFn: () => getResearcherStatus(researcherId!),
     enabled: !!researcherId,
-    refetchInterval: 5000,
-    refetchOnWindowFocus: true,
+    refetchInterval: false, // No auto-polling - users can manually refresh
+    refetchOnWindowFocus: false, // Don't auto-refetch on window focus
+    retry: 3, // Retry failed requests up to 3 times
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 }
 

@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle2, AlertCircle, Upload, FileText } from 'lucide-react';
-import { useSubmitResearcherVerification, useResearcherVerificationStatus } from '@/hooks/useResearcher';
+import {
+  useSubmitResearcherVerification,
+  useResearcherVerificationStatus,
+} from '@/hooks/useResearcher';
 
 export default function ResearcherVerifyPage() {
   const params = useParams();
@@ -25,18 +28,35 @@ export default function ResearcherVerifyPage() {
   const verificationStatus = useResearcherVerificationStatus(researcherId);
   const submitMutation = useSubmitResearcherVerification();
 
+  // Listen for researcher verification updates from admin (event-driven, instant updates)
+  useEffect(() => {
+    const handleVerificationUpdate = () => {
+      // Refetch verification status when admin approves/rejects (instant update)
+      if (researcherId) {
+        verificationStatus.refetch();
+      }
+    };
+
+    window.addEventListener('researcher-verified', handleVerificationUpdate);
+
+    return () => {
+      window.removeEventListener('researcher-verified', handleVerificationUpdate);
+      // No polling interval - users can manually refresh
+    };
+  }, [researcherId, verificationStatus]);
+
   // Handle file selection
   const handleFileChange = (field: string, file: File | null) => {
-    setFormData(prev => ({ ...prev, [field]: file }));
-    
+    setFormData((prev) => ({ ...prev, [field]: file }));
+
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFilePreviews(prev => ({ ...prev, [field]: reader.result as string }));
+        setFilePreviews((prev) => ({ ...prev, [field]: reader.result as string }));
       };
       reader.readAsDataURL(file);
     } else {
-      setFilePreviews(prev => {
+      setFilePreviews((prev) => {
         const newPreviews = { ...prev };
         delete newPreviews[field];
         return newPreviews;
@@ -50,7 +70,7 @@ export default function ResearcherVerifyPage() {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
+      reader.onerror = (error) => reject(error);
     });
   };
 
@@ -59,7 +79,11 @@ export default function ResearcherVerifyPage() {
     setError(null);
 
     // Validate that at least one document is provided
-    if (!formData.organizationDocuments && !formData.researchLicense && !formData.additionalDocuments) {
+    if (
+      !formData.organizationDocuments &&
+      !formData.researchLicense &&
+      !formData.additionalDocuments
+    ) {
       setError('Please provide at least one verification document (file upload)');
       return;
     }
@@ -87,11 +111,16 @@ export default function ResearcherVerifyPage() {
         documents,
       });
 
-      // Refresh verification status
-      verificationStatus.refetch();
+      // Refresh verification status and redirect to dashboard
+      await verificationStatus.refetch();
+      setTimeout(() => {
+        router.push('/researcher/dashboard');
+      }, 1500);
     } catch (error: any) {
       console.error('Verification submission error:', error);
-      setError(error.response?.data?.error || error.message || 'Failed to submit verification documents');
+      setError(
+        error.response?.data?.error || error.message || 'Failed to submit verification documents'
+      );
     }
   };
 
@@ -105,20 +134,16 @@ export default function ResearcherVerifyPage() {
               <CheckCircle2 className="h-6 w-6 text-green-600" />
             </div>
             <CardTitle className="text-2xl font-bold">Verification Approved!</CardTitle>
-            <CardDescription>
-              Your researcher account has been verified
-            </CardDescription>
+            <CardDescription>Your researcher account has been verified</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-lg bg-green-50 p-4">
               <p className="text-sm text-green-800">
-                You now have full access to all datasets and features. You can browse and purchase anonymized medical data for your research.
+                You now have full access to all datasets and features. You can browse and purchase
+                anonymized medical data for your research.
               </p>
             </div>
-            <Button
-              onClick={() => router.push('/researcher/dashboard')}
-              className="w-full"
-            >
+            <Button onClick={() => router.push('/researcher/dashboard')} className="w-full">
               Go to Dashboard
             </Button>
           </CardContent>
@@ -134,23 +159,48 @@ export default function ResearcherVerifyPage() {
         <Card className="w-full max-w-2xl">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
-              <Loader2 className="h-6 w-6 text-yellow-600 animate-spin" />
+              <AlertCircle className="h-6 w-6 text-yellow-600" />
             </div>
             <CardTitle className="text-2xl font-bold">Verification Pending</CardTitle>
-            <CardDescription>
-              Your verification documents are under review
-            </CardDescription>
+            <CardDescription>Your verification documents are under review</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg bg-yellow-50 p-4">
-              <p className="text-sm text-yellow-800">
-                An admin will review your documents shortly. You&apos;ll be notified once your verification is complete.
-              </p>
+            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 text-yellow-600" />
+                <div className="flex-1">
+                  <p className="font-semibold text-yellow-900">Verification Pending</p>
+                  <p className="mt-1 text-sm text-yellow-800">
+                    Your documents are under review. Verification typically takes 24-48 hours during
+                    business days.
+                  </p>
+                  <p className="mt-2 text-xs text-yellow-700">
+                    You&apos;ll receive an email notification when your status changes, or you can
+                    check manually using the button below.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => verificationStatus.refetch()}
+                    disabled={verificationStatus.isLoading}
+                  >
+                    {verificationStatus.isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="mr-2 h-4 w-4" />
+                        Check Verification Status
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
-            <Button
-              onClick={() => router.push('/researcher/dashboard')}
-              className="w-full"
-            >
+            <Button onClick={() => router.push('/researcher/dashboard')} className="w-full">
               Go to Dashboard
             </Button>
           </CardContent>
@@ -166,18 +216,20 @@ export default function ResearcherVerifyPage() {
           <CardHeader>
             <CardTitle className="text-2xl font-bold">Researcher Verification</CardTitle>
             <CardDescription>
-              Submit verification documents to access full features and better pricing
+              Submit verification documents to access full features and better pricing. Verification
+              typically takes 24-48 hours during business days.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {verificationStatus.data?.verificationStatus === 'rejected' && (
-              <div className="mb-6 rounded-lg bg-red-50 p-4 border border-red-200">
+              <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                  <AlertCircle className="mt-0.5 h-5 w-5 text-red-600" />
                   <div className="flex-1">
                     <p className="font-medium text-red-900">Verification Rejected</p>
-                    <p className="text-sm text-red-800 mt-1">
-                      {verificationStatus.data.verificationMessage || 'Your verification was rejected. Please submit new documents.'}
+                    <p className="mt-1 text-sm text-red-800">
+                      {verificationStatus.data.verificationMessage ||
+                        'Your verification was rejected. Please submit new documents.'}
                     </p>
                   </div>
                 </div>
@@ -186,14 +238,18 @@ export default function ResearcherVerifyPage() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {submitMutation.isError && (
-                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800 flex items-center gap-2">
+                <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800">
                   <AlertCircle className="h-4 w-4" />
-                  <span>{(submitMutation.error as any)?.response?.data?.error || (submitMutation.error as any)?.message || 'Submission failed'}</span>
+                  <span>
+                    {(submitMutation.error as any)?.response?.data?.error ||
+                      (submitMutation.error as any)?.message ||
+                      'Submission failed'}
+                  </span>
                 </div>
               )}
 
               {error && (
-                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-800 flex items-center gap-2">
+                <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-800">
                   <AlertCircle className="h-4 w-4" />
                   <span>{error}</span>
                 </div>
@@ -201,7 +257,10 @@ export default function ResearcherVerifyPage() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="organizationDocuments" className="text-sm font-medium flex items-center gap-2">
+                  <label
+                    htmlFor="organizationDocuments"
+                    className="flex items-center gap-2 text-sm font-medium"
+                  >
                     <FileText className="h-4 w-4" />
                     Organization Registration Documents *
                   </label>
@@ -212,7 +271,9 @@ export default function ResearcherVerifyPage() {
                     id="organizationDocuments"
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => handleFileChange('organizationDocuments', e.target.files?.[0] || null)}
+                    onChange={(e) =>
+                      handleFileChange('organizationDocuments', e.target.files?.[0] || null)
+                    }
                     className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                     disabled={submitMutation.isPending}
                   />
@@ -222,7 +283,10 @@ export default function ResearcherVerifyPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="researchLicense" className="text-sm font-medium flex items-center gap-2">
+                  <label
+                    htmlFor="researchLicense"
+                    className="flex items-center gap-2 text-sm font-medium"
+                  >
                     <FileText className="h-4 w-4" />
                     Research License / IRB Approval (Optional)
                   </label>
@@ -233,7 +297,9 @@ export default function ResearcherVerifyPage() {
                     id="researchLicense"
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => handleFileChange('researchLicense', e.target.files?.[0] || null)}
+                    onChange={(e) =>
+                      handleFileChange('researchLicense', e.target.files?.[0] || null)
+                    }
                     className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                     disabled={submitMutation.isPending}
                   />
@@ -243,7 +309,10 @@ export default function ResearcherVerifyPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="additionalDocuments" className="text-sm font-medium flex items-center gap-2">
+                  <label
+                    htmlFor="additionalDocuments"
+                    className="flex items-center gap-2 text-sm font-medium"
+                  >
                     <FileText className="h-4 w-4" />
                     Additional Documents (Optional)
                   </label>
@@ -254,7 +323,9 @@ export default function ResearcherVerifyPage() {
                     id="additionalDocuments"
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => handleFileChange('additionalDocuments', e.target.files?.[0] || null)}
+                    onChange={(e) =>
+                      handleFileChange('additionalDocuments', e.target.files?.[0] || null)
+                    }
                     className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200"
                     disabled={submitMutation.isPending}
                   />
@@ -269,8 +340,10 @@ export default function ResearcherVerifyPage() {
                   type="submit"
                   className="flex-1"
                   disabled={
-                    submitMutation.isPending || 
-                    (!formData.organizationDocuments && !formData.researchLicense && !formData.additionalDocuments)
+                    submitMutation.isPending ||
+                    (!formData.organizationDocuments &&
+                      !formData.researchLicense &&
+                      !formData.additionalDocuments)
                   }
                 >
                   {submitMutation.isPending ? (

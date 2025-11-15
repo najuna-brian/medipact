@@ -1,13 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertCircle, CheckCircle2, X, Upload, FileText, Building2, Link as LinkIcon, Key } from 'lucide-react';
+import {
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  X,
+  Upload,
+  FileText,
+  Building2,
+  Link as LinkIcon,
+  Key,
+} from 'lucide-react';
 import { useHospitalSession } from '@/hooks/useHospitalSession';
 import { useSubmitVerificationDocuments, useVerificationStatus } from '@/hooks/usePatientIdentity';
+
 export default function HospitalVerificationPage() {
+  const router = useRouter();
   const { hospitalId, apiKey, isAuthenticated, isLoading, login } = useHospitalSession();
   const [documents, setDocuments] = useState({
     licenseNumber: '',
@@ -48,26 +61,20 @@ export default function HospitalVerificationPage() {
     }
   }, [isAuthenticated]);
 
-  // Listen for hospital verification updates from admin
+  // Listen for hospital verification updates from admin (event-driven, instant updates)
   useEffect(() => {
     const handleVerificationUpdate = () => {
-      // Refetch verification status when admin approves/rejects
+      // Refetch verification status when admin approves/rejects (instant update)
       if (hospitalId) {
         refetchVerification();
       }
     };
 
     window.addEventListener('hospital-verified', handleVerificationUpdate);
-    // Also poll for updates every 10 seconds (as fallback)
-    const pollInterval = setInterval(() => {
-      if (hospitalId && apiKey) {
-        refetchVerification();
-      }
-    }, 10000);
 
     return () => {
       window.removeEventListener('hospital-verified', handleVerificationUpdate);
-      clearInterval(pollInterval);
+      // No polling interval - users can manually refresh
     };
   }, [hospitalId, apiKey, refetchVerification]);
 
@@ -280,10 +287,11 @@ export default function HospitalVerificationPage() {
       setCertificateFile(null);
       setCertificateUrl('');
 
-      // Refresh verification status
+      // Refresh verification status and redirect to dashboard
+      await refetchVerification();
       setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+        router.push('/hospital/dashboard');
+      }, 1500);
     } catch (err: any) {
       const errorMessage = err.response?.data?.error || err.message || 'Failed to submit documents';
       setError(errorMessage);
@@ -321,7 +329,7 @@ export default function HospitalVerificationPage() {
               </div>
             </CardContent>
           </Card>
-        ) : verificationStatus && verificationStatus.verificationDocuments ? (
+        ) : verificationStatus ? (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -381,12 +389,35 @@ export default function HospitalVerificationPage() {
                 <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="mt-0.5 h-5 w-5 text-yellow-600" />
-                    <div>
+                    <div className="flex-1">
                       <p className="font-semibold text-yellow-900">Verification Pending</p>
                       <p className="mt-1 text-sm text-yellow-800">
-                        Your documents are under review. You&apos;ll be notified once verification is
-                        complete.
+                        Your documents are under review. Verification typically takes 24-48 hours
+                        during business days.
                       </p>
+                      <p className="mt-2 text-xs text-yellow-700">
+                        You&apos;ll receive an email notification when your status changes, or you
+                        can check manually using the button below.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => refetchVerification()}
+                        disabled={statusLoading}
+                      >
+                        {statusLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Checking...
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Check Verification Status
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -425,7 +456,8 @@ export default function HospitalVerificationPage() {
                 Submit Verification Documents
               </CardTitle>
               <CardDescription>
-                Provide your hospital license number and registration certificate
+                Provide your hospital license number and registration certificate. Verification
+                typically takes 24-48 hours during business days.
               </CardDescription>
             </CardHeader>
             <CardContent>

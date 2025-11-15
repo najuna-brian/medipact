@@ -71,6 +71,10 @@ export default function HospitalEnrollmentPage() {
       // Auto-login after successful registration
       if (result.hospital?.hospitalId && result.hospital?.apiKey) {
         login(result.hospital.hospitalId, result.hospital.apiKey);
+        // Small delay to ensure sessionStorage is saved before navigation
+        setTimeout(() => {
+          // Don't auto-redirect - let user see success message and choose to proceed
+        }, 100);
       }
     } catch (err: any) {
       const errorMessage =
@@ -418,16 +422,23 @@ export default function HospitalEnrollmentPage() {
                       <li>Complete hospital verification to activate your account</li>
                       <li>Login to access patient registration and management</li>
                     </ul>
-                    <div className="mt-4">
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Next, you&apos;ll need to submit verification documents (license number and
+                        registration certificate) for admin approval.
+                      </p>
                       <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
                         className="w-full"
                         onClick={() => {
                           if (registeredHospital?.hospitalId && registeredHospital?.apiKey) {
                             // Ensure session is saved (should already be done, but double-check)
                             login(registeredHospital.hospitalId, registeredHospital.apiKey);
-                            router.push('/hospital/verification');
+                            // Small delay to ensure sessionStorage is saved
+                            setTimeout(() => {
+                              router.push('/hospital/verification');
+                            }, 100);
                           } else {
                             router.push('/hospital/verification');
                           }

@@ -29,6 +29,23 @@ export default function ResearcherDashboardPage() {
   const researcher = useResearcher(researcherId);
   const researcherStatus = useResearcherStatus(researcherId);
 
+  // Listen for researcher verification updates from admin (event-driven, instant updates)
+  useEffect(() => {
+    const handleVerificationUpdate = () => {
+      // Refetch verification status when admin approves/rejects (instant update)
+      if (researcherId) {
+        researcherStatus.refetch();
+      }
+    };
+
+    window.addEventListener('researcher-verified', handleVerificationUpdate);
+
+    return () => {
+      window.removeEventListener('researcher-verified', handleVerificationUpdate);
+      // No polling interval - users can manually refresh or rely on event-driven updates
+    };
+  }, [researcherId, researcherStatus]);
+
   if (!researcherId) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -49,9 +66,7 @@ export default function ResearcherDashboardPage() {
               {researcher.data?.organizationName ? (
                 <>
                   {researcher.data.organizationName}
-                  <span className="ml-2 text-lg font-normal text-muted-foreground">
-                    Dashboard
-                  </span>
+                  <span className="ml-2 text-lg font-normal text-muted-foreground">Dashboard</span>
                 </>
               ) : (
                 'Researcher Dashboard'
@@ -72,7 +87,13 @@ export default function ResearcherDashboardPage() {
                 verificationStatus={
                   researcherStatus.data.verificationStatus as 'pending' | 'verified' | 'rejected'
                 }
-                message={researcherStatus.data.verificationMessage || undefined}
+                message={
+                  researcherStatus.data.verificationStatus === 'pending'
+                    ? "Your verification documents are under review. Verification typically takes 24-48 hours during business days. You'll receive an email notification when your status changes."
+                    : researcherStatus.data.verificationMessage || undefined
+                }
+                onRefresh={() => researcherStatus.refetch()}
+                isLoading={researcherStatus.isLoading}
               />
             </div>
           )}

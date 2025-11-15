@@ -257,12 +257,8 @@ export function useVerificationStatus(hospitalId: string | null, apiKey: string 
       return getVerificationStatus(hospitalId.trim(), apiKey.trim());
     },
     enabled: hasValidCredentials,
-    refetchInterval: (query) => {
-      // Only poll if we have valid credentials and data exists
-      // Increased to 30 seconds to avoid rate limiting (was 5 seconds)
-      return hasValidCredentials && query.state.data ? 30000 : false;
-    },
-    refetchOnWindowFocus: hasValidCredentials, // Only refetch on focus if authenticated
+    refetchInterval: false, // No auto-polling - users can manually refresh
+    refetchOnWindowFocus: false, // Don't auto-refetch on window focus
     retry: 3, // Retry failed requests up to 3 times
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
