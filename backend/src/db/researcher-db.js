@@ -248,27 +248,49 @@ export async function updateResearcher(researcherId, updates) {
  * Get all researchers (for admin)
  */
 export async function getAllResearchers() {
-  const researchers = await all(
-    `SELECT 
-      researcher_id as researcherId,
-      hedera_account_id as hederaAccountId,
-      evm_address as evmAddress,
-      email,
-      organization_name as organizationName,
-      contact_name as contactName,
-      country,
-      registration_number as registrationNumber,
-      verification_status as verificationStatus,
-      verification_documents as verificationDocuments,
-      verified_at as verifiedAt,
-      verified_by as verifiedBy,
-      access_level as accessLevel,
-      registered_at as registeredAt,
-      status
-    FROM researchers
-    ORDER BY registered_at DESC`
-  );
-
+  const { getDatabaseType } = await import('./database.js');
+  const dbType = getDatabaseType();
+  
+  // PostgreSQL lowercases unquoted identifiers, so we need to quote aliases
+  const sql = dbType === 'postgresql'
+    ? `SELECT 
+        researcher_id as "researcherId",
+        hedera_account_id as "hederaAccountId",
+        evm_address as "evmAddress",
+        email,
+        organization_name as "organizationName",
+        contact_name as "contactName",
+        country,
+        registration_number as "registrationNumber",
+        verification_status as "verificationStatus",
+        verification_documents as "verificationDocuments",
+        verified_at as "verifiedAt",
+        verified_by as "verifiedBy",
+        access_level as "accessLevel",
+        registered_at as "registeredAt",
+        status
+      FROM researchers
+      ORDER BY registered_at DESC`
+    : `SELECT 
+        researcher_id as researcherId,
+        hedera_account_id as hederaAccountId,
+        evm_address as evmAddress,
+        email,
+        organization_name as organizationName,
+        contact_name as contactName,
+        country,
+        registration_number as registrationNumber,
+        verification_status as verificationStatus,
+        verification_documents as verificationDocuments,
+        verified_at as verifiedAt,
+        verified_by as verifiedBy,
+        access_level as accessLevel,
+        registered_at as registeredAt,
+        status
+      FROM researchers
+      ORDER BY registered_at DESC`;
+  
+  const researchers = await all(sql);
   return researchers;
 }
 

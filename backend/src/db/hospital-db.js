@@ -388,25 +388,48 @@ export async function updateHospital(hospitalId, updates) {
  * For admin view - shows all hospitals regardless of status
  */
 export async function getAllHospitals() {
-  return await all(
-    `SELECT 
-      hospital_id as hospitalId,
-      hedera_account_id as hederaAccountId,
-      evm_address as evmAddress,
-      name,
-      country,
-      location,
-      fhir_endpoint as fhirEndpoint,
-      contact_email as contactEmail,
-      registration_number as registrationNumber,
-      registered_at as registeredAt,
-      status,
-      verification_status as verificationStatus,
-      verification_documents as verificationDocuments,
-      verified_at as verifiedAt,
-      verified_by as verifiedBy
-    FROM hospitals 
-    ORDER BY registered_at DESC`
-  );
+  const { getDatabaseType } = await import('./database.js');
+  const dbType = getDatabaseType();
+  
+  // PostgreSQL lowercases unquoted identifiers, so we need to quote aliases
+  const sql = dbType === 'postgresql'
+    ? `SELECT 
+        hospital_id as "hospitalId",
+        hedera_account_id as "hederaAccountId",
+        evm_address as "evmAddress",
+        name,
+        country,
+        location,
+        fhir_endpoint as "fhirEndpoint",
+        contact_email as "contactEmail",
+        registration_number as "registrationNumber",
+        registered_at as "registeredAt",
+        status,
+        verification_status as "verificationStatus",
+        verification_documents as "verificationDocuments",
+        verified_at as "verifiedAt",
+        verified_by as "verifiedBy"
+      FROM hospitals 
+      ORDER BY registered_at DESC`
+    : `SELECT 
+        hospital_id as hospitalId,
+        hedera_account_id as hederaAccountId,
+        evm_address as evmAddress,
+        name,
+        country,
+        location,
+        fhir_endpoint as fhirEndpoint,
+        contact_email as contactEmail,
+        registration_number as registrationNumber,
+        registered_at as registeredAt,
+        status,
+        verification_status as verificationStatus,
+        verification_documents as verificationDocuments,
+        verified_at as verifiedAt,
+        verified_by as verifiedBy
+      FROM hospitals 
+      ORDER BY registered_at DESC`;
+  
+  return await all(sql);
 }
 

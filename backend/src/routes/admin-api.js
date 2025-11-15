@@ -83,6 +83,12 @@ router.get('/hospitals', async (req, res) => {
     const hospitals = await getAllHospitals();
     console.log(`[ADMIN API] Found ${hospitals.length} hospitals in database`);
     
+    // Add detailed debugging to see what PostgreSQL is returning
+    if (hospitals.length > 0) {
+      console.log(`[ADMIN API] First hospital keys:`, Object.keys(hospitals[0]));
+      console.log(`[ADMIN API] First hospital sample (first 200 chars):`, JSON.stringify(hospitals[0]).substring(0, 200));
+    }
+    
     // Format hospitals with verification status
     const formattedHospitals = hospitals.map(hospital => {
       let verificationDocuments = null;
@@ -309,6 +315,12 @@ router.get('/researchers', async (req, res) => {
     console.log('[ADMIN API] Fetching all researchers...');
     const researchers = await getAllResearchers();
     console.log(`[ADMIN API] Found ${researchers.length} researchers in database`);
+    
+    // Add detailed debugging to see what PostgreSQL is returning
+    if (researchers.length > 0) {
+      console.log(`[ADMIN API] First researcher keys:`, Object.keys(researchers[0]));
+      console.log(`[ADMIN API] First researcher sample (first 200 chars):`, JSON.stringify(researchers[0]).substring(0, 200));
+    }
     
     const formattedResearchers = researchers.map(r => {
       let verificationDocuments = null;
