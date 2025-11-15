@@ -95,6 +95,12 @@ export async function processAutomaticWithdrawals() {
     const hospitals = await getAllHospitalsWithAutoWithdraw();
     
     for (const hospital of hospitals) {
+      // Skip if hospitalId is missing
+      if (!hospital || !hospital.hospitalId) {
+        console.warn(`[WITHDRAWAL] Skipping hospital with missing hospitalId:`, hospital);
+        continue;
+      }
+      
       try {
         // Check balance
         const balance = await getHospitalBalance(hospital.hospitalId);

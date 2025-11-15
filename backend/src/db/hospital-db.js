@@ -82,6 +82,21 @@ export async function createHospital(hospitalData) {
     ]
   );
 
+  // Verify API key hash was stored correctly
+  if (apiKeyHash) {
+    const verifyHash = await get(
+      `SELECT api_key_hash FROM hospitals WHERE hospital_id = ?`,
+      [hospitalData.hospitalId]
+    );
+    if (!verifyHash || !verifyHash.api_key_hash) {
+      console.error(`[REGISTRATION] ERROR: API key hash was NOT stored for hospital ${hospitalData.hospitalId}!`);
+      console.error(`[REGISTRATION] Generated hash: ${apiKeyHash.substring(0, 20)}...`);
+    } else {
+      console.log(`[REGISTRATION] Verified: API key hash stored successfully for hospital ${hospitalData.hospitalId}`);
+      console.log(`[REGISTRATION] Stored hash length: ${verifyHash.api_key_hash.length}`);
+    }
+  }
+
   return {
     ...hospitalData,
     registeredAt: new Date().toISOString(),

@@ -37,13 +37,16 @@ export async function getAllHospitalsWithAutoWithdraw() {
       hedera_account_id as hederaAccountId,
       payment_method as paymentMethod,
       withdrawal_threshold_usd as withdrawalThresholdUSD,
-      auto_withdraw_enabled as autoWithdrawEnabled
+      auto_withdraw_enabled as autoWithdrawEnabled,
+      contact_email as contactEmail
      FROM hospitals 
      WHERE status = 'active' 
        AND auto_withdraw_enabled = true
        AND payment_method IS NOT NULL
        AND hedera_account_id IS NOT NULL`
   );
-  return hospitals;
+  
+  // Filter out any invalid hospitals
+  return hospitals.filter(h => h && h.hospitalId);
 }
 
