@@ -46,7 +46,11 @@ function AdminHospitalsPageContent() {
   );
 
   const { data, isLoading, error } = useAdminHospitals();
-  const { data: hospitalDetail } = useAdminHospitalDetail(selectedHospitalId);
+  const {
+    data: hospitalDetail,
+    isLoading: isLoadingDetail,
+    error: detailError,
+  } = useAdminHospitalDetail(selectedHospitalId);
   const approveMutation = useApproveHospital();
   const rejectMutation = useRejectHospital();
 
@@ -394,14 +398,28 @@ function AdminHospitalsPageContent() {
           </div>
 
           {/* Hospital Detail Modal/Dialog */}
-          {selectedHospitalId && hospitalDetail && (
+          {selectedHospitalId && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
               <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto">
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle>{hospitalDetail.name}</CardTitle>
-                      <CardDescription>{hospitalDetail.hospitalId}</CardDescription>
+                      {isLoadingDetail ? (
+                        <>
+                          <CardTitle>Loading...</CardTitle>
+                          <CardDescription>Fetching hospital details</CardDescription>
+                        </>
+                      ) : hospitalDetail ? (
+                        <>
+                          <CardTitle>{hospitalDetail.name}</CardTitle>
+                          <CardDescription>{hospitalDetail.hospitalId}</CardDescription>
+                        </>
+                      ) : (
+                        <>
+                          <CardTitle>Error</CardTitle>
+                          <CardDescription>Failed to load hospital details</CardDescription>
+                        </>
+                      )}
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => setSelectedHospitalId(null)}>
                       <XCircle className="h-4 w-4" />
@@ -409,105 +427,129 @@ function AdminHospitalsPageContent() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <h3 className="mb-2 font-semibold">Hospital Information</h3>
-                    <div className="space-y-1 text-sm">
-                      <p>
-                        <span className="font-medium">Country:</span> {hospitalDetail.country}
-                      </p>
-                      {hospitalDetail.location && (
-                        <p>
-                          <span className="font-medium">Location:</span> {hospitalDetail.location}
-                        </p>
-                      )}
-                      {hospitalDetail.contactEmail && (
-                        <p>
-                          <span className="font-medium">Email:</span> {hospitalDetail.contactEmail}
-                        </p>
-                      )}
-                      {hospitalDetail.fhirEndpoint && (
-                        <p>
-                          <span className="font-medium">FHIR Endpoint:</span>{' '}
-                          {hospitalDetail.fhirEndpoint}
-                        </p>
-                      )}
-                      <p>
-                        <span className="font-medium">Registered:</span>{' '}
-                        {new Date(hospitalDetail.registeredAt).toLocaleDateString()}
-                      </p>
+                  {isLoadingDetail ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                     </div>
-                  </div>
+                  ) : detailError ? (
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-600" />
+                        <div>
+                          <p className="font-semibold text-red-800">Error Loading Details</p>
+                          <p className="text-sm text-red-700">
+                            Failed to load hospital details. Please try again.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : hospitalDetail ? (
+                    <>
+                      <div>
+                        <h3 className="mb-2 font-semibold">Hospital Information</h3>
+                        <div className="space-y-1 text-sm">
+                          <p>
+                            <span className="font-medium">Country:</span> {hospitalDetail.country}
+                          </p>
+                          {hospitalDetail.location && (
+                            <p>
+                              <span className="font-medium">Location:</span>{' '}
+                              {hospitalDetail.location}
+                            </p>
+                          )}
+                          {hospitalDetail.contactEmail && (
+                            <p>
+                              <span className="font-medium">Email:</span>{' '}
+                              {hospitalDetail.contactEmail}
+                            </p>
+                          )}
+                          {hospitalDetail.fhirEndpoint && (
+                            <p>
+                              <span className="font-medium">FHIR Endpoint:</span>{' '}
+                              {hospitalDetail.fhirEndpoint}
+                            </p>
+                          )}
+                          <p>
+                            <span className="font-medium">Registered:</span>{' '}
+                            {new Date(hospitalDetail.registeredAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
 
-                  {hospitalDetail.verificationDocuments ? (
-                    <div>
-                      <h3 className="mb-2 font-semibold">Verification Documents</h3>
-                      <div className="space-y-2 text-sm">
-                        {hospitalDetail.verificationDocuments.licenseNumber ? (
-                          <div>
-                            <span className="font-medium">License Number:</span>{' '}
-                            {hospitalDetail.verificationDocuments.licenseNumber}
-                          </div>
-                        ) : (
-                          <div className="text-muted-foreground">No license number provided</div>
-                        )}
-                        {hospitalDetail.verificationDocuments.registrationCertificate ? (
-                          <div>
-                            <span className="font-medium">Registration Certificate:</span>
-                            {renderCertificate(
-                              hospitalDetail.verificationDocuments.registrationCertificate
+                      {hospitalDetail.verificationDocuments ? (
+                        <div>
+                          <h3 className="mb-2 font-semibold">Verification Documents</h3>
+                          <div className="space-y-2 text-sm">
+                            {hospitalDetail.verificationDocuments.licenseNumber ? (
+                              <div>
+                                <span className="font-medium">License Number:</span>{' '}
+                                {hospitalDetail.verificationDocuments.licenseNumber}
+                              </div>
+                            ) : (
+                              <div className="text-muted-foreground">
+                                No license number provided
+                              </div>
+                            )}
+                            {hospitalDetail.verificationDocuments.registrationCertificate ? (
+                              <div>
+                                <span className="font-medium">Registration Certificate:</span>
+                                {renderCertificate(
+                                  hospitalDetail.verificationDocuments.registrationCertificate
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-muted-foreground">
+                                No registration certificate provided
+                              </div>
+                            )}
+                            {hospitalDetail.verificationDocuments.rejectionReason && (
+                              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                                <span className="font-medium text-red-900">Rejection Reason:</span>
+                                <p className="mt-1 text-red-800">
+                                  {hospitalDetail.verificationDocuments.rejectionReason}
+                                </p>
+                              </div>
                             )}
                           </div>
-                        ) : (
-                          <div className="text-muted-foreground">
-                            No registration certificate provided
+                        </div>
+                      ) : (
+                        <div>
+                          <h3 className="mb-2 font-semibold">Verification Documents</h3>
+                          <div className="text-sm text-muted-foreground">
+                            No verification documents submitted yet.
                           </div>
-                        )}
-                        {hospitalDetail.verificationDocuments.rejectionReason && (
-                          <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                            <span className="font-medium text-red-900">Rejection Reason:</span>
-                            <p className="mt-1 text-red-800">
-                              {hospitalDetail.verificationDocuments.rejectionReason}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <h3 className="mb-2 font-semibold">Verification Documents</h3>
-                      <div className="text-sm text-muted-foreground">
-                        No verification documents submitted yet.
-                      </div>
-                    </div>
-                  )}
+                        </div>
+                      )}
 
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setSelectedHospitalId(null)}>
-                      Close
-                    </Button>
-                    {hospitalDetail.verificationStatus === 'pending' && (
-                      <>
-                        <Button
-                          variant="outline"
-                          onClick={() => openApproveDialog(hospitalDetail.hospitalId)}
-                          disabled={approveMutation.isPending}
-                          className="border-green-200 text-green-700 hover:bg-green-50"
-                        >
-                          <CheckCircle2 className="mr-2 h-4 w-4" />
-                          Approve
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setSelectedHospitalId(null)}>
+                          Close
                         </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => openRejectDialog(hospitalDetail.hospitalId)}
-                          disabled={rejectMutation.isPending}
-                          className="border-red-200 text-red-700 hover:bg-red-50"
-                        >
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Reject
-                        </Button>
-                      </>
-                    )}
-                  </div>
+                        {hospitalDetail.verificationStatus === 'pending' && (
+                          <>
+                            <Button
+                              variant="outline"
+                              onClick={() => openApproveDialog(hospitalDetail.hospitalId)}
+                              disabled={approveMutation.isPending}
+                              className="border-green-200 text-green-700 hover:bg-green-50"
+                            >
+                              <CheckCircle2 className="mr-2 h-4 w-4" />
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => openRejectDialog(hospitalDetail.hospitalId)}
+                              disabled={rejectMutation.isPending}
+                              className="border-red-200 text-red-700 hover:bg-red-50"
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              Reject
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </>
+                  ) : null}
                 </CardContent>
               </Card>
             </div>

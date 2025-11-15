@@ -16,14 +16,25 @@ export function formatCurrency(
   }).format(amount);
 }
 
-export function formatDate(date: Date | string | number): string {
+export function formatDate(date: Date | string | number | null | undefined): string {
+  // Handle null, undefined, or empty values
+  if (!date) {
+    return 'N/A';
+  }
+
+  // Create Date object and check if it's valid
+  const dateObj = new Date(date);
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid Date';
+  }
+
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(date));
+  }).format(dateObj);
 }
 
 export function truncateAddress(address: string, length: number = 8): string {
