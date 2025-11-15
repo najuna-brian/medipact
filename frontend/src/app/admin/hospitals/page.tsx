@@ -99,7 +99,14 @@ function AdminHospitalsPageContent() {
   };
 
   const viewDocuments = (hospitalId: string) => {
+    console.log('viewDocuments called with:', hospitalId);
+    if (!hospitalId) {
+      console.error('Hospital ID is missing!');
+      return;
+    }
+    console.log('Setting selectedHospitalId to:', hospitalId);
     setSelectedHospitalId(hospitalId);
+    console.log('State should be updated now');
   };
 
   const isBase64 = (str: string) => {
@@ -241,7 +248,10 @@ function AdminHospitalsPageContent() {
               <h2 className="mb-4 text-lg font-semibold md:text-xl">Pending Verifications</h2>
               <div className="space-y-4">
                 {pendingHospitals.map((hospital, index) => (
-                  <Card key={hospital.hospitalId || `pending-hospital-${index}`} className="border-yellow-200">
+                  <Card
+                    key={hospital.hospitalId || `pending-hospital-${index}`}
+                    className="border-yellow-200"
+                  >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -259,7 +269,16 @@ function AdminHospitalsPageContent() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => viewDocuments(hospital.hospitalId)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Button clicked, hospitalId:', hospital.hospitalId);
+                              if (hospital.hospitalId) {
+                                viewDocuments(hospital.hospitalId);
+                              } else {
+                                console.error('Hospital ID is undefined!', hospital);
+                              }
+                            }}
                             className="text-xs md:text-sm"
                           >
                             <Eye className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
@@ -314,7 +333,16 @@ function AdminHospitalsPageContent() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => viewDocuments(hospital.hospitalId)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('Button clicked (All Hospitals), hospitalId:', hospital.hospitalId);
+                            if (hospital.hospitalId) {
+                              viewDocuments(hospital.hospitalId);
+                            } else {
+                              console.error('Hospital ID is undefined!', hospital);
+                            }
+                          }}
                         >
                           <Eye className="mr-2 h-4 w-4" />
                           View & Review

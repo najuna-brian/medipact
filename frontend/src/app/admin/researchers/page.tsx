@@ -98,7 +98,14 @@ function AdminResearchersPageContent() {
   };
 
   const viewDocuments = (researcherId: string) => {
+    console.log('viewDocuments called with:', researcherId);
+    if (!researcherId) {
+      console.error('Researcher ID is missing!');
+      return;
+    }
+    console.log('Setting selectedResearcherId to:', researcherId);
     setSelectedResearcherId(researcherId);
+    console.log('State should be updated now');
   };
 
   const isBase64 = (str: string) => {
@@ -239,7 +246,10 @@ function AdminResearchersPageContent() {
               <h2 className="mb-4 text-lg font-semibold md:text-xl">Pending Verifications</h2>
               <div className="space-y-4">
                 {pendingResearchers.map((researcher, index) => (
-                  <Card key={researcher.researcherId || `pending-researcher-${index}`} className="border-yellow-200">
+                  <Card
+                    key={researcher.researcherId || `pending-researcher-${index}`}
+                    className="border-yellow-200"
+                  >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -257,7 +267,16 @@ function AdminResearchersPageContent() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => viewDocuments(researcher.researcherId)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Button clicked, researcherId:', researcher.researcherId);
+                              if (researcher.researcherId) {
+                                viewDocuments(researcher.researcherId);
+                              } else {
+                                console.error('Researcher ID is undefined!', researcher);
+                              }
+                            }}
                             className="text-xs md:text-sm"
                           >
                             <Eye className="mr-1 h-3 w-3 md:mr-2 md:h-4 md:w-4" />
@@ -312,7 +331,19 @@ function AdminResearchersPageContent() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => viewDocuments(researcher.researcherId)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log(
+                              'Button clicked (All Researchers), researcherId:',
+                              researcher.researcherId
+                            );
+                            if (researcher.researcherId) {
+                              viewDocuments(researcher.researcherId);
+                            } else {
+                              console.error('Researcher ID is undefined!', researcher);
+                            }
+                          }}
                         >
                           <Eye className="mr-2 h-4 w-4" />
                           View & Review
@@ -538,7 +569,6 @@ function AdminResearchersPageContent() {
               </Card>
             </div>
           )}
-
         </div>
       </div>
     </div>
