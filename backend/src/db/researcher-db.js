@@ -266,7 +266,6 @@ export async function getAllResearchers() {
       registered_at as registeredAt,
       status
     FROM researchers
-    WHERE status = 'active'
     ORDER BY registered_at DESC`
   );
 

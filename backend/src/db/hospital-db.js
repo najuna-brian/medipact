@@ -385,6 +385,7 @@ export async function updateHospital(hospitalId, updates) {
 
 /**
  * Get all hospitals
+ * For admin view - shows all hospitals regardless of status
  */
 export async function getAllHospitals() {
   return await all(
@@ -405,7 +406,6 @@ export async function getAllHospitals() {
       verified_at as verifiedAt,
       verified_by as verifiedBy
     FROM hospitals 
-    WHERE status = 'active'
     ORDER BY registered_at DESC`
   );
 }
