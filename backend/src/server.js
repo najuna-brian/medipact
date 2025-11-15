@@ -20,6 +20,7 @@ import researcherRoutes from './routes/researcher-api.js';
 import marketplaceRoutes from './routes/marketplace-api.js';
 import revenueRoutes from './routes/revenue-api.js';
 import adapterRoutes from './routes/adapter-api.js';
+import fhirStorageRoutes from './routes/fhir-storage-api.js';
 import walletRoutes from './routes/wallet-api.js';
 import paymentMethodRoutes from './routes/payment-method-api.js';
 import { initDatabase, closeDatabase } from './db/database.js';
@@ -128,6 +129,7 @@ app.use('/api/researcher', apiKeyLimiter, researcherRoutes); // Researcher route
 app.use('/api/marketplace', apiKeyLimiter, marketplaceRoutes); // Data marketplace routes (API key rate limit)
 app.use('/api/revenue', apiKeyLimiter, revenueRoutes); // Revenue distribution routes (API key rate limit)
 app.use('/api/adapter', apiKeyLimiter, adapterRoutes); // Adapter integration routes (API key rate limit)
+app.use('/api/adapter', apiKeyLimiter, fhirStorageRoutes); // FHIR resource storage routes (API key rate limit)
 app.use('/api', walletRoutes); // Wallet routes (balance, withdrawals)
 app.use('/api', paymentMethodRoutes); // Payment method routes
 

@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "setup-admin": "node scripts/setup-admin.js",
+    "migrate:fhir": "node scripts/migrate-fhir-complete-schema.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "vitest run tests/integration/end-to-end-flow.test.js"
