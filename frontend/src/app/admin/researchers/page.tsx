@@ -238,8 +238,8 @@ function AdminResearchersPageContent() {
             <div className="mb-8">
               <h2 className="mb-4 text-lg font-semibold md:text-xl">Pending Verifications</h2>
               <div className="space-y-4">
-                {pendingResearchers.map((researcher) => (
-                  <Card key={researcher.researcherId} className="border-yellow-200">
+                {pendingResearchers.map((researcher, index) => (
+                  <Card key={researcher.researcherId || `pending-researcher-${index}`} className="border-yellow-200">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -277,9 +277,9 @@ function AdminResearchersPageContent() {
           <div>
             <h2 className="mb-4 text-lg font-semibold md:text-xl">All Researchers</h2>
             <div className="space-y-4">
-              {researchers.map((researcher) => (
+              {researchers.map((researcher, index) => (
                 <Card
-                  key={researcher.researcherId}
+                  key={researcher.researcherId || `researcher-${index}`}
                   className={
                     researcher.verificationStatus === 'verified'
                       ? 'border-green-200'
