@@ -32,6 +32,16 @@ export async function createHospital(hospitalData) {
     ? await hashApiKey(hospitalData.apiKey)
     : null;
 
+  // Log for debugging registration
+  if (hospitalData.apiKey) {
+    console.log(`[REGISTRATION] Hospital ${hospitalData.hospitalId}: API key length=${hospitalData.apiKey.length}, hash generated=${!!apiKeyHash}`);
+    if (apiKeyHash) {
+      console.log(`[REGISTRATION] Hash prefix: ${apiKeyHash.substring(0, 20)}...`);
+    }
+  } else {
+    console.warn(`[REGISTRATION] No API key provided for hospital ${hospitalData.hospitalId}`);
+  }
+
   // Encrypt sensitive payment data
   const encryptedBankAccount = hospitalData.bankAccountNumber 
     ? encrypt(hospitalData.bankAccountNumber) 
@@ -180,13 +190,24 @@ export async function getHospitalByHederaAccount(hederaAccountId) {
 export async function verifyHospitalApiKey(hospitalId, apiKey) {
   // Get hospital with API key hash
   const hospital = await get(
-    `SELECT api_key_hash as apiKeyHash
+    `SELECT api_key_hash as apiKeyHash, name, status
      FROM hospitals 
-     WHERE hospital_id = ? AND status = 'active'`,
+     WHERE hospital_id = ?`,
     [hospitalId]
   );
   
-  if (!hospital || !hospital.apiKeyHash) {
+  if (!hospital) {
+    console.error(`[AUTH] Hospital ${hospitalId} not found in database`);
+    return false;
+  }
+  
+  if (hospital.status !== 'active') {
+    console.error(`[AUTH] Hospital ${hospitalId} (${hospital.name || 'unknown'}) is not active (status: ${hospital.status})`);
+    return false;
+  }
+  
+  if (!hospital.apiKeyHash) {
+    console.error(`[AUTH] Hospital ${hospitalId} (${hospital.name || 'unknown'}) has no API key hash stored`);
     return false;
   }
   
@@ -197,12 +218,27 @@ export async function verifyHospitalApiKey(hospitalId, apiKey) {
   
   if (isBcryptHash) {
     // Use bcrypt comparison
-    return await compareApiKey(apiKey, hospital.apiKeyHash);
+    try {
+      const isValid = await compareApiKey(apiKey, hospital.apiKeyHash);
+      if (!isValid) {
+        console.error(`[AUTH] API key mismatch for hospital ${hospitalId} (${hospital.name || 'unknown'})`);
+        console.error(`[AUTH] Received API key length: ${apiKey?.length}, first 10 chars: ${apiKey?.substring(0, 10)}...`);
+        console.error(`[AUTH] Stored hash prefix: ${hospital.apiKeyHash.substring(0, 20)}...`);
+      }
+      return isValid;
+    } catch (error) {
+      console.error(`[AUTH] Error comparing API key for hospital ${hospitalId}:`, error);
+      return false;
+    }
   } else {
     // Legacy SHA-256 hash - support for migration
     const crypto = await import('crypto');
     const apiKeyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
-    return hospital.apiKeyHash.trim() === apiKeyHash.trim();
+    const isValid = hospital.apiKeyHash.trim() === apiKeyHash.trim();
+    if (!isValid) {
+      console.error(`[AUTH] API key mismatch for hospital ${hospitalId} (SHA-256 comparison failed)`);
+    }
+    return isValid;
   }
 }
 
