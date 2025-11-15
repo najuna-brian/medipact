@@ -56,22 +56,16 @@ export default function MermaidDiagram({ chart, title }: MermaidDiagramProps) {
   }, [chart, isMounted]);
 
   return (
-    <div className="my-4 overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:my-6 sm:p-4 md:my-8 md:p-6">
-      {title && (
-        <h3 className="mb-2 px-1 text-sm font-semibold text-gray-900 sm:mb-3 sm:text-base md:mb-4 md:text-lg">
-          {title}
-        </h3>
-      )}
+    <div className="my-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      {title && <h3 className="mb-4 text-lg font-semibold text-gray-900">{title}</h3>}
       {!isMounted ? (
-        <div className="h-48 w-full animate-pulse rounded bg-gray-100 sm:h-56 md:h-64" />
+        <div className="h-64 w-full animate-pulse rounded bg-gray-100" />
       ) : (
-        <div className="-mx-3 overflow-x-auto px-3 sm:-mx-4 sm:px-4 md:-mx-6 md:px-6">
-          <div
-            ref={ref}
-            className="mermaid flex min-w-max justify-center"
-            suppressHydrationWarning
-          />
-        </div>
+        <div
+          ref={ref}
+          className="mermaid flex justify-center overflow-x-auto"
+          suppressHydrationWarning
+        />
       )}
     </div>
   );
