@@ -37,7 +37,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              `connect-src 'self' ${!isProduction ? 'http://localhost:* ' : ''}${process.env.NEXT_PUBLIC_BACKEND_API_URL ? new URL(process.env.NEXT_PUBLIC_BACKEND_API_URL).origin + ' ' : ''}https://*.railway.app https://*.hedera.com https://*.hashgraph.com https://api.coingecko.com`,
+              `connect-src 'self' ${!isProduction ? 'http://localhost:* ' : ''}https://medipact-production.up.railway.app https://*.railway.app https://*.hedera.com https://*.hashgraph.com https://api.coingecko.com`,
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
