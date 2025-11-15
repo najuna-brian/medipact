@@ -298,63 +298,71 @@ function AdminResearchersPageContent() {
           <div>
             <h2 className="mb-4 text-lg font-semibold md:text-xl">All Researchers</h2>
             <div className="space-y-4">
-              {researchers.map((researcher, index) => (
-                <Card
-                  key={researcher.researcherId || `researcher-${index}`}
-                  className={
-                    researcher.verificationStatus === 'verified'
-                      ? 'border-green-200'
-                      : researcher.verificationStatus === 'rejected'
-                        ? 'border-red-200'
-                        : ''
-                  }
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="mb-2 flex items-center gap-2">
-                          <UserCog className="h-5 w-5 text-muted-foreground" />
-                          <CardTitle>{researcher.organizationName}</CardTitle>
-                          {getStatusBadge(researcher.verificationStatus)}
+              {researchers.map((researcher, index) => {
+                // Skip invalid researcher objects
+                if (!researcher || !researcher.researcherId) {
+                  console.warn('Skipping invalid researcher object:', researcher);
+                  return null;
+                }
+                
+                return (
+                  <Card
+                    key={researcher.researcherId || `researcher-${index}`}
+                    className={
+                      researcher.verificationStatus === 'verified'
+                        ? 'border-green-200'
+                        : researcher.verificationStatus === 'rejected'
+                          ? 'border-red-200'
+                          : ''
+                    }
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="mb-2 flex items-center gap-2">
+                            <UserCog className="h-5 w-5 text-muted-foreground" />
+                            <CardTitle>{researcher.organizationName}</CardTitle>
+                            {getStatusBadge(researcher.verificationStatus)}
+                          </div>
+                          <CardDescription>
+                            {researcher.researcherId} • {researcher.email}
+                            {researcher.country && ` • ${researcher.country}`}
+                            {researcher.contactName && ` • ${researcher.contactName}`}
+                          </CardDescription>
+                          {researcher.verifiedAt && (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                              Verified on: {new Date(researcher.verifiedAt).toLocaleDateString()}
+                              {researcher.verifiedBy && ` by ${researcher.verifiedBy}`}
+                            </p>
+                          )}
                         </div>
-                        <CardDescription>
-                          {researcher.researcherId} • {researcher.email}
-                          {researcher.country && ` • ${researcher.country}`}
-                          {researcher.contactName && ` • ${researcher.contactName}`}
-                        </CardDescription>
-                        {researcher.verifiedAt && (
-                          <p className="mt-2 text-xs text-muted-foreground">
-                            Verified on: {new Date(researcher.verifiedAt).toLocaleDateString()}
-                            {researcher.verifiedBy && ` by ${researcher.verifiedBy}`}
-                          </p>
-                        )}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log(
+                                'Button clicked (All Researchers), researcherId:',
+                                researcher.researcherId
+                              );
+                              if (researcher.researcherId) {
+                                viewDocuments(researcher.researcherId);
+                              } else {
+                                console.error('Researcher ID is undefined!', researcher);
+                              }
+                            }}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View & Review
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            console.log(
-                              'Button clicked (All Researchers), researcherId:',
-                              researcher.researcherId
-                            );
-                            if (researcher.researcherId) {
-                              viewDocuments(researcher.researcherId);
-                            } else {
-                              console.error('Researcher ID is undefined!', researcher);
-                            }
-                          }}
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View & Review
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-              ))}
+                    </CardHeader>
+                  </Card>
+                );
+              })}
             </div>
           </div>
 
