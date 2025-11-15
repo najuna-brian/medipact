@@ -33,6 +33,9 @@ import { logInfo, logError, logWarn, logSecurityEvent } from './utils/logger.js'
 const app = express();
 const PORT = process.env.PORT || 3002; // Default to 3002 to avoid conflicts
 
+// Trust proxy for Railway/reverse proxy environments (required for rate limiting)
+app.set('trust proxy', true);
+
 // Middleware - CORS configuration
 const allowedOrigins = [
   'https://www.medipact.space',

@@ -20,7 +20,7 @@ export async function getAllPatientsWithAutoWithdraw() {
       auto_withdraw_enabled as autoWithdrawEnabled
      FROM patient_identities 
      WHERE status = 'active' 
-       AND auto_withdraw_enabled = 1
+       AND auto_withdraw_enabled = true
        AND payment_method IS NOT NULL
        AND hedera_account_id IS NOT NULL`
   );
@@ -40,7 +40,7 @@ export async function getAllHospitalsWithAutoWithdraw() {
       auto_withdraw_enabled as autoWithdrawEnabled
      FROM hospitals 
      WHERE status = 'active' 
-       AND auto_withdraw_enabled = 1
+       AND auto_withdraw_enabled = true
        AND payment_method IS NOT NULL
        AND hedera_account_id IS NOT NULL`
   );
