@@ -7,10 +7,21 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const hospitalId = formData.get('hospitalId') as string | null;
+    const hospitalCountry = formData.get('hospitalCountry') as string | null;
+    const hospitalLocation = formData.get('hospitalLocation') as string | null;
+    const apiKey = formData.get('apiKey') as string | null;
 
     if (!file) {
       return NextResponse.json(
         { error: 'No file provided' },
+        { status: 400 }
+      );
+    }
+
+    if (!hospitalCountry) {
+      return NextResponse.json(
+        { error: 'Hospital country is required' },
         { status: 400 }
       );
     }
@@ -33,12 +44,20 @@ export async function POST(request: NextRequest) {
 
     try {
       // Process the file using the adapter
-      const result = await processFile(tempFilePath, adapterPath);
+      const result = await processFile(tempFilePath, adapterPath, {
+        hospitalId,
+        hospitalCountry,
+        hospitalLocation,
+        apiKey,
+      });
 
       if (!result.success) {
         await fs.unlink(tempFilePath).catch(() => {});
         return NextResponse.json(
-          { error: result.error || 'Processing failed' },
+          { 
+            error: result.error || 'Processing failed',
+            details: result.details 
+          },
           { status: 500 }
         );
       }

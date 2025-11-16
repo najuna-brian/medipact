@@ -3,13 +3,17 @@
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, FileText, Database } from 'lucide-react';
+import { Upload, FileText, Database, AlertCircle } from 'lucide-react';
 import { useProcessAdapter } from '@/hooks/useAdapter';
 import ProcessingStatus from '@/components/ProcessingStatus/ProcessingStatus';
 import { HospitalSidebar } from '@/components/Sidebar/HospitalSidebar';
+import { useHospitalSession } from '@/hooks/useHospitalSession';
+import { useHospital } from '@/hooks/usePatientIdentity';
 
 export default function HospitalUploadPage() {
   const [file, setFile] = useState<File | null>(null);
+  const { hospitalId, apiKey, isAuthenticated } = useHospitalSession();
+  const { data: hospitalData } = useHospital(hospitalId, apiKey);
   const processMutation = useProcessAdapter();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,7 +24,24 @@ export default function HospitalUploadPage() {
 
   const handleUpload = async () => {
     if (!file) return;
-    processMutation.mutate(file);
+    
+    if (!isAuthenticated || !hospitalId || !apiKey) {
+      alert('Please log in first');
+      return;
+    }
+    
+    if (!hospitalData?.country) {
+      alert('Hospital country is required. Please update your hospital profile.');
+      return;
+    }
+    
+    processMutation.mutate({
+      file,
+      hospitalId,
+      hospitalCountry: hospitalData.country,
+      hospitalLocation: hospitalData.location || undefined,
+      apiKey,
+    });
   };
 
   return (
@@ -135,14 +156,22 @@ export default function HospitalUploadPage() {
           )}
 
           {processMutation.isError && (
-            <Card className="mt-6">
+            <Card className="mt-6 border-red-200">
               <CardHeader>
-                <CardTitle>Upload Failed</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-red-600">
+                  <AlertCircle className="h-5 w-5" />
+                  Upload Failed
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-red-600">
                   {processMutation.error?.message || 'An error occurred during upload'}
                 </p>
+                {processMutation.error && 'details' in processMutation.error && (
+                  <p className="mt-2 text-xs text-red-500">
+                    {String(processMutation.error.details)}
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}

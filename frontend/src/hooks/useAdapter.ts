@@ -4,9 +4,21 @@ import type { ProcessingResult, ProcessingStatus } from '@/types/adapter';
 
 export function useProcessAdapter() {
   return useMutation({
-    mutationFn: async (file: File): Promise<ProcessingResult> => {
+    mutationFn: async (options: {
+      file: File;
+      hospitalId: string;
+      hospitalCountry: string;
+      hospitalLocation?: string;
+      apiKey: string;
+    }): Promise<ProcessingResult> => {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', options.file);
+      formData.append('hospitalId', options.hospitalId);
+      formData.append('hospitalCountry', options.hospitalCountry);
+      if (options.hospitalLocation) {
+        formData.append('hospitalLocation', options.hospitalLocation);
+      }
+      formData.append('apiKey', options.apiKey);
 
       const response = await apiClient.post('/adapter/process', formData, {
         headers: {

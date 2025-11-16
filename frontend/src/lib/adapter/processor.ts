@@ -28,6 +28,14 @@ export interface ProcessingResult {
     anonymousPID?: string;
   }>;
   error?: string;
+  details?: string;
+}
+
+export interface ProcessingOptions {
+  hospitalId?: string | null;
+  hospitalCountry?: string | null;
+  hospitalLocation?: string | null;
+  apiKey?: string | null;
 }
 
 /**
@@ -53,7 +61,8 @@ function getAdapterDir(): string {
 
 export async function processFile(
   filePath: string,
-  adapterPath?: string
+  adapterPath?: string,
+  options?: ProcessingOptions
 ): Promise<ProcessingResult> {
   // Use provided path or calculate from project root
   const adapterDir = adapterPath ? path.resolve(adapterPath) : getAdapterDir();
@@ -88,16 +97,42 @@ export async function processFile(
       REVENUE_SPLITTER_ADDRESS: process.env.NEXT_PUBLIC_REVENUE_SPLITTER_ADDRESS || process.env.REVENUE_SPLITTER_ADDRESS,
       LOCAL_CURRENCY_CODE: process.env.NEXT_PUBLIC_LOCAL_CURRENCY_CODE || process.env.LOCAL_CURRENCY_CODE,
       USD_TO_LOCAL_RATE: process.env.NEXT_PUBLIC_USD_TO_LOCAL_RATE || process.env.USD_TO_LOCAL_RATE,
+      // Add hospital info (REQUIRED)
+      HOSPITAL_COUNTRY: options?.hospitalCountry || process.env.HOSPITAL_COUNTRY || 'Uganda',
+      HOSPITAL_LOCATION: options?.hospitalLocation || process.env.HOSPITAL_LOCATION,
+      HOSPITAL_ID: options?.hospitalId || process.env.HOSPITAL_ID,
+      HOSPITAL_API_KEY: options?.apiKey || process.env.HOSPITAL_API_KEY,
+      BACKEND_API_URL: process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_API_URL || 'http://localhost:3002',
     };
 
     // Run the adapter script
-    const { stdout } = await execAsync(
-      `cd "${adapterDir}" && node "${adapterScript}"`,
-      {
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-        env,
-      }
-    );
+    let stdout = '';
+    let stderr = '';
+    try {
+      const result = await execAsync(
+        `cd "${adapterDir}" && node "${adapterScript}"`,
+        {
+          maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+          env,
+        }
+      );
+      stdout = result.stdout || '';
+      stderr = result.stderr || '';
+    } catch (error: any) {
+      // Capture both stdout and stderr from the error
+      stdout = error.stdout || '';
+      stderr = error.stderr || '';
+      console.error('Adapter execution error:', error.message);
+      console.error('Adapter stdout:', stdout);
+      console.error('Adapter stderr:', stderr);
+      
+      // If the adapter failed, return error with details
+      return {
+        success: false,
+        error: error.message || 'Adapter execution failed',
+        details: stderr || stdout || 'No additional error details available',
+      };
+    }
 
     // Parse the output to extract results
     const outputFile = path.join(adapterDataDir, 'anonymized_data.csv');
