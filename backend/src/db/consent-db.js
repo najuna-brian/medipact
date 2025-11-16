@@ -401,19 +401,83 @@ export async function getConsentStatistics(hospitalId) {
     );
     
     // Count all FHIR resource types for SQLite
-    const totalRecordsResult = await get(
-      `SELECT 
-        (SELECT COUNT(*) FROM fhir_patients WHERE hospital_id = ?) +
-        (SELECT COUNT(*) FROM fhir_conditions WHERE hospital_id = ?) +
-        (SELECT COUNT(*) FROM fhir_observations WHERE hospital_id = ?) +
-        (SELECT COUNT(*) FROM fhir_encounters WHERE hospital_id = ?) +
-        (SELECT COUNT(*) FROM fhir_medication_requests WHERE hospital_id = ?) +
-        (SELECT COUNT(*) FROM fhir_procedures WHERE hospital_id = ?) +
-        (SELECT COUNT(*) FROM fhir_imaging_studies WHERE hospital_id = ?) +
-        (SELECT COUNT(*) FROM fhir_allergies WHERE hospital_id = ?) +
-        (SELECT COUNT(*) FROM fhir_coverage WHERE hospital_id = ?) as count`,
-      [hospitalId, hospitalId, hospitalId, hospitalId, hospitalId, hospitalId, hospitalId, hospitalId, hospitalId]
-    );
+    // Handle missing tables gracefully
+    let totalRecordsResult;
+    try {
+      // Check which FHIR tables exist
+      const { all } = await import('./database.js');
+      const tableCheck = await all(
+        `SELECT name as table_name 
+         FROM sqlite_master 
+         WHERE type='table' 
+         AND name IN (
+           'fhir_patients', 'fhir_conditions', 'fhir_observations', 
+           'fhir_encounters', 'fhir_medication_requests', 'fhir_procedures',
+           'fhir_imaging_studies', 'fhir_allergies', 'fhir_coverage'
+         )`
+      );
+      
+      const existingTables = Array.isArray(tableCheck) 
+        ? tableCheck.map(t => t.table_name)
+        : [];
+      
+      // Build query with only existing tables
+      const countQueries = [];
+      const params = [];
+      if (existingTables.includes('fhir_patients')) {
+        countQueries.push('(SELECT COUNT(*) FROM fhir_patients WHERE hospital_id = ?)');
+        params.push(hospitalId);
+      }
+      if (existingTables.includes('fhir_conditions')) {
+        countQueries.push('(SELECT COUNT(*) FROM fhir_conditions WHERE hospital_id = ?)');
+        params.push(hospitalId);
+      }
+      if (existingTables.includes('fhir_observations')) {
+        countQueries.push('(SELECT COUNT(*) FROM fhir_observations WHERE hospital_id = ?)');
+        params.push(hospitalId);
+      }
+      if (existingTables.includes('fhir_encounters')) {
+        countQueries.push('(SELECT COUNT(*) FROM fhir_encounters WHERE hospital_id = ?)');
+        params.push(hospitalId);
+      }
+      if (existingTables.includes('fhir_medication_requests')) {
+        countQueries.push('(SELECT COUNT(*) FROM fhir_medication_requests WHERE hospital_id = ?)');
+        params.push(hospitalId);
+      }
+      if (existingTables.includes('fhir_procedures')) {
+        countQueries.push('(SELECT COUNT(*) FROM fhir_procedures WHERE hospital_id = ?)');
+        params.push(hospitalId);
+      }
+      if (existingTables.includes('fhir_imaging_studies')) {
+        countQueries.push('(SELECT COUNT(*) FROM fhir_imaging_studies WHERE hospital_id = ?)');
+        params.push(hospitalId);
+      }
+      if (existingTables.includes('fhir_allergies')) {
+        countQueries.push('(SELECT COUNT(*) FROM fhir_allergies WHERE hospital_id = ?)');
+        params.push(hospitalId);
+      }
+      if (existingTables.includes('fhir_coverage')) {
+        countQueries.push('(SELECT COUNT(*) FROM fhir_coverage WHERE hospital_id = ?)');
+        params.push(hospitalId);
+      }
+      
+      if (countQueries.length === 0) {
+        totalRecordsResult = { count: 0 };
+      } else {
+        totalRecordsResult = await get(
+          `SELECT ${countQueries.join(' + ')} as count`,
+          params
+        );
+      }
+    } catch (error) {
+      // If query fails (tables don't exist), return 0
+      if (error.message.includes('does not exist') || error.message.includes('no such table')) {
+        console.warn('FHIR tables not found, returning 0 for total records:', error.message);
+        totalRecordsResult = { count: 0 };
+      } else {
+        throw error;
+      }
+    }
     
     return {
       patientsWithOnChainConsent: parseInt(onChainResult?.count || 0),
