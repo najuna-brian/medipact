@@ -730,7 +730,8 @@ router.post('/migrate/fhir', async (req, res) => {
       const statements = completeSchema.split('CREATE TABLE').filter(s => s.trim());
 
       for (let i = 0; i < statements.length; i++) {
-        const statement = 'CREATE TABLE' + statements[i].trim();
+        // Add space after CREATE TABLE when reconstructing
+        const statement = 'CREATE TABLE ' + statements[i].trim();
         
         // Extract table name
         const tableMatch = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)/i);
