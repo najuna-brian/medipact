@@ -95,6 +95,8 @@ router.post('/:hospitalId/patients/bulk', authenticateHospital, async (req, res)
 /**
  * GET /api/hospital/:hospitalId/patients
  * List all patients linked to this hospital
+ * Includes both explicitly registered patients and patients from CSV uploads
+ * Multiple encounters for the same patient are tracked separately but linked to same UPI
  */
 router.get('/:hospitalId/patients', authenticateHospital, async (req, res) => {
   try {
@@ -105,18 +107,129 @@ router.get('/:hospitalId/patients', authenticateHospital, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     
+    const { get, all } = await import('../db/database.js');
+    const { getDatabaseType } = await import('../db/database.js');
+    const dbType = getDatabaseType();
+    
+    // Get explicitly registered patients (from hospital_linkages)
     const linkages = await getLinkagesByHospital(hospitalId);
+    
+    // Get distinct patients from FHIR resources (CSV uploads)
+    // Count by UPI to avoid duplicates - same patient, different encounters = one patient
+    let fhirPatients = [];
+    if (dbType === 'postgresql') {
+      const result = await all(
+        `SELECT DISTINCT ON (upi)
+          anonymous_patient_id as "anonymousPatientId",
+          upi,
+          hospital_id as "hospitalId",
+          created_at as "createdAt",
+          (SELECT COUNT(*) FROM fhir_encounters WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1) as "encounterCount",
+          (SELECT COUNT(*) FROM fhir_conditions WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1) as "conditionCount",
+          (SELECT COUNT(*) FROM fhir_observations WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1) as "observationCount"
+        FROM fhir_patients fp
+        WHERE hospital_id = $1 AND upi IS NOT NULL
+        ORDER BY upi, created_at DESC`,
+        [hospitalId]
+      );
+      fhirPatients = result.rows || result;
+    } else {
+      // SQLite - get distinct UPIs with latest record info
+      const rows = await all(
+        `SELECT 
+          fp1.anonymous_patient_id as anonymousPatientId,
+          fp1.upi,
+          fp1.hospital_id as hospitalId,
+          fp1.created_at as createdAt,
+          (SELECT COUNT(*) FROM fhir_encounters WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?) as encounterCount,
+          (SELECT COUNT(*) FROM fhir_conditions WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?) as conditionCount,
+          (SELECT COUNT(*) FROM fhir_observations WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?) as observationCount
+        FROM fhir_patients fp1
+        INNER JOIN (
+          SELECT upi, MAX(created_at) as max_created
+          FROM fhir_patients
+          WHERE hospital_id = ? AND upi IS NOT NULL
+          GROUP BY upi
+        ) fp2 ON fp1.upi = fp2.upi AND fp1.created_at = fp2.max_created
+        WHERE fp1.hospital_id = ?`,
+        [hospitalId, hospitalId, hospitalId, hospitalId, hospitalId]
+      );
+      fhirPatients = rows.map(row => ({
+        anonymousPatientId: row.anonymousPatientId,
+        upi: row.upi,
+        hospitalId: row.hospitalId,
+        createdAt: row.createdAt,
+        encounterCount: row.encounterCount,
+        conditionCount: row.conditionCount,
+        observationCount: row.observationCount
+      }));
+    }
+    
+    // Combine both sources, using UPI as the unique key
+    // If same UPI exists in both, prefer the registered one (has verification info)
+    const patientMap = new Map();
+    
+    // Add explicitly registered patients first
+    linkages.forEach(linkage => {
+      patientMap.set(linkage.upi, {
+        upi: linkage.upi,
+        hospitalPatientId: linkage.hospitalPatientId,
+        linkedAt: linkage.linkedAt,
+        verified: linkage.verified,
+        verificationMethod: linkage.verificationMethod,
+        source: 'registered',
+        encounterCount: 0,
+        conditionCount: 0,
+        observationCount: 0
+      });
+    });
+    
+    // Add FHIR patients (from CSV uploads)
+    // If UPI already exists (registered), update with record counts
+    // If new UPI, add as CSV patient
+    fhirPatients.forEach(fhirPatient => {
+      if (!fhirPatient.upi) return; // Skip if no UPI
+      
+      if (patientMap.has(fhirPatient.upi)) {
+        // Patient already registered - just update record counts
+        const existing = patientMap.get(fhirPatient.upi);
+        existing.encounterCount = parseInt(fhirPatient.encounterCount || 0);
+        existing.conditionCount = parseInt(fhirPatient.conditionCount || 0);
+        existing.observationCount = parseInt(fhirPatient.observationCount || 0);
+        existing.hasCSVRecords = true;
+      } else {
+        // New patient from CSV - add them
+        patientMap.set(fhirPatient.upi, {
+          upi: fhirPatient.upi,
+          hospitalPatientId: fhirPatient.anonymousPatientId,
+          linkedAt: fhirPatient.createdAt,
+          verified: false,
+          verificationMethod: null,
+          source: 'csv_upload',
+          encounterCount: parseInt(fhirPatient.encounterCount || 0),
+          conditionCount: parseInt(fhirPatient.conditionCount || 0),
+          observationCount: parseInt(fhirPatient.observationCount || 0),
+          hasCSVRecords: true
+        });
+      }
+    });
+    
+    const allPatients = Array.from(patientMap.values());
+    
+    // Calculate total record count (all encounters, conditions, observations for this hospital)
+    const totalRecords = allPatients.reduce((sum, p) => 
+      sum + (p.encounterCount || 0) + (p.conditionCount || 0) + (p.observationCount || 0), 0
+    );
     
     res.json({
       hospitalId,
-      totalPatients: linkages.length,
-      patients: linkages.map(l => ({
-        upi: l.upi,
-        hospitalPatientId: l.hospitalPatientId,
-        linkedAt: l.linkedAt,
-        verified: l.verified,
-        verificationMethod: l.verificationMethod
-      }))
+      totalPatients: allPatients.length, // Distinct UPIs
+      registeredPatients: linkages.length,
+      csvUploadPatients: fhirPatients.length,
+      totalRecords, // Total encounters/conditions/observations
+      patients: allPatients.sort((a, b) => 
+        new Date(b.linkedAt || 0) - new Date(a.linkedAt || 0)
+      )
     });
   } catch (error) {
     console.error('Error fetching hospital patients:', error);
