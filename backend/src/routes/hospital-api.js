@@ -479,11 +479,16 @@ router.post('/upload-csv', authenticateHospital, upload.single('file'), async (r
     // Adapter outputs "✓ Consent Topic: 0.0.xxxxx" or "Consent Topic: 0.0.xxxxx"
     const consentTopicMatch = stdout.match(/[✓]?\s*Consent Topic: (0\.0\.\d+)/);
     const dataTopicMatch = stdout.match(/[✓]?\s*Data Topic: (0\.0\.\d+)/);
-    // Match actual adapter output format
-    const recordsMatch = stdout.match(/FHIR resources processed: (\d+)/) || 
+    // Match actual adapter output format (with optional "  - " prefix from summary)
+    const recordsMatch = stdout.match(/\s*-\s*FHIR resources processed: (\d+)/) || 
+                         stdout.match(/FHIR resources processed: (\d+)/) ||
+                         stdout.match(/\s*-\s*CSV records read: (\d+)/) ||
                          stdout.match(/CSV records read: (\d+)/);
-    const consentProofsMatch = stdout.match(/Consent proofs: (\d+)/);
-    const dataProofsMatch = stdout.match(/Provenance proofs \(double anonymization\): (\d+)/) ||
+    const consentProofsMatch = stdout.match(/\s*-\s*Consent proofs: (\d+)/) ||
+                               stdout.match(/Consent proofs: (\d+)/);
+    const dataProofsMatch = stdout.match(/\s*-\s*Provenance proofs \(double anonymization\): (\d+)/) ||
+                            stdout.match(/Provenance proofs \(double anonymization\): (\d+)/) ||
+                            stdout.match(/\s*-\s*Provenance proofs: (\d+)/) ||
                             stdout.match(/Provenance proofs: (\d+)/);
 
     const recordsProcessed = recordsMatch ? parseInt(recordsMatch[1], 10) : 0;
