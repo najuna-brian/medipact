@@ -8,7 +8,7 @@ COPY package*.json ./
 # Install dependencies
 RUN npm ci --only=production
 
-# Copy application code
+# Copy application code (includes adapter directory)
 COPY . .
 
 # Expose port (Railway will set PORT env var)

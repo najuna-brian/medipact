@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Logs
+*.log
+logs/
+
+# Generated data
+data/anonymized_data.csv
+data/*.csv
+!data/raw_data.csv
+!data/sample_*.csv
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+

@@ -1,0 +1,110 @@
+{
+  "systems": [
+    {
+      "systemId": "openmrs-main",
+      "systemType": "openmrs",
+      "name": "Main Hospital OpenMRS System",
+      "hospitalId": "HOSP-XXXXXXXX",
+      "connection": {
+        "baseUrl": "http://localhost:8080/openmrs",
+        "username": "${OPENMRS_USERNAME}",
+        "password": "${OPENMRS_PASSWORD}",
+        "apiVersion": "v1"
+      },
+      "resources": {
+        "enabled": [
+          "Patient",
+          "Encounter",
+          "Observation",
+          "Condition",
+          "MedicationRequest",
+          "Procedure",
+          "AllergyIntolerance"
+        ],
+        "syncSchedule": "0 */6 * * *",
+        "lastSync": null
+      }
+    },
+    {
+      "systemId": "openelis-lab",
+      "systemType": "openelis",
+      "name": "Laboratory OpenELIS System",
+      "hospitalId": "HOSP-XXXXXXXX",
+      "connection": {
+        "baseUrl": "http://localhost:8081/openelis",
+        "apiKey": "${OPENELIS_API_KEY}",
+        "apiVersion": "v1"
+      },
+      "resources": {
+        "enabled": [
+          "Patient",
+          "Observation",
+          "DiagnosticReport",
+          "Specimen"
+        ],
+        "syncSchedule": "0 */4 * * *",
+        "lastSync": null
+      }
+    },
+    {
+      "systemId": "medic-cht",
+      "systemType": "medic",
+      "name": "Community Health Toolkit",
+      "hospitalId": "HOSP-XXXXXXXX",
+      "connection": {
+        "baseUrl": "https://medic.example.com",
+        "username": "${MEDIC_USERNAME}",
+        "password": "${MEDIC_PASSWORD}",
+        "couchDbUrl": "https://medic.example.com"
+      },
+      "resources": {
+        "enabled": [
+          "Patient",
+          "Encounter",
+          "Observation",
+          "Condition",
+          "MedicationRequest",
+          "Immunization",
+          "CarePlan"
+        ],
+        "syncSchedule": "0 0 * * *",
+        "lastSync": null
+      }
+    },
+    {
+      "systemId": "fhir-epic",
+      "systemType": "fhir",
+      "name": "Epic FHIR System",
+      "hospitalId": "HOSP-XXXXXXXX",
+      "connection": {
+        "baseUrl": "https://fhir.epic.com/interconnect-fhir-oauth",
+        "authType": "oauth2",
+        "clientId": "${EPIC_CLIENT_ID}",
+        "clientSecret": "${EPIC_CLIENT_SECRET}",
+        "tokenUrl": "https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token"
+      },
+      "resources": {
+        "enabled": "all",
+        "syncSchedule": "0 0 * * *",
+        "lastSync": null
+      }
+    },
+    {
+      "systemId": "fhir-hapi",
+      "systemType": "fhir",
+      "name": "HAPI FHIR Server",
+      "hospitalId": "HOSP-XXXXXXXX",
+      "connection": {
+        "baseUrl": "http://localhost:8080/fhir",
+        "authType": "bearer",
+        "authToken": "${FHIR_AUTH_TOKEN}"
+      },
+      "resources": {
+        "enabled": "all",
+        "syncSchedule": "0 */12 * * *",
+        "lastSync": null
+      }
+    }
+  ]
+}
+

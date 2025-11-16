@@ -355,13 +355,43 @@ router.post('/upload-csv', authenticateHospital, upload.single('file'), async (r
       return res.status(400).json({ error: 'Hospital country is required' });
     }
 
-    // Get adapter directory (assumes adapter is at ../adapter from backend/)
-    // __dirname is backend/src/routes, so go up 3 levels to get to project root
-    const projectRoot = path.resolve(__dirname, '../../..');
-    const adapterDir = path.join(projectRoot, 'adapter');
+    // Get adapter directory - adapter is now in backend/adapter
+    // Try environment variable first, then default to backend/adapter
+    let adapterDir = process.env.ADAPTER_PATH;
+    
+    if (!adapterDir) {
+      // Adapter is in backend/adapter (relative to backend/src/routes)
+      adapterDir = path.join(__dirname, '../../adapter');
+    } else {
+      adapterDir = path.resolve(adapterDir);
+    }
+    
+    // Verify adapter directory exists
+    try {
+      await fs.access(adapterDir);
+    } catch {
+      return res.status(500).json({
+        error: 'Adapter not found',
+        details: `Adapter directory not found at: ${adapterDir}`,
+        hint: 'The adapter should be located at backend/adapter. Please ensure it exists or set ADAPTER_PATH environment variable.'
+      });
+    }
+
     const adapterDataDir = path.join(adapterDir, 'data');
     const adapterScript = path.join(adapterDir, 'src', 'index.js');
     const inputFile = path.join(adapterDataDir, 'raw_data.csv');
+
+    // Verify adapter script exists
+    try {
+      await fs.access(adapterScript);
+    } catch {
+      return res.status(500).json({
+        error: 'Adapter script not found',
+        details: `Adapter script not found at: ${adapterScript}`,
+        adapterDir,
+        hint: 'Please verify ADAPTER_PATH environment variable or ensure adapter/src/index.js exists.'
+      });
+    }
 
     // Ensure adapter data directory exists
     await fs.mkdir(adapterDataDir, { recursive: true });

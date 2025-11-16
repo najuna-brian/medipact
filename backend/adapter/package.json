@@ -1,0 +1,43 @@
+{
+  "name": "medipact-adapter",
+  "version": "2.0.0",
+  "description": "MediPact Universal Adapter - Connect to ANY healthcare system and extract ALL FHIR R4 resources",
+  "type": "module",
+  "main": "src/index-universal.js",
+  "scripts": {
+    "start": "node src/index-universal.js",
+    "start:legacy": "node src/index.js",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:hcs": "node scripts/test-hcs.js",
+    "validate": "node scripts/validate-output.js",
+    "test:e2e": "node scripts/e2e-test.js"
+  },
+  "keywords": [
+    "hedera",
+    "hcs",
+    "medical-data",
+    "anonymization",
+    "fhir",
+    "openmrs",
+    "openelis",
+    "medic",
+    "universal-adapter"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@hashgraph/sdk": "^2.68.0",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.7",
+    "@vitest/ui": "^4.0.7",
+    "vitest": "^4.0.7"
+  }
+}

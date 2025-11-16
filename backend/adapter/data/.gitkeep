@@ -1,0 +1,4 @@
+# Sample EHR data files will be stored here
+# - raw_data.csv: Sample patient data with PII
+# - anonymized_data.csv: Generated anonymized output (gitignored)
+
