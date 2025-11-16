@@ -346,12 +346,19 @@ export async function getConsentStatistics(hospitalId) {
       [hospitalId, hospitalId, hospitalId, hospitalId]
     );
     
+    // Count all FHIR resource types for SQLite
     const totalRecordsResult = await get(
       `SELECT 
         (SELECT COUNT(*) FROM fhir_patients WHERE hospital_id = ?) +
         (SELECT COUNT(*) FROM fhir_conditions WHERE hospital_id = ?) +
-        (SELECT COUNT(*) FROM fhir_observations WHERE hospital_id = ?) as count`,
-      [hospitalId, hospitalId, hospitalId]
+        (SELECT COUNT(*) FROM fhir_observations WHERE hospital_id = ?) +
+        (SELECT COUNT(*) FROM fhir_encounters WHERE hospital_id = ?) +
+        (SELECT COUNT(*) FROM fhir_medication_requests WHERE hospital_id = ?) +
+        (SELECT COUNT(*) FROM fhir_procedures WHERE hospital_id = ?) +
+        (SELECT COUNT(*) FROM fhir_imaging_studies WHERE hospital_id = ?) +
+        (SELECT COUNT(*) FROM fhir_allergies WHERE hospital_id = ?) +
+        (SELECT COUNT(*) FROM fhir_coverage WHERE hospital_id = ?) as count`,
+      [hospitalId, hospitalId, hospitalId, hospitalId, hospitalId, hospitalId, hospitalId, hospitalId, hospitalId]
     );
     
     return {
