@@ -103,26 +103,32 @@ export default function HospitalProcessingPage() {
                 </div>
                 {item.status === 'completed' && (
                   <div className="pt-4 border-t flex gap-2 flex-wrap">
-                    {item.consentTopicId && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => window.open(getHashScanLink(item.consentTopicId), '_blank')}
-                      >
-                        <ExternalLink className="w-3 h-3 mr-1" />
-                        View Consent Proofs
-                      </Button>
-                    )}
-                    {item.dataTopicId && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => window.open(getHashScanLink(item.dataTopicId), '_blank')}
-                      >
-                        <ExternalLink className="w-3 h-3 mr-1" />
-                        View Data Proofs
-                      </Button>
-                    )}
+                    {item.consentTopicId && (() => {
+                      const link = getHashScanLink(item.consentTopicId);
+                      return link ? (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => window.open(link, '_blank')}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          View Consent Proofs
+                        </Button>
+                      ) : null;
+                    })()}
+                    {item.dataTopicId && (() => {
+                      const link = getHashScanLink(item.dataTopicId);
+                      return link ? (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => window.open(link, '_blank')}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          View Data Proofs
+                        </Button>
+                      ) : null;
+                    })()}
                   </div>
                 )}
               </CardContent>
