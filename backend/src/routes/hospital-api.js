@@ -478,15 +478,28 @@ router.post('/upload-csv', authenticateHospital, upload.single('file'), async (r
     // Parse adapter output to extract results
     const consentTopicMatch = stdout.match(/Consent Topic: (0\.0\.\d+)/);
     const dataTopicMatch = stdout.match(/Data Topic: (0\.0\.\d+)/);
-    const recordsMatch = stdout.match(/Records processed: (\d+)/);
+    // Match actual adapter output format
+    const recordsMatch = stdout.match(/FHIR resources processed: (\d+)/) || 
+                         stdout.match(/CSV records read: (\d+)/);
     const consentProofsMatch = stdout.match(/Consent proofs: (\d+)/);
-    const dataProofsMatch = stdout.match(/Data proofs: (\d+)/);
+    const dataProofsMatch = stdout.match(/Provenance proofs \(double anonymization\): (\d+)/) ||
+                            stdout.match(/Provenance proofs: (\d+)/);
 
     const recordsProcessed = recordsMatch ? parseInt(recordsMatch[1], 10) : 0;
     const consentProofs = consentProofsMatch ? parseInt(consentProofsMatch[1], 10) : 0;
     const dataProofs = dataProofsMatch ? parseInt(dataProofsMatch[1], 10) : 0;
     const consentTopicId = consentTopicMatch ? consentTopicMatch[1] : null;
     const dataTopicId = dataTopicMatch ? dataTopicMatch[1] : null;
+
+    // Debug: Log what we extracted
+    console.log('[CSV Upload] Parsed results:', {
+      recordsProcessed,
+      consentProofs,
+      dataProofs,
+      consentTopicId,
+      dataTopicId,
+      stdoutPreview: stdout.substring(0, 1000) // First 1000 chars for debugging
+    });
 
     // Calculate revenue split
     const hbarPerRecord = 0.01;
