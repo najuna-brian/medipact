@@ -102,8 +102,27 @@ export async function processFile(
       HOSPITAL_LOCATION: options?.hospitalLocation || process.env.HOSPITAL_LOCATION,
       HOSPITAL_ID: options?.hospitalId || process.env.HOSPITAL_ID,
       HOSPITAL_API_KEY: options?.apiKey || process.env.HOSPITAL_API_KEY,
-      BACKEND_API_URL: process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_API_URL || 'http://localhost:3002',
+      BACKEND_API_URL: process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_API_URL || 'http://localhost:3002',
     };
+
+    // Validate required environment variables
+    if (!env.OPERATOR_ID || !env.OPERATOR_KEY) {
+      console.error('Missing required Hedera credentials:');
+      console.error('OPERATOR_ID:', env.OPERATOR_ID ? `${String(env.OPERATOR_ID).substring(0, 10)}...` : 'MISSING');
+      console.error('OPERATOR_KEY:', env.OPERATOR_KEY ? 'SET' : 'MISSING');
+      return {
+        success: false,
+        error: 'Missing Hedera credentials. OPERATOR_ID and OPERATOR_KEY are required.',
+        details: 'Please configure NEXT_PUBLIC_HEDERA_ACCOUNT_ID and NEXT_PUBLIC_HEDERA_PRIVATE_KEY environment variables.',
+      };
+    }
+
+    console.log('Adapter environment variables:');
+    console.log('- OPERATOR_ID:', env.OPERATOR_ID ? `${String(env.OPERATOR_ID).substring(0, 10)}...` : 'MISSING');
+    console.log('- OPERATOR_KEY:', env.OPERATOR_KEY ? 'SET' : 'MISSING');
+    console.log('- HOSPITAL_COUNTRY:', env.HOSPITAL_COUNTRY);
+    console.log('- HOSPITAL_ID:', env.HOSPITAL_ID || 'NOT SET');
+    console.log('- BACKEND_API_URL:', env.BACKEND_API_URL);
 
     // Run the adapter script
     let stdout = '';
