@@ -36,23 +36,55 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
   // Store each resource type
   for (const [resourceType, resources] of Object.entries(resourcesByType)) {
     try {
-      await storeResourceType(resourceType, resources, hospitalId, apiKey);
-      results.successful += resources.length;
+      const response = await storeResourceType(resourceType, resources, hospitalId, apiKey);
+      // Check if storage actually succeeded (response might indicate partial failure)
+      if (response && response.success !== false && response.results) {
+        const created = response.results.created || 0;
+        const errors = response.results.errors || [];
+        results.successful += created;
+        results.failed += (resources.length - created);
+        if (errors.length > 0) {
+          results.errors.push({
+            resourceType,
+            error: `Partial failure: ${created} created, ${errors.length} errors`,
+            details: errors,
+            count: resources.length
+          });
+        }
+      } else {
+        // Storage returned failure
+        results.failed += resources.length;
+        results.errors.push({
+          resourceType,
+          error: response?.error || error.message || 'Storage failed',
+          response: response,
+          count: resources.length
+        });
+      }
     } catch (error) {
+      const errorData = error.response?.data || {};
+      const isTableMissing = errorData.error?.includes('does not exist') || 
+                            errorData.error?.includes('migration');
+      
       console.error(`[Adapter Storage] Error storing ${resourceType}:`, {
         message: error.message,
-        response: error.response?.data || error.response?.status || 'No response',
+        response: errorData,
         status: error.response?.status,
         statusText: error.response?.statusText,
         count: resources.length,
-        endpoint: getStorageEndpoint(resourceType)
+        endpoint: getStorageEndpoint(resourceType),
+        isTableMissing,
+        hint: isTableMissing ? 'Run POST /api/admin/migrate/fhir to create required tables' : undefined
       });
+      
       results.failed += resources.length;
       results.errors.push({
         resourceType,
-        error: error.message,
-        response: error.response?.data || error.response?.status,
-        count: resources.length
+        error: errorData.error || error.message,
+        response: errorData,
+        count: resources.length,
+        isTableMissing,
+        hint: isTableMissing ? 'FHIR tables missing - run migration endpoint' : undefined
       });
     }
   }

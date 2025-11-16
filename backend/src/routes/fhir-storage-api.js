@@ -29,6 +29,36 @@ async function authenticateAdapter(req, res, next) {
 }
 
 /**
+ * Check if a table exists in the database
+ */
+async function tableExists(db, dbType, tableName) {
+  try {
+    if (dbType === 'postgresql') {
+      const result = await db.query(
+        `SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = $1
+        )`,
+        [tableName]
+      );
+      return result.rows[0]?.exists || false;
+    } else {
+      // SQLite
+      const { get } = await import('../db/database.js');
+      const result = await get(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name=?`,
+        [tableName]
+      );
+      return !!result;
+    }
+  } catch (error) {
+    console.error(`[FHIR Storage] Error checking table existence for ${tableName}:`, error.message);
+    return false;
+  }
+}
+
+/**
  * Generic storage function for any resource type
  */
 async function storeResources(req, res, tableName) {
@@ -54,6 +84,20 @@ async function storeResources(req, res, tableName) {
 
     const db = getDatabase();
     const dbType = getDatabaseType();
+    
+    // Check if table exists before attempting to store
+    const exists = await tableExists(db, dbType, tableName);
+    if (!exists) {
+      const errorMsg = `Table ${tableName} does not exist. Please run the FHIR migration: POST /api/admin/migrate/fhir`;
+      console.error(`[FHIR Storage API] ${errorMsg}`);
+      return res.status(500).json({
+        success: false,
+        error: errorMsg,
+        tableName,
+        hint: 'Run the FHIR migration endpoint to create all required tables'
+      });
+    }
+
     const results = {
       created: 0,
       errors: []
@@ -78,30 +122,61 @@ async function storeResources(req, res, tableName) {
         }
         results.created++;
       } catch (error) {
+        // Check if error is due to missing table (shouldn't happen after check, but just in case)
+        const isTableMissing = error.message?.includes('does not exist') || 
+                              error.message?.includes('no such table') ||
+                              error.code === '42P01'; // PostgreSQL: undefined_table
+        
         console.error(`[FHIR Storage] Error storing ${tableName} resource:`, {
           resource: resource.id || resource.anonymousPatientId || 'unknown',
           error: error.message,
           code: error.code,
           constraint: error.constraint,
           detail: error.detail,
+          isTableMissing,
           stack: error.stack?.substring(0, 300) // First 300 chars of stack
         });
+        
         results.errors.push({
           resource: resource.id || resource.anonymousPatientId || 'unknown',
           error: error.message,
-          detail: error.detail || error.constraint
+          detail: error.detail || error.constraint,
+          isTableMissing
         });
       }
     }
 
+    // If all resources failed and it's due to missing table, return error
+    if (results.created === 0 && results.errors.length > 0) {
+      const allTableMissing = results.errors.every(e => e.isTableMissing);
+      if (allTableMissing) {
+        const errorMsg = `Table ${tableName} does not exist. Please run the FHIR migration: POST /api/admin/migrate/fhir`;
+        console.error(`[FHIR Storage API] ${errorMsg}`);
+        return res.status(500).json({
+          success: false,
+          error: errorMsg,
+          tableName,
+          hint: 'Run the FHIR migration endpoint to create all required tables',
+          results
+        });
+      }
+    }
+
+    const success = results.created > 0;
     res.json({
-      success: true,
-      message: `Stored ${results.created} ${tableName} resources`,
+      success,
+      message: success 
+        ? `Stored ${results.created} ${tableName} resources` 
+        : `Failed to store ${tableName} resources: ${results.errors.length} errors`,
       results
     });
   } catch (error) {
     console.error(`Error storing ${tableName}:`, error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      tableName
+    });
   }
 }
 
