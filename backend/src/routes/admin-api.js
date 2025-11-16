@@ -15,6 +15,10 @@ import { completeWithdrawal, retryFailedWithdrawals } from '../services/withdraw
 import { getPendingWithdrawals, getWithdrawalHistoryForUser } from '../db/withdrawal-db.js';
 import { triggerWithdrawalJob } from '../services/automatic-withdrawal-job.js';
 import { all } from '../db/database.js';
+import { initDatabase, getDatabase, getDatabaseType } from '../db/database.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const router = express.Router();
 
@@ -679,6 +683,137 @@ router.get('/withdrawals/stats', async (req, res) => {
   } catch (error) {
     console.error('Error getting withdrawal stats:', error);
     res.status(500).json({ error: error.message || 'Failed to get withdrawal stats' });
+  }
+});
+
+/**
+ * POST /api/admin/migrate/fhir
+ * Run FHIR complete schema migration
+ * Creates all FHIR R4 tables if they don't exist
+ */
+router.post('/migrate/fhir', async (req, res) => {
+  try {
+    console.log('[ADMIN API] Starting FHIR migration...');
+    
+    // Initialize database connection
+    await initDatabase();
+    const dbType = getDatabaseType();
+    console.log(`[ADMIN API] Database type: ${dbType}`);
+    
+    // Import the migration logic
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const schemaPath = path.join(__dirname, '../../src/models/fhir-complete-schema.js');
+    const schemaModule = await import(schemaPath);
+    const completeSchema = schemaModule.CompleteFHIRSchema;
+    
+    const db = getDatabase();
+    const results = {
+      tablesCreated: [],
+      tablesSkipped: [],
+      errors: []
+    };
+    
+    if (dbType === 'postgresql') {
+      // PostgreSQL migration
+      for (const tableName in completeSchema.postgresql) {
+        try {
+          const createTableSQL = completeSchema.postgresql[tableName];
+          // Add IF NOT EXISTS if not present
+          const sql = createTableSQL.includes('IF NOT EXISTS') 
+            ? createTableSQL 
+            : createTableSQL.replace(/CREATE TABLE\s+/, 'CREATE TABLE IF NOT EXISTS ');
+          
+          await db.query(sql);
+          results.tablesCreated.push(tableName);
+          console.log(`[ADMIN API] Created table: ${tableName}`);
+        } catch (error) {
+          if (error.message.includes('already exists') || error.code === '42P07') {
+            results.tablesSkipped.push(tableName);
+            console.log(`[ADMIN API] Table ${tableName} already exists, skipping`);
+          } else {
+            results.errors.push({ table: tableName, error: error.message });
+            console.error(`[ADMIN API] Error creating table ${tableName}:`, error.message);
+          }
+        }
+      }
+      
+      // Create indexes
+      if (completeSchema.postgresqlIndexes) {
+        for (const indexSQL of completeSchema.postgresqlIndexes) {
+          try {
+            const sql = indexSQL.includes('IF NOT EXISTS')
+              ? indexSQL
+              : indexSQL.replace(/CREATE INDEX\s+/, 'CREATE INDEX IF NOT EXISTS ');
+            await db.query(sql);
+          } catch (error) {
+            if (!error.message.includes('already exists') && !error.code?.includes('42P07')) {
+              results.errors.push({ index: indexSQL.substring(0, 50), error: error.message });
+            }
+          }
+        }
+      }
+    } else {
+      // SQLite migration
+      const { promisify } = await import('util');
+      const run = promisify(db.run.bind(db));
+      
+      for (const tableName in completeSchema.sqlite) {
+        try {
+          const createTableSQL = completeSchema.sqlite[tableName];
+          const sql = createTableSQL.includes('IF NOT EXISTS')
+            ? createTableSQL
+            : createTableSQL.replace(/CREATE TABLE\s+/, 'CREATE TABLE IF NOT EXISTS ');
+          
+          await run(sql);
+          results.tablesCreated.push(tableName);
+          console.log(`[ADMIN API] Created table: ${tableName}`);
+        } catch (error) {
+          if (error.message.includes('already exists')) {
+            results.tablesSkipped.push(tableName);
+            console.log(`[ADMIN API] Table ${tableName} already exists, skipping`);
+          } else {
+            results.errors.push({ table: tableName, error: error.message });
+            console.error(`[ADMIN API] Error creating table ${tableName}:`, error.message);
+          }
+        }
+      }
+      
+      // Create indexes
+      if (completeSchema.sqliteIndexes) {
+        for (const indexSQL of completeSchema.sqliteIndexes) {
+          try {
+            const sql = indexSQL.includes('IF NOT EXISTS')
+              ? indexSQL
+              : indexSQL.replace(/CREATE INDEX\s+/, 'CREATE INDEX IF NOT EXISTS ');
+            await run(sql);
+          } catch (error) {
+            if (!error.message.includes('already exists')) {
+              results.errors.push({ index: indexSQL.substring(0, 50), error: error.message });
+            }
+          }
+        }
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: 'FHIR migration completed',
+      databaseType: dbType,
+      results: {
+        tablesCreated: results.tablesCreated.length,
+        tablesSkipped: results.tablesSkipped.length,
+        errors: results.errors.length,
+        details: results
+      }
+    });
+  } catch (error) {
+    console.error('[ADMIN API] Migration error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Migration failed',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
