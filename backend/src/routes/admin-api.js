@@ -729,6 +729,38 @@ router.post('/migrate/fhir', async (req, res) => {
       // Use EXACT same approach as migrate-fhir-complete-schema.js script
       const statements = completeSchema.split('CREATE TABLE').filter(s => s.trim());
 
+      // First, ensure fhir_patients has unique constraint on anonymous_patient_id if it exists
+      // This is needed for foreign key references from other tables
+      try {
+        const checkConstraint = await db.query(`
+          SELECT constraint_name 
+          FROM information_schema.table_constraints 
+          WHERE table_name = 'fhir_patients' 
+          AND constraint_type = 'UNIQUE'
+          AND constraint_name LIKE '%anonymous_patient_id%'
+        `);
+        
+        if (checkConstraint.rows.length === 0) {
+          // Try to add unique constraint (may fail if table doesn't exist or has duplicates)
+          try {
+            await db.query(`
+              ALTER TABLE fhir_patients 
+              ADD CONSTRAINT fhir_patients_anonymous_id_unique 
+              UNIQUE (anonymous_patient_id)
+            `);
+            console.log('[ADMIN API] Added unique constraint on fhir_patients.anonymous_patient_id');
+          } catch (alterError) {
+            // Constraint might already exist or table might not exist yet
+            if (!alterError.message.includes('already exists') && 
+                !alterError.message.includes('does not exist')) {
+              console.warn('[ADMIN API] Could not add unique constraint:', alterError.message);
+            }
+          }
+        }
+      } catch (e) {
+        // Table might not exist yet, that's okay
+      }
+      
       for (let i = 0; i < statements.length; i++) {
         // Add space after CREATE TABLE when reconstructing
         const statement = 'CREATE TABLE ' + statements[i].trim();
@@ -754,6 +786,29 @@ router.post('/migrate/fhir', async (req, res) => {
             console.error(`[ADMIN API] Error creating table ${tableName}:`, error.message);
             // Continue with other tables - don't fail the entire migration
           }
+        }
+      }
+      
+      // After creating tables, ensure fhir_patients has unique constraint
+      try {
+        await db.query(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM pg_constraint 
+              WHERE conname = 'fhir_patients_anonymous_id_unique'
+            ) THEN
+              ALTER TABLE fhir_patients 
+              ADD CONSTRAINT fhir_patients_anonymous_id_unique 
+              UNIQUE (anonymous_patient_id);
+            END IF;
+          END $$;
+        `);
+        console.log('[ADMIN API] Ensured unique constraint on fhir_patients.anonymous_patient_id');
+      } catch (e) {
+        // Might already exist or table doesn't exist
+        if (!e.message.includes('already exists') && !e.message.includes('does not exist')) {
+          console.warn('[ADMIN API] Could not ensure unique constraint:', e.message);
         }
       }
       
