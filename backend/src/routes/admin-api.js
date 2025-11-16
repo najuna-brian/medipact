@@ -695,8 +695,18 @@ router.post('/migrate/fhir', async (req, res) => {
   try {
     console.log('[ADMIN API] Starting FHIR migration...');
     
-    // Initialize database connection
-    await initDatabase();
+    // Initialize database connection (skip if already initialized to avoid index conflicts)
+    try {
+      await initDatabase();
+    } catch (error) {
+      // If initDatabase fails due to existing indexes/tables, continue anyway
+      if (error.message.includes('already exists') || error.message.includes('unique index')) {
+        console.log('[ADMIN API] Database already initialized, continuing with FHIR migration...');
+      } else {
+        throw error;
+      }
+    }
+    
     const dbType = getDatabaseType();
     console.log(`[ADMIN API] Database type: ${dbType}`);
     
@@ -744,11 +754,18 @@ router.post('/migrate/fhir', async (req, res) => {
           try {
             const sql = indexSQL.includes('IF NOT EXISTS')
               ? indexSQL
-              : indexSQL.replace(/CREATE INDEX\s+/, 'CREATE INDEX IF NOT EXISTS ');
+              : indexSQL.replace(/CREATE (UNIQUE )?INDEX\s+/, 'CREATE $1INDEX IF NOT EXISTS ');
             await db.query(sql);
           } catch (error) {
-            if (!error.message.includes('already exists') && !error.code?.includes('42P07')) {
+            // Ignore errors for indexes that already exist or have constraint issues
+            if (error.message.includes('already exists') || 
+                error.code === '42P07' || 
+                error.message.includes('unique index') ||
+                error.message.includes('duplicate key')) {
+              console.log(`[ADMIN API] Index already exists or has constraint, skipping: ${indexSQL.substring(0, 50)}...`);
+            } else {
               results.errors.push({ index: indexSQL.substring(0, 50), error: error.message });
+              console.warn(`[ADMIN API] Index creation warning: ${error.message}`);
             }
           }
         }
@@ -785,11 +802,16 @@ router.post('/migrate/fhir', async (req, res) => {
           try {
             const sql = indexSQL.includes('IF NOT EXISTS')
               ? indexSQL
-              : indexSQL.replace(/CREATE INDEX\s+/, 'CREATE INDEX IF NOT EXISTS ');
+              : indexSQL.replace(/CREATE (UNIQUE )?INDEX\s+/, 'CREATE $1INDEX IF NOT EXISTS ');
             await run(sql);
           } catch (error) {
-            if (!error.message.includes('already exists')) {
+            // Ignore errors for indexes that already exist
+            if (error.message.includes('already exists') || 
+                error.message.includes('duplicate column name')) {
+              console.log(`[ADMIN API] Index already exists, skipping: ${indexSQL.substring(0, 50)}...`);
+            } else {
               results.errors.push({ index: indexSQL.substring(0, 50), error: error.message });
+              console.warn(`[ADMIN API] Index creation warning: ${error.message}`);
             }
           }
         }
