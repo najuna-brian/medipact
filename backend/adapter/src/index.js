@@ -207,6 +207,7 @@ async function main() {
     let pidIndex = 0;
 
     // First pass: Build patient mapping from Patient resources
+    console.log(`   Building patient mapping from ${fhirBundle.entry.filter(e => e.resource.resourceType === 'Patient').length} Patient resources...`);
     for (const entry of fhirBundle.entry) {
       if (entry.resource.resourceType === 'Patient') {
         const originalId = entry.resource.id;
@@ -214,12 +215,17 @@ async function main() {
         patientMapping.set(originalId, anonymousId);
         // Also add with Patient/ prefix for lookup flexibility
         patientMapping.set(`Patient/${originalId}`, anonymousId);
-        console.log(`   Mapping: ${originalId} -> ${anonymousId}`);
+        console.log(`     ${originalId} -> ${anonymousId}`);
         pidIndex++;
       }
     }
     
-    console.log(`   ✓ Built patient mapping for ${patientMapping.size / 2} patients\n`);
+    if (patientMapping.size === 0) {
+      console.error('   ⚠️  WARNING: No Patient resources found in bundle!');
+      console.error('   Bundle contains:', fhirBundle.entry.map(e => e.resource.resourceType).join(', '));
+    } else {
+      console.log(`   ✓ Built patient mapping for ${patientMapping.size / 2} patients\n`);
+    }
 
     // Second pass: Process all resources
     const context = {
