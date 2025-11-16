@@ -71,7 +71,7 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
     {
       headers: {
         'Content-Type': 'application/json',
-        'X-Hospital-Id': hospitalId,
+        'X-Hospital-ID': hospitalId,
         'X-API-Key': apiKey
       }
     }

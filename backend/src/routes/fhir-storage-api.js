@@ -15,8 +15,9 @@ const router = express.Router();
  * Middleware to authenticate adapter requests
  */
 async function authenticateAdapter(req, res, next) {
-  const hospitalId = req.headers['x-hospital-id'];
-  const apiKey = req.headers['x-api-key'];
+  // Express normalizes headers to lowercase, but check both cases for safety
+  const hospitalId = req.headers['x-hospital-id'] || req.headers['x-hospital-id'] || req.headers['X-Hospital-ID'];
+  const apiKey = req.headers['x-api-key'] || req.headers['X-API-Key'];
 
   if (!hospitalId || !apiKey) {
     return res.status(401).json({ error: 'Missing hospital ID or API key' });

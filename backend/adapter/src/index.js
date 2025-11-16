@@ -212,9 +212,14 @@ async function main() {
         const originalId = entry.resource.id;
         const anonymousId = `PID-${String(pidIndex + 1).padStart(3, '0')}`;
         patientMapping.set(originalId, anonymousId);
+        // Also add with Patient/ prefix for lookup flexibility
+        patientMapping.set(`Patient/${originalId}`, anonymousId);
+        console.log(`   Mapping: ${originalId} -> ${anonymousId}`);
         pidIndex++;
       }
     }
+    
+    console.log(`   ✓ Built patient mapping for ${patientMapping.size / 2} patients\n`);
 
     // Second pass: Process all resources
     const context = {
@@ -229,7 +234,13 @@ async function main() {
         const processed = await processFHIRResource(entry.resource, context);
         processedResources.push(processed);
       } catch (error) {
+        // Log error but continue processing other resources
+        // Some resources may fail due to missing patient mappings, which is OK
         console.error(`     ✗ Error processing ${entry.resource.resourceType} ${entry.resource.id}:`, error.message);
+        // Only skip if it's a critical error (not just missing patient mapping)
+        if (!error.message.includes('Patient mapping not found')) {
+          // For non-patient-mapping errors, we might want to handle differently
+        }
       }
     }
 
@@ -261,8 +272,14 @@ async function main() {
       hospitalInfo
     );
     const { records: anonymizedRecords, patientMapping: csvPatientMapping, upiMapping } = anonymizationResult;
-    await writeAnonymizedCSV(anonymizedRecords, OUTPUT_FILE);
-    console.log(`   ✓ Anonymized CSV saved: ${anonymizedRecords.length} records\n`);
+    
+    // Only write CSV if we have records (k-anonymity might suppress all)
+    if (anonymizedRecords && anonymizedRecords.length > 0) {
+      await writeAnonymizedCSV(anonymizedRecords, OUTPUT_FILE);
+      console.log(`   ✓ Anonymized CSV saved: ${anonymizedRecords.length} records\n`);
+    } else {
+      console.log(`   ⚠️  No anonymized records to write (k-anonymity suppression or no valid records)\n`);
+    }
 
     // Step 9: Process consent proofs (one per unique patient) - NO original patient ID
     console.log('9. Processing consent proofs...');

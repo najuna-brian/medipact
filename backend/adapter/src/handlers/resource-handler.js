@@ -89,6 +89,36 @@ export async function processFHIRResources(resources, context) {
 }
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Get anonymous patient ID from patient reference
+ * @param {string} patientRef - Patient reference (e.g., "Patient/PAT-001")
+ * @param {Map} patientMapping - Patient ID mapping
+ * @returns {string|null} Anonymous patient ID or null if not found
+ */
+function getAnonymousPatientId(patientRef, patientMapping) {
+  if (!patientRef || !patientMapping) {
+    return null;
+  }
+  
+  // Try direct lookup with ID part
+  const patientId = patientRef.split('/').pop();
+  let anonymousId = patientMapping.get(patientId);
+  
+  // Try alternative formats if direct lookup fails
+  if (!anonymousId) {
+    anonymousId = patientMapping.get(patientRef.replace('Patient/', ''));
+  }
+  if (!anonymousId) {
+    anonymousId = patientMapping.get(patientRef);
+  }
+  
+  return anonymousId;
+}
+
+// ============================================================================
 // Resource-Specific Handlers
 // ============================================================================
 
@@ -133,12 +163,20 @@ async function handleEncounter(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
-  
-  if (!anonymousPatientId) {
-    throw new Error(`Patient mapping not found for encounter ${fhirResource.id}`);
+  if (!patientRef) {
+    throw new Error(`Encounter ${fhirResource.id} missing subject reference`);
   }
+  
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
+  if (!anonymousPatientId) {
+    const patientId = patientRef.split('/').pop();
+    throw new Error(`Patient mapping not found for encounter ${fhirResource.id} (patient: ${patientId || patientRef})`);
+  }
+  
+  return handleEncounterWithId(fhirResource, context, anonymousPatientId);
+}
+
+async function handleEncounterWithId(fhirResource, context, anonymousPatientId) {
   
   return {
     encounterId: fhirResource.id,
@@ -177,11 +215,14 @@ async function handleCondition(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  if (!patientRef) {
+    throw new Error(`Condition ${fhirResource.id} missing subject reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
-    throw new Error(`Patient mapping not found for condition ${fhirResource.id}`);
+    const patientId = patientRef.split('/').pop();
+    throw new Error(`Patient mapping not found for condition ${fhirResource.id} (patient: ${patientId || patientRef})`);
   }
   
   const code = fhirResource.code?.coding?.[0];
@@ -217,11 +258,14 @@ async function handleObservation(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  if (!patientRef) {
+    throw new Error(`Observation ${fhirResource.id} missing subject reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
-    throw new Error(`Patient mapping not found for observation ${fhirResource.id}`);
+    const patientId = patientRef.split('/').pop();
+    throw new Error(`Patient mapping not found for observation ${fhirResource.id} (patient: ${patientId || patientRef})`);
   }
   
   const code = fhirResource.code?.coding?.find(c => c.system?.includes('loinc')) || 
@@ -268,11 +312,14 @@ async function handleMedicationRequest(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  if (!patientRef) {
+    throw new Error(`Resource ${fhirResource.id} missing subject reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
-    throw new Error(`Patient mapping not found for medication request ${fhirResource.id}`);
+    const patientId = patientRef.split('/').pop();
+    throw new Error(`Patient mapping not found for medication request ${fhirResource.id} (patient: ${patientId || patientRef})`);
   }
   
   const medication = fhirResource.medicationCodeableConcept || fhirResource.medicationReference;
@@ -320,10 +367,13 @@ async function handleMedicationAdministration(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  if (!patientRef) {
+    throw new Error(`Resource ${fhirResource.id} missing subject reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
+    const patientId = patientRef.split('/').pop();
     throw new Error(`Patient mapping not found for medication administration ${fhirResource.id}`);
   }
   
@@ -355,10 +405,13 @@ async function handleMedicationStatement(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  if (!patientRef) {
+    throw new Error(`Resource ${fhirResource.id} missing subject reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
+    const patientId = patientRef.split('/').pop();
     throw new Error(`Patient mapping not found for medication statement ${fhirResource.id}`);
   }
   
@@ -384,10 +437,13 @@ async function handleProcedure(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  if (!patientRef) {
+    throw new Error(`Resource ${fhirResource.id} missing subject reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
+    const patientId = patientRef.split('/').pop();
     throw new Error(`Patient mapping not found for procedure ${fhirResource.id}`);
   }
   
@@ -434,10 +490,13 @@ async function handleDiagnosticReport(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  if (!patientRef) {
+    throw new Error(`Resource ${fhirResource.id} missing subject reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
+    const patientId = patientRef.split('/').pop();
     throw new Error(`Patient mapping not found for diagnostic report ${fhirResource.id}`);
   }
   
@@ -472,10 +531,13 @@ async function handleImagingStudy(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  if (!patientRef) {
+    throw new Error(`Resource ${fhirResource.id} missing subject reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
+    const patientId = patientRef.split('/').pop();
     throw new Error(`Patient mapping not found for imaging study ${fhirResource.id}`);
   }
   
@@ -513,10 +575,13 @@ async function handleSpecimen(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  if (!patientRef) {
+    throw new Error(`Resource ${fhirResource.id} missing subject reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
+    const patientId = patientRef.split('/').pop();
     throw new Error(`Patient mapping not found for specimen ${fhirResource.id}`);
   }
   
@@ -610,10 +675,13 @@ async function handleCarePlan(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  if (!patientRef) {
+    throw new Error(`Resource ${fhirResource.id} missing subject reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
+    const patientId = patientRef.split('/').pop();
     throw new Error(`Patient mapping not found for care plan ${fhirResource.id}`);
   }
   
@@ -638,10 +706,13 @@ async function handleCareTeam(fhirResource, context) {
   const { patientMapping } = context;
   
   const patientRef = fhirResource.subject?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  if (!patientRef) {
+    throw new Error(`Resource ${fhirResource.id} missing subject reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
+    const patientId = patientRef.split('/').pop();
     throw new Error(`Patient mapping not found for care team ${fhirResource.id}`);
   }
   
@@ -740,12 +811,15 @@ async function handleLocation(fhirResource, context) {
 async function handleCoverage(fhirResource, context) {
   const { patientMapping } = context;
   
-  const patientRef = fhirResource.beneficiary?.reference;
-  const originalPatientId = patientRef?.split('/').pop();
-  const anonymousPatientId = patientMapping?.get(originalPatientId);
+  const patientRef = fhirResource.beneficiary?.reference || fhirResource.subscriber?.reference;
+  if (!patientRef) {
+    throw new Error(`Coverage ${fhirResource.id} missing beneficiary/subscriber reference`);
+  }
   
+  const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
   if (!anonymousPatientId) {
-    throw new Error(`Patient mapping not found for coverage ${fhirResource.id}`);
+    const patientId = patientRef.split('/').pop();
+    throw new Error(`Patient mapping not found for coverage ${fhirResource.id} (patient: ${patientId || patientRef})`);
   }
   
   return {
