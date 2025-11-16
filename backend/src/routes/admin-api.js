@@ -756,24 +756,6 @@ router.post('/migrate/fhir', async (req, res) => {
         }
       }
       
-      // Create tables
-      for (const { tableName, statement } of tableStatements) {
-        try {
-          await db.query(statement);
-          results.tablesCreated.push(tableName);
-          console.log(`[ADMIN API] Created table: ${tableName}`);
-        } catch (error) {
-          if (error.message.includes('already exists') || error.code === '42P07') {
-            results.tablesSkipped.push(tableName);
-            console.log(`[ADMIN API] Table ${tableName} already exists, skipping`);
-          } else {
-            results.errors.push({ table: tableName, error: error.message });
-            console.error(`[ADMIN API] Error creating table ${tableName}:`, error.message);
-            // Continue with other tables - don't fail the entire migration
-          }
-        }
-      }
-      
       // Create indexes
       const indexStatements = completeSchema.match(/CREATE INDEX[^;]+;/gi) || [];
       for (const indexStmt of indexStatements) {
