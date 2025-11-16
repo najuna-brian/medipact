@@ -151,9 +151,34 @@ router.post('/register', async (req, res) => {
       });
     }
     
+    // Import contact lookup functions
+    const { findUPIByEmail, findUPIByPhone, findUPIByNationalId } = await import('../db/patient-contacts-db.js');
+    const { getOrCreateUPI } = await import('../services/patient-identity-service.js');
+    const { patientExists } = await import('../db/patient-db.js');
+    
     const result = await registerPatientWithContact(
       { name, dateOfBirth, phone, nationalId, email },
-      generateUPI,
+      async (patientPII) => {
+        // Use getOrCreateUPI with contact lookup
+        return await getOrCreateUPI(
+          patientPII,
+          async (upi) => await patientExists(upi),
+          async (upi, data) => {
+            // This will be called only if patient doesn't exist
+            await createPatient(upi, {
+              ...data,
+              hederaAccountId: null,
+              encryptedPrivateKey: null
+            });
+          },
+          {
+            // Provide contact lookup functions - enables automatic linking by email/phone
+            findUPIByEmail,
+            findUPIByPhone,
+            findUPIByNationalId
+          }
+        );
+      },
       async (upi, patientData) => {
         // Add payment method fields to patient data
         const patientWithPayment = {
@@ -209,6 +234,29 @@ router.post('/lookup', async (req, res) => {
   } catch (error) {
     console.error('Error looking up patient:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/patient/:upi/exists
+ * Check if a UPI exists
+ */
+router.get('/:upi/exists', async (req, res) => {
+  try {
+    const { upi } = req.params;
+    
+    if (!isValidUPI(upi)) {
+      return res.status(400).json({ 
+        error: 'Invalid UPI format',
+        exists: false
+      });
+    }
+    
+    const exists = await patientExists(upi);
+    res.json({ upi, exists });
+  } catch (error) {
+    console.error('Error checking UPI existence:', error);
+    res.status(500).json({ error: error.message, exists: false });
   }
 });
 

@@ -98,6 +98,10 @@ function derivePaymentFromPhone(phone) {
  * @param {Function} createPatient - Function to create patient
  * @param {Function} createLinkage - Function to create hospital linkage
  * @param {Function} getPatient - Function to get patient by UPI (optional, for retrieving Account ID)
+ * @param {Object} contactLookup - Optional: Functions to lookup UPI by contact
+ *   - findUPIByEmail: (email) => Promise<string|null>
+ *   - findUPIByPhone: (phone) => Promise<string|null>
+ *   - findUPIByNationalId: (nationalId) => Promise<string|null>
  * @returns {Promise<Object>} Bulk registration result
  */
 export async function processBulkRegistration(
@@ -106,7 +110,8 @@ export async function processBulkRegistration(
   patientExists,
   createPatient,
   createLinkage,
-  getPatient = null
+  getPatient = null,
+  contactLookup = null
 ) {
   // Parse data if CSV string
   let records = data;
@@ -177,9 +182,9 @@ export async function processBulkRegistration(
         continue;
       }
       
-      // Generate or get UPI
+      // Generate or get UPI with contact lookup (email/phone priority)
+      // This allows patients to use email/phone without knowing their UPI
       // Lazy account creation: Hedera accounts are created only when patients receive payments
-      // This saves costs - operator only pays for accounts that will actually receive revenue
       const upi = await getOrCreateUPI(
         normalized,
         patientExists,
@@ -194,7 +199,9 @@ export async function processBulkRegistration(
             hederaAccountId: null, // Account created lazily when revenue is distributed
             encryptedPrivateKey: null
           });
-        }
+        },
+        // Provide contact lookup functions - enables automatic linking by email/phone
+        contactLookup
       );
       
       // Get patient to retrieve Hedera Account ID if it exists

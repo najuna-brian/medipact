@@ -10,7 +10,7 @@ import { generateUPI, getOrCreateUPI } from '../services/patient-identity-servic
 import { linkHospitalToUPI } from '../services/hospital-linkage-service.js';
 import { createPatient, patientExists, getPatient } from '../db/patient-db.js';
 import { createLinkage, getLinkagesByHospital } from '../db/linkage-db.js';
-import { upsertPatientContact } from '../db/patient-contacts-db.js';
+import { upsertPatientContact, findUPIByEmail, findUPIByPhone, findUPIByNationalId } from '../db/patient-contacts-db.js';
 import { verifyHospitalApiKey, getHospital as getHospitalFromDB } from '../db/hospital-db.js';
 import { isHospitalVerified } from '../services/hospital-verification-service.js';
 
@@ -65,7 +65,7 @@ router.post('/:hospitalId/patients/bulk', authenticateHospital, async (req, res)
       },
       async (upi, patientData) => {
         await createPatient(upi, patientData);
-        // Create/update contact information
+        // Create/update contact information with latest entry (merge to latest)
         if (patientData.email || patientData.phone || patientData.nationalId) {
           await upsertPatientContact(upi, {
             email: patientData.email,
@@ -79,6 +79,12 @@ router.post('/:hospitalId/patients/bulk', authenticateHospital, async (req, res)
       },
       async (upi) => {
         return await getPatient(upi);
+      },
+      {
+        // Provide contact lookup functions - enables automatic linking by email/phone
+        findUPIByEmail,
+        findUPIByPhone,
+        findUPIByNationalId
       }
     );
     
@@ -292,11 +298,11 @@ router.post('/:hospitalId/patients', authenticateHospital, async (req, res) => {
       });
     }
     
-    // Generate or get UPI
+    // Generate or get UPI with contact lookup (email/phone priority)
+    // This allows patients to use email/phone without knowing their UPI
     // Lazy account creation: Hedera accounts are created only when patients receive payments
-    // This saves costs - operator only pays for accounts that will actually receive revenue
     const upi = await getOrCreateUPI(
-      { name, dateOfBirth, phone, nationalId },
+      { name, dateOfBirth, phone, nationalId, email },
       async (upi) => {
         return await patientExists(upi);
       },
@@ -307,6 +313,12 @@ router.post('/:hospitalId/patients', authenticateHospital, async (req, res) => {
           hederaAccountId: null, // Account created lazily when revenue is distributed
           encryptedPrivateKey: null
         });
+      },
+      {
+        // Provide contact lookup functions - enables automatic linking by email/phone
+        findUPIByEmail,
+        findUPIByPhone,
+        findUPIByNationalId
       }
     );
     
@@ -314,7 +326,8 @@ router.post('/:hospitalId/patients', authenticateHospital, async (req, res) => {
     const patient = await getPatient(upi);
     const hederaAccountId = patient?.hederaAccountId || null;
     
-    // Create/update contact information
+    // Create/update contact information with latest entry (merge to latest)
+    // This ensures contact info is always up-to-date
     if (email || phone || nationalId) {
       await upsertPatientContact(upi, { email, phone, nationalId });
     }

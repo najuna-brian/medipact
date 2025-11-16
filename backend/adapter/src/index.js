@@ -38,7 +38,29 @@ import { distributeRevenueAfterProcessing } from './services/revenue-integration
 import { csvToFHIRBundle } from './transformers/csv-to-fhir-transformer.js';
 import { processFHIRResource } from './handlers/resource-handler.js';
 import { storeFHIRResources } from './storage/fhir-storage.js';
+
 import { Hbar } from '@hashgraph/sdk';
+
+// Helper function to get anonymous patient ID (same as in resource-handler.js)
+function getAnonymousPatientId(patientRef, patientMapping) {
+  if (!patientRef || !patientMapping) {
+    return null;
+  }
+  
+  // Try direct lookup with ID part
+  const patientId = patientRef.split('/').pop();
+  let anonymousId = patientMapping.get(patientId);
+  
+  // Try alternative formats if direct lookup fails
+  if (!anonymousId) {
+    anonymousId = patientMapping.get(patientRef.replace('Patient/', ''));
+  }
+  if (!anonymousId) {
+    anonymousId = patientMapping.get(patientRef);
+  }
+  
+  return anonymousId;
+}
 
 dotenv.config();
 
@@ -206,11 +228,99 @@ async function main() {
     const patientMapping = new Map();
     let pidIndex = 0;
 
-    // First pass: Build patient mapping from Patient resources
+    // First pass: Build patient mapping and lookup UPIs by email/phone
     // This mapping connects original patient IDs (from CSV) to anonymous IDs (PID-001, etc.)
     // After anonymization, all resources will reference these anonymous IDs
     const patientResources = fhirBundle.entry.filter(e => e.resource.resourceType === 'Patient');
     console.log(`   Building patient mapping from ${patientResources.length} Patient resources...`);
+    
+    // UPI mapping: originalPatientId -> UPI
+    const upiMapping = new Map();
+    const backendApiUrl = process.env.BACKEND_API_URL;
+    
+    // Lookup UPIs by email/phone for automatic linking
+    if (backendApiUrl) {
+      console.log('   Looking up UPIs by email/phone for automatic linking...');
+      const axios = (await import('axios')).default;
+      
+      for (const entry of patientResources) {
+        const patient = entry.resource;
+        const originalId = patient.id;
+        if (!originalId) continue;
+        
+        // Extract email and phone from Patient resource
+        const email = patient.telecom?.find(t => t.system === 'email')?.value;
+        const phone = patient.telecom?.find(t => t.system === 'phone')?.value;
+        const name = patient.name?.[0]?.text || rawRecords.find(r => 
+          (r['Patient ID'] || r['Patient Name']) === originalId
+        )?.['Patient Name'];
+        const dateOfBirth = patient.birthDate || rawRecords.find(r => 
+          (r['Patient ID'] || r['Patient Name']) === originalId
+        )?.['Date of Birth'];
+        
+        // Try to lookup UPI by email/phone first (automatic linking)
+        let upi = null;
+        if (email || phone) {
+          try {
+            const lookupResponse = await axios.post(`${backendApiUrl}/api/patient/lookup`, {
+              email,
+              phone
+            }, {
+              timeout: 5000,
+              validateStatus: (status) => status < 500 // Don't throw on 404
+            });
+            
+            if (lookupResponse.data && lookupResponse.data.upi) {
+              upi = lookupResponse.data.upi;
+              console.log(`     ✓ Found existing UPI for ${originalId} by ${email ? 'email' : 'phone'}: ${upi}`);
+            }
+          } catch (error) {
+            // Lookup failed, will generate UPI below
+            if (error.response?.status !== 404) {
+              console.warn(`     ⚠️  UPI lookup failed for ${originalId}: ${error.message}`);
+            }
+          }
+        }
+        
+        // If no UPI found by contact, generate deterministically
+        if (!upi && name && dateOfBirth) {
+          const { generateUPI } = await import('../../src/services/patient-identity-service.js');
+          try {
+            upi = generateUPI({
+              name,
+              dateOfBirth,
+              phone: phone || null,
+              nationalId: null
+            });
+            // Check if this UPI exists (deterministic match)
+            try {
+              const existsResponse = await axios.get(`${backendApiUrl}/api/patient/${upi}/exists`, {
+                timeout: 5000,
+                validateStatus: (status) => status < 500
+              });
+              if (existsResponse.data && existsResponse.data.exists) {
+                console.log(`     ✓ Found existing UPI for ${originalId} by deterministic match: ${upi}`);
+              } else {
+                console.log(`     → Generated new UPI for ${originalId}: ${upi}`);
+              }
+            } catch (error) {
+              // Assume new UPI if check fails
+              console.log(`     → Generated new UPI for ${originalId}: ${upi}`);
+            }
+          } catch (error) {
+            console.warn(`     ⚠️  Failed to generate UPI for ${originalId}: ${error.message}`);
+          }
+        }
+        
+        if (upi) {
+          upiMapping.set(originalId, upi);
+        }
+      }
+      
+      if (upiMapping.size > 0) {
+        console.log(`   ✓ Looked up ${upiMapping.size} UPIs (${upiMapping.size} existing, ${patientResources.length - upiMapping.size} new)\n`);
+      }
+    }
     
     for (const entry of patientResources) {
       const originalId = entry.resource.id;
@@ -226,7 +336,7 @@ async function main() {
       patientMapping.set(`Patient/${originalId}`, anonymousId);
       // Also map anonymous ID to itself (for resources that might already be anonymized)
       patientMapping.set(anonymousId, anonymousId);
-      console.log(`     ${originalId} -> ${anonymousId}`);
+      console.log(`     ${originalId} -> ${anonymousId}${upiMapping.has(originalId) ? ` (UPI: ${upiMapping.get(originalId)})` : ''}`);
       pidIndex++;
     }
     
@@ -238,7 +348,23 @@ async function main() {
     }
 
     // Second pass: Process all resources
-    const context = {
+    // Create a context per patient with their UPI
+    const patientContexts = new Map(); // anonymousPatientId -> context
+    for (const [originalId, anonymousId] of patientMapping) {
+      if (!originalId.includes('/') && !originalId.startsWith('PID-')) {
+        // This is an original patient ID
+        const upi = upiMapping.get(originalId) || null;
+        patientContexts.set(anonymousId, {
+          hospitalId: process.env.HOSPITAL_ID || null,
+          hospitalInfo,
+          patientMapping,
+          upi
+        });
+      }
+    }
+    
+    // Default context (for resources without patient mapping)
+    const defaultContext = {
       hospitalId: process.env.HOSPITAL_ID || null,
       hospitalInfo,
       patientMapping,
@@ -249,7 +375,24 @@ async function main() {
     // This is expected for some resource types that don't require patient references
     for (const entry of fhirBundle.entry) {
       try {
-        const processed = await processFHIRResource(entry.resource, context);
+        // Determine context based on patient reference
+        let resourceContext = defaultContext;
+        if (entry.resource.subject?.reference) {
+          const patientRef = entry.resource.subject.reference;
+          const anonymousPatientId = getAnonymousPatientId(patientRef, patientMapping);
+          if (anonymousPatientId && patientContexts.has(anonymousPatientId)) {
+            resourceContext = patientContexts.get(anonymousPatientId);
+          }
+        } else if (entry.resource.resourceType === 'Patient') {
+          // Patient resource - use context based on its anonymous ID
+          const originalId = entry.resource.id;
+          const anonymousId = patientMapping.get(originalId);
+          if (anonymousId && patientContexts.has(anonymousId)) {
+            resourceContext = patientContexts.get(anonymousId);
+          }
+        }
+        
+        const processed = await processFHIRResource(entry.resource, resourceContext);
         processedResources.push(processed);
       } catch (error) {
         // Skip resources that can't be mapped to patients (e.g., standalone Coverage without patient)
@@ -268,14 +411,60 @@ async function main() {
     console.log(`   ✓ Processed ${processedResources.length} FHIR resources\n`);
 
     // Step 7: Store FHIR resources to backend (if configured)
+    // Also create/update patient contacts with latest email/phone info
     const apiKey = process.env.HOSPITAL_API_KEY;
-    const backendApiUrl = process.env.BACKEND_API_URL;
-    if (apiKey && backendApiUrl && context.hospitalId) {
+    const storageBackendApiUrl = process.env.BACKEND_API_URL;
+    const storageHospitalId = process.env.HOSPITAL_ID || defaultContext.hospitalId;
+    
+    if (apiKey && storageBackendApiUrl && storageHospitalId) {
       console.log('7. Storing FHIR resources to backend...');
       try {
+        // First, create/update patient contacts with latest info (merge to latest)
+        if (storageBackendApiUrl && upiMapping.size > 0) {
+          console.log('   Creating/updating patient contacts with latest info...');
+          const axios = (await import('axios')).default;
+          
+          for (const [originalId, upi] of upiMapping) {
+            // Find the original record to get email/phone
+            const originalRecord = rawRecords.find(r => 
+              (r['Patient ID'] || r['Patient Name']) === originalId
+            );
+            
+            if (originalRecord) {
+              const email = originalRecord['Email'] || originalRecord['email'];
+              const phone = originalRecord['Phone Number'] || originalRecord['phone'];
+              const name = originalRecord['Patient Name'] || originalRecord['name'];
+              const dateOfBirth = originalRecord['Date of Birth'] || originalRecord['dateOfBirth'];
+              
+              // Create/update patient and contact via backend API
+              try {
+                // Use getOrCreateUPI endpoint which handles contact lookup automatically
+                await axios.post(`${storageBackendApiUrl}/api/patient/register`, {
+                  name,
+                  dateOfBirth,
+                  email,
+                  phone,
+                  nationalId: originalRecord['National ID'] || originalRecord['nationalId'] || null
+                }, {
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  timeout: 10000,
+                  validateStatus: (status) => status < 500
+                });
+              } catch (error) {
+                // Patient might already exist, that's okay
+                if (error.response?.status !== 400 && error.response?.status !== 409) {
+                  console.warn(`     ⚠️  Failed to update contact for ${upi}: ${error.message}`);
+                }
+              }
+            }
+          }
+        }
+        
         const storageResult = await storeFHIRResources(
           processedResources,
-          context.hospitalId,
+          storageHospitalId,
           apiKey
         );
         console.log(`   ✓ Stored: ${storageResult.successful} successful, ${storageResult.failed} failed\n`);
@@ -292,7 +481,7 @@ async function main() {
       rawRecords,
       hospitalInfo
     );
-    const { records: anonymizedRecords, patientMapping: csvPatientMapping, upiMapping } = anonymizationResult;
+    const { records: anonymizedRecords, patientMapping: csvPatientMapping, upiMapping: csvUpiMapping } = anonymizationResult;
     
     // Only write CSV if we have records (k-anonymity might suppress all)
     if (anonymizedRecords && anonymizedRecords.length > 0) {
@@ -379,7 +568,7 @@ async function main() {
           },
           anonymousPatientId,
           resourceType: processed.resourceType,
-          hospitalId: context.hospitalId,
+          hospitalId: storageHospitalId || defaultContext.hospitalId,
           timestamp: new Date().toISOString(),
           provenanceProof
         };

@@ -127,26 +127,65 @@ export async function matchPatientToUPI(patientPII, upiLookup) {
 /**
  * Create or retrieve UPI for patient
  * 
- * If patient exists (matched by UPI), returns existing UPI.
- * If new patient, creates new UPI.
+ * Priority:
+ * 1. Lookup by email/phone/nationalId (if provided) - allows patients to use contact info
+ * 2. Generate deterministically from name+DOB+phone - matches existing patients
+ * 3. Create new UPI if not found
  * 
  * @param {Object} patientPII - Patient PII
  * @param {Function} upiLookup - Function to check if UPI exists
  * @param {Function} upiCreate - Function to create new UPI (upi, patientPII) => Promise<void>
+ * @param {Object} contactLookup - Optional: Functions to lookup by contact
+ *   - findUPIByEmail: (email) => Promise<string|null>
+ *   - findUPIByPhone: (phone) => Promise<string|null>
+ *   - findUPIByNationalId: (nationalId) => Promise<string|null>
  * @returns {Promise<string>} UPI (existing or newly created)
  */
-export async function getOrCreateUPI(patientPII, upiLookup, upiCreate) {
-  // Try to match existing patient
-  const existingUPI = await matchPatientToUPI(patientPII, upiLookup);
+export async function getOrCreateUPI(patientPII, upiLookup, upiCreate, contactLookup = null) {
+  // STEP 1: Try to find existing UPI by contact info (email/phone/nationalId)
+  // This allows patients to use their email/phone without knowing their UPI
+  if (contactLookup) {
+    const { findUPIByEmail, findUPIByPhone, findUPIByNationalId } = contactLookup;
+    
+    // Try email first
+    if (patientPII.email && findUPIByEmail) {
+      const existingUPI = await findUPIByEmail(patientPII.email);
+      if (existingUPI) {
+        console.log(`✓ Found existing UPI by email: ${existingUPI}`);
+        return existingUPI;
+      }
+    }
+    
+    // Try phone
+    if (patientPII.phone && findUPIByPhone) {
+      const existingUPI = await findUPIByPhone(patientPII.phone);
+      if (existingUPI) {
+        console.log(`✓ Found existing UPI by phone: ${existingUPI}`);
+        return existingUPI;
+      }
+    }
+    
+    // Try national ID
+    if (patientPII.nationalId && findUPIByNationalId) {
+      const existingUPI = await findUPIByNationalId(patientPII.nationalId);
+      if (existingUPI) {
+        console.log(`✓ Found existing UPI by national ID: ${existingUPI}`);
+        return existingUPI;
+      }
+    }
+  }
   
+  // STEP 2: Try deterministic match (name+DOB+phone generates same UPI)
+  const existingUPI = await matchPatientToUPI(patientPII, upiLookup);
   if (existingUPI) {
+    console.log(`✓ Found existing UPI by deterministic match: ${existingUPI}`);
     return existingUPI;
   }
   
-  // Create new UPI
+  // STEP 3: Create new UPI
   const newUPI = generateUPI(patientPII);
   await upiCreate(newUPI, patientPII);
-  
+  console.log(`✓ Created new UPI: ${newUPI}`);
   return newUPI;
 }
 
