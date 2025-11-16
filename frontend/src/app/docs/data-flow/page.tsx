@@ -94,6 +94,11 @@ export default function DataFlowPage() {
               Hospitals export EHR data in FHIR R4 format. The data includes patient records,
               conditions, observations, and other medical information.
             </p>
+            <p className="mt-2 text-sm text-gray-600">
+              For <strong>bulk uploads</strong>, each patient must have a unique phone number or
+              email in the system. Phone numbers and emails are never registered twice across
+              patients, ensuring a single contact and payout channel per person.
+            </p>
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-6">
@@ -162,6 +167,11 @@ export default function DataFlowPage() {
             <p className="mt-4 text-sm text-gray-600">
               Both hashes are stored together, allowing public verification of origin and
               transformation on HashScan.
+            </p>
+            <p className="mt-2 text-sm text-gray-600">
+              When enabled, the adapter can operate in a <strong>consent-first</strong> mode: it
+              checks the ConsentManager contract on Hedera and only processes patients whose consent
+              is already valid on-chain, refusing to process records without verifiable consent.
             </p>
           </div>
 

@@ -134,9 +134,11 @@ export default function DocsOverviewPage() {
                 <td className="px-4 py-3 text-sm text-gray-600">Cross-hospital identity linking</td>
               </tr>
               <tr>
-                <td className="px-4 py-3 text-sm font-medium text-gray-900">Consent Validation</td>
+                <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                  Consent &amp; Patient Rights
+                </td>
                 <td className="px-4 py-3 text-sm text-gray-600">
-                  Enforced at the database and smart-contract levels
+                  End-to-end consent management, on-chain proofs, and patient-centric controls
                 </td>
               </tr>
               <tr>
