@@ -173,6 +173,48 @@ function validateFilters(filters) {
     validated.hospitalId = String(filters.hospitalId).trim();
   }
   
+  // Resource type filter (for multi-domain queries)
+  if (filters.resourceType) {
+    const resourceType = String(filters.resourceType).trim();
+    const validTypes = [
+      'Patient', 'Encounter', 'Condition', 'Observation', 
+      'MedicationRequest', 'MedicationAdministration', 'MedicationStatement',
+      'Procedure', 'DiagnosticReport', 'ImagingStudy', 'Specimen',
+      'AllergyIntolerance', 'Immunization', 'CarePlan', 'CareTeam',
+      'Device', 'Organization', 'Practitioner', 'Location', 'Coverage'
+    ];
+    if (validTypes.includes(resourceType)) {
+      validated.resourceType = resourceType;
+    }
+  }
+  
+  // Medication filters (Domain 5)
+  if (filters.medicationCode) {
+    validated.medicationCode = String(filters.medicationCode).trim();
+  }
+  
+  if (filters.medicationName) {
+    validated.medicationName = String(filters.medicationName).trim();
+  }
+  
+  // Procedure filters (Domain 6)
+  if (filters.procedureCode) {
+    validated.procedureCode = String(filters.procedureCode).trim();
+  }
+  
+  if (filters.procedureName) {
+    validated.procedureName = String(filters.procedureName).trim();
+  }
+  
+  // Encounter filters (Domain 2)
+  if (filters.encounterType) {
+    validated.encounterType = String(filters.encounterType).trim();
+  }
+  
+  if (filters.encounterClass) {
+    validated.encounterClass = String(filters.encounterClass).trim();
+  }
+  
   return validated;
 }
 

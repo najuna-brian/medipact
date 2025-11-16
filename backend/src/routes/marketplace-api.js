@@ -180,6 +180,34 @@ router.get('/datasets/:datasetId', async (req, res) => {
  *                 enum: [Male, Female, Other, Unknown]
  *               hospitalId:
  *                 type: string
+ *               resourceType:
+ *                 type: string
+ *                 enum: [Patient, Encounter, Condition, Observation, MedicationRequest, Procedure, ImagingStudy, AllergyIntolerance, Coverage]
+ *                 description: Filter by specific FHIR resource type (all 10 domains supported)
+ *               medicationCode:
+ *                 type: string
+ *                 example: "6809-2058"
+ *                 description: RxNorm or ATC medication code (Domain 5)
+ *               medicationName:
+ *                 type: string
+ *                 example: "Metformin"
+ *                 description: Medication name (Domain 5)
+ *               procedureCode:
+ *                 type: string
+ *                 example: "99213"
+ *                 description: CPT, SNOMED, or ICD-10-PCS procedure code (Domain 6)
+ *               procedureName:
+ *                 type: string
+ *                 example: "Office Visit"
+ *                 description: Procedure name (Domain 6)
+ *               encounterType:
+ *                 type: string
+ *                 example: "consultation"
+ *                 description: Encounter type (Domain 2)
+ *               encounterClass:
+ *                 type: string
+ *                 enum: [AMB, IMP, EMER, VR]
+ *                 description: Encounter class - AMB (ambulatory), IMP (inpatient), EMER (emergency), VR (virtual) (Domain 2)
  *               preview:
  *                 type: boolean
  *                 default: true

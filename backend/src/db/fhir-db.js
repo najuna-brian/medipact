@@ -179,43 +179,148 @@ export async function queryFHIRResources(filters) {
     paramIndex++;
   }
   
-  // Date range filter
-  if (filters.startDate) {
-    conditions.push(`(c.diagnosis_date >= ${placeholder(paramIndex)} OR o.effective_date >= ${placeholder(paramIndex)})`);
-    params.push(filters.startDate);
-    paramIndex++;
-  }
-  
-  if (filters.endDate) {
-    conditions.push(`(c.diagnosis_date <= ${placeholder(paramIndex)} OR o.effective_date <= ${placeholder(paramIndex)})`);
-    params.push(filters.endDate);
-    paramIndex++;
-  }
+  // Build dynamic joins based on filters
+  const joins = [];
+  let needsConditionJoin = false;
+  let needsObservationJoin = false;
+  let needsMedicationJoin = false;
+  let needsProcedureJoin = false;
+  let needsEncounterJoin = false;
+  let needsImagingJoin = false;
+  let needsAllergyJoin = false;
+  let needsCoverageJoin = false;
   
   // Condition filter
-  if (filters.conditionCode) {
-    conditions.push(`c.condition_code = ${placeholder(paramIndex)}`);
-    params.push(filters.conditionCode);
-    paramIndex++;
-  }
-  
-  if (filters.conditionName) {
-    conditions.push(`c.condition_name LIKE ${placeholder(paramIndex)}`);
-    params.push(`%${filters.conditionName}%`);
-    paramIndex++;
+  if (filters.conditionCode || filters.conditionName) {
+    needsConditionJoin = true;
+    if (filters.conditionCode) {
+      conditions.push(`c.condition_code = ${placeholder(paramIndex)}`);
+      params.push(filters.conditionCode);
+      paramIndex++;
+    }
+    if (filters.conditionName) {
+      conditions.push(`c.condition_name LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.conditionName}%`);
+      paramIndex++;
+    }
   }
   
   // Observation filter
-  if (filters.observationCode) {
-    conditions.push(`o.observation_code = ${placeholder(paramIndex)}`);
-    params.push(filters.observationCode);
-    paramIndex++;
+  if (filters.observationCode || filters.observationName) {
+    needsObservationJoin = true;
+    if (filters.observationCode) {
+      conditions.push(`o.observation_code = ${placeholder(paramIndex)}`);
+      params.push(filters.observationCode);
+      paramIndex++;
+    }
+    if (filters.observationName) {
+      conditions.push(`o.observation_name LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.observationName}%`);
+      paramIndex++;
+    }
   }
   
-  if (filters.observationName) {
-    conditions.push(`o.observation_name LIKE ${placeholder(paramIndex)}`);
-    params.push(`%${filters.observationName}%`);
-    paramIndex++;
+  // Medication filter (Domain 5)
+  if (filters.medicationCode || filters.medicationName) {
+    needsMedicationJoin = true;
+    if (filters.medicationCode) {
+      conditions.push(`mr.medication_code = ${placeholder(paramIndex)}`);
+      params.push(filters.medicationCode);
+      paramIndex++;
+    }
+    if (filters.medicationName) {
+      conditions.push(`mr.medication_name LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.medicationName}%`);
+      paramIndex++;
+    }
+  }
+  
+  // Procedure filter (Domain 6)
+  if (filters.procedureCode || filters.procedureName) {
+    needsProcedureJoin = true;
+    if (filters.procedureCode) {
+      conditions.push(`pr.procedure_code = ${placeholder(paramIndex)}`);
+      params.push(filters.procedureCode);
+      paramIndex++;
+    }
+    if (filters.procedureName) {
+      conditions.push(`pr.procedure_name LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.procedureName}%`);
+      paramIndex++;
+    }
+  }
+  
+  // Encounter filter (Domain 2)
+  if (filters.encounterType || filters.encounterClass) {
+    needsEncounterJoin = true;
+    if (filters.encounterType) {
+      conditions.push(`e.encounter_type LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.encounterType}%`);
+      paramIndex++;
+    }
+    if (filters.encounterClass) {
+      conditions.push(`e.encounter_class = ${placeholder(paramIndex)}`);
+      params.push(filters.encounterClass);
+      paramIndex++;
+    }
+  }
+  
+  // Resource type filter - determine which joins are needed
+  if (filters.resourceType) {
+    const resourceTypeJoins = {
+      'Encounter': () => { needsEncounterJoin = true; },
+      'MedicationRequest': () => { needsMedicationJoin = true; },
+      'Procedure': () => { needsProcedureJoin = true; },
+      'ImagingStudy': () => { needsImagingJoin = true; },
+      'AllergyIntolerance': () => { needsAllergyJoin = true; },
+      'Coverage': () => { needsCoverageJoin = true; },
+      'Condition': () => { needsConditionJoin = true; },
+      'Observation': () => { needsObservationJoin = true; }
+    };
+    if (resourceTypeJoins[filters.resourceType]) {
+      resourceTypeJoins[filters.resourceType]();
+    }
+  }
+  
+  // Date range filter - check all resource types
+  if (filters.startDate) {
+    const dateConditions = [];
+    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date >= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.effective_date >= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.authored_on >= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.performed_date >= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.period_start >= ${placeholder(paramIndex)}`);
+    
+    if (dateConditions.length > 0) {
+      conditions.push(`(${dateConditions.join(' OR ')})`);
+      // Add the same date param for each condition
+      dateConditions.forEach(() => params.push(filters.startDate));
+      paramIndex += dateConditions.length;
+    } else {
+      // If no specific joins, check patient created_at as fallback
+      conditions.push(`p.created_at >= ${placeholder(paramIndex)}`);
+      params.push(filters.startDate);
+      paramIndex++;
+    }
+  }
+  
+  if (filters.endDate) {
+    const dateConditions = [];
+    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date <= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.effective_date <= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.authored_on <= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.performed_date <= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.period_end <= ${placeholder(paramIndex)}`);
+    
+    if (dateConditions.length > 0) {
+      conditions.push(`(${dateConditions.join(' OR ')})`);
+      dateConditions.forEach(() => params.push(filters.endDate));
+      paramIndex += dateConditions.length;
+    } else {
+      conditions.push(`p.created_at <= ${placeholder(paramIndex)}`);
+      params.push(filters.endDate);
+      paramIndex++;
+    }
   }
   
   // Age range filter
@@ -252,13 +357,22 @@ export async function queryFHIRResources(filters) {
        AND (pc.expires_at IS NULL OR pc.expires_at > CURRENT_TIMESTAMP)`
     : '';
   
+  // Build dynamic joins
+  if (needsConditionJoin) joins.push('LEFT JOIN fhir_conditions c ON p.anonymous_patient_id = c.anonymous_patient_id');
+  if (needsObservationJoin) joins.push('LEFT JOIN fhir_observations o ON p.anonymous_patient_id = o.anonymous_patient_id');
+  if (needsMedicationJoin) joins.push('LEFT JOIN fhir_medication_requests mr ON p.anonymous_patient_id = mr.anonymous_patient_id');
+  if (needsProcedureJoin) joins.push('LEFT JOIN fhir_procedures pr ON p.anonymous_patient_id = pr.anonymous_patient_id');
+  if (needsEncounterJoin) joins.push('LEFT JOIN fhir_encounters e ON p.anonymous_patient_id = e.anonymous_patient_id');
+  if (needsImagingJoin) joins.push('LEFT JOIN fhir_imaging_studies img ON p.anonymous_patient_id = img.anonymous_patient_id');
+  if (needsAllergyJoin) joins.push('LEFT JOIN fhir_allergies al ON p.anonymous_patient_id = al.anonymous_patient_id');
+  if (needsCoverageJoin) joins.push('LEFT JOIN fhir_coverage cov ON p.anonymous_patient_id = cov.anonymous_patient_id');
+  
   // Query to get distinct patients matching filters
   const query = `
     SELECT DISTINCT p.*
     FROM fhir_patients p
     ${consentJoin}
-    LEFT JOIN fhir_conditions c ON p.anonymous_patient_id = c.anonymous_patient_id
-    LEFT JOIN fhir_observations o ON p.anonymous_patient_id = o.anonymous_patient_id
+    ${joins.join('\n    ')}
     ${whereClause}
     LIMIT ${filters.limit || 1000}
   `;
@@ -289,35 +403,110 @@ export async function countFHIRPatients(filters) {
     ? (idx) => `$${idx}`
     : () => '?';
   
-  // Same filter logic as queryFHIRResources
+  // Build dynamic joins based on filters (same logic as queryFHIRResources)
+  const joins = [];
+  let needsConditionJoin = false;
+  let needsObservationJoin = false;
+  let needsMedicationJoin = false;
+  let needsProcedureJoin = false;
+  let needsEncounterJoin = false;
+  
   if (filters.country) {
     conditions.push(`p.country = ${placeholder(paramIndex)}`);
     params.push(filters.country);
     paramIndex++;
   }
   
+  if (filters.conditionCode || filters.conditionName) {
+    needsConditionJoin = true;
+    if (filters.conditionCode) {
+      conditions.push(`c.condition_code = ${placeholder(paramIndex)}`);
+      params.push(filters.conditionCode);
+      paramIndex++;
+    }
+  }
+  
+  if (filters.observationCode || filters.observationName) {
+    needsObservationJoin = true;
+    if (filters.observationCode) {
+      conditions.push(`o.observation_code = ${placeholder(paramIndex)}`);
+      params.push(filters.observationCode);
+      paramIndex++;
+    }
+  }
+  
+  if (filters.medicationCode || filters.medicationName) {
+    needsMedicationJoin = true;
+    if (filters.medicationCode) {
+      conditions.push(`mr.medication_code = ${placeholder(paramIndex)}`);
+      params.push(filters.medicationCode);
+      paramIndex++;
+    }
+  }
+  
+  if (filters.procedureCode || filters.procedureName) {
+    needsProcedureJoin = true;
+    if (filters.procedureCode) {
+      conditions.push(`pr.procedure_code = ${placeholder(paramIndex)}`);
+      params.push(filters.procedureCode);
+      paramIndex++;
+    }
+  }
+  
+  if (filters.encounterType || filters.encounterClass) {
+    needsEncounterJoin = true;
+  }
+  
+  if (filters.resourceType) {
+    const resourceTypeJoins = {
+      'Encounter': () => { needsEncounterJoin = true; },
+      'MedicationRequest': () => { needsMedicationJoin = true; },
+      'Procedure': () => { needsProcedureJoin = true; },
+      'Condition': () => { needsConditionJoin = true; },
+      'Observation': () => { needsObservationJoin = true; }
+    };
+    if (resourceTypeJoins[filters.resourceType]) {
+      resourceTypeJoins[filters.resourceType]();
+    }
+  }
+  
+  // Date range filter - check all resource types
   if (filters.startDate) {
-    conditions.push(`(c.diagnosis_date >= ${placeholder(paramIndex)} OR o.effective_date >= ${placeholder(paramIndex)})`);
-    params.push(filters.startDate);
-    paramIndex++;
+    const dateConditions = [];
+    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date >= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.effective_date >= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.authored_on >= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.performed_date >= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.period_start >= ${placeholder(paramIndex)}`);
+    
+    if (dateConditions.length > 0) {
+      conditions.push(`(${dateConditions.join(' OR ')})`);
+      dateConditions.forEach(() => params.push(filters.startDate));
+      paramIndex += dateConditions.length;
+    } else {
+      conditions.push(`p.created_at >= ${placeholder(paramIndex)}`);
+      params.push(filters.startDate);
+      paramIndex++;
+    }
   }
   
   if (filters.endDate) {
-    conditions.push(`(c.diagnosis_date <= ${placeholder(paramIndex)} OR o.effective_date <= ${placeholder(paramIndex)})`);
-    params.push(filters.endDate);
-    paramIndex++;
-  }
-  
-  if (filters.conditionCode) {
-    conditions.push(`c.condition_code = ${placeholder(paramIndex)}`);
-    params.push(filters.conditionCode);
-    paramIndex++;
-  }
-  
-  if (filters.observationCode) {
-    conditions.push(`o.observation_code = ${placeholder(paramIndex)}`);
-    params.push(filters.observationCode);
-    paramIndex++;
+    const dateConditions = [];
+    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date <= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.effective_date <= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.authored_on <= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.performed_date <= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.period_end <= ${placeholder(paramIndex)}`);
+    
+    if (dateConditions.length > 0) {
+      conditions.push(`(${dateConditions.join(' OR ')})`);
+      dateConditions.forEach(() => params.push(filters.endDate));
+      paramIndex += dateConditions.length;
+    } else {
+      conditions.push(`p.created_at <= ${placeholder(paramIndex)}`);
+      params.push(filters.endDate);
+      paramIndex++;
+    }
   }
   
   if (filters.hospitalId) {
@@ -335,12 +524,18 @@ export async function countFHIRPatients(filters) {
        AND (pc.expires_at IS NULL OR pc.expires_at > CURRENT_TIMESTAMP)`
     : '';
   
+  // Build dynamic joins
+  if (needsConditionJoin) joins.push('LEFT JOIN fhir_conditions c ON p.anonymous_patient_id = c.anonymous_patient_id');
+  if (needsObservationJoin) joins.push('LEFT JOIN fhir_observations o ON p.anonymous_patient_id = o.anonymous_patient_id');
+  if (needsMedicationJoin) joins.push('LEFT JOIN fhir_medication_requests mr ON p.anonymous_patient_id = mr.anonymous_patient_id');
+  if (needsProcedureJoin) joins.push('LEFT JOIN fhir_procedures pr ON p.anonymous_patient_id = pr.anonymous_patient_id');
+  if (needsEncounterJoin) joins.push('LEFT JOIN fhir_encounters e ON p.anonymous_patient_id = e.anonymous_patient_id');
+  
   const query = `
     SELECT COUNT(DISTINCT p.anonymous_patient_id) as count
     FROM fhir_patients p
     ${consentJoin}
-    LEFT JOIN fhir_conditions c ON p.anonymous_patient_id = c.anonymous_patient_id
-    LEFT JOIN fhir_observations o ON p.anonymous_patient_id = o.anonymous_patient_id
+    ${joins.join('\n    ')}
     ${whereClause}
   `;
   
@@ -385,45 +580,105 @@ export async function getPatientsWithHospitals(filters = {}) {
     paramIndex++;
   }
   
-  if (filters.startDate) {
-    conditions.push(`(c.diagnosis_date >= ${placeholder(paramIndex)} OR o.effective_date >= ${placeholder(paramIndex)})`);
-    params.push(filters.startDate);
-    paramIndex++;
+  // Build dynamic joins
+  const joins = [];
+  let needsConditionJoin = false;
+  let needsObservationJoin = false;
+  let needsMedicationJoin = false;
+  let needsProcedureJoin = false;
+  let needsEncounterJoin = false;
+  
+  if (filters.conditionCode || filters.conditionName) {
+    needsConditionJoin = true;
+    if (filters.conditionCode) {
+      conditions.push(`c.condition_code = ${placeholder(paramIndex)}`);
+      params.push(filters.conditionCode);
+      paramIndex++;
+    }
   }
   
-  if (filters.endDate) {
-    conditions.push(`(c.diagnosis_date <= ${placeholder(paramIndex)} OR o.effective_date <= ${placeholder(paramIndex)})`);
-    params.push(filters.endDate);
-    paramIndex++;
+  if (filters.observationCode || filters.observationName) {
+    needsObservationJoin = true;
+    if (filters.observationCode) {
+      conditions.push(`o.observation_code = ${placeholder(paramIndex)}`);
+      params.push(filters.observationCode);
+      paramIndex++;
+    }
   }
   
-  if (filters.conditionCode) {
-    conditions.push(`c.condition_code = ${placeholder(paramIndex)}`);
-    params.push(filters.conditionCode);
-    paramIndex++;
+  if (filters.medicationCode || filters.medicationName) {
+    needsMedicationJoin = true;
   }
   
-  if (filters.observationCode) {
-    conditions.push(`o.observation_code = ${placeholder(paramIndex)}`);
-    params.push(filters.observationCode);
-    paramIndex++;
+  if (filters.procedureCode || filters.procedureName) {
+    needsProcedureJoin = true;
+  }
+  
+  if (filters.encounterType || filters.encounterClass) {
+    needsEncounterJoin = true;
   }
   
   // Handle conditionCodes array (from dataset metadata)
   if (filters.conditionCodes && Array.isArray(filters.conditionCodes) && filters.conditionCodes.length > 0) {
+    needsConditionJoin = true;
     const placeholders = filters.conditionCodes.map(() => placeholder(paramIndex++)).join(', ');
     conditions.push(`c.condition_code IN (${placeholders})`);
     params.push(...filters.conditionCodes);
   }
   
+  // Date range filter - check all resource types
+  if (filters.startDate) {
+    const dateConditions = [];
+    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date >= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.effective_date >= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.authored_on >= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.performed_date >= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.period_start >= ${placeholder(paramIndex)}`);
+    
+    if (dateConditions.length > 0) {
+      conditions.push(`(${dateConditions.join(' OR ')})`);
+      dateConditions.forEach(() => params.push(filters.startDate));
+      paramIndex += dateConditions.length;
+    } else {
+      conditions.push(`p.created_at >= ${placeholder(paramIndex)}`);
+      params.push(filters.startDate);
+      paramIndex++;
+    }
+  }
+  
+  if (filters.endDate) {
+    const dateConditions = [];
+    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date <= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.effective_date <= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.authored_on <= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.performed_date <= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.period_end <= ${placeholder(paramIndex)}`);
+    
+    if (dateConditions.length > 0) {
+      conditions.push(`(${dateConditions.join(' OR ')})`);
+      dateConditions.forEach(() => params.push(filters.endDate));
+      paramIndex += dateConditions.length;
+    } else {
+      conditions.push(`p.created_at <= ${placeholder(paramIndex)}`);
+      params.push(filters.endDate);
+      paramIndex++;
+    }
+  }
+  
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+  
+  // Build dynamic joins
+  if (needsConditionJoin) joins.push('LEFT JOIN fhir_conditions c ON p.anonymous_patient_id = c.anonymous_patient_id');
+  if (needsObservationJoin) joins.push('LEFT JOIN fhir_observations o ON p.anonymous_patient_id = o.anonymous_patient_id');
+  if (needsMedicationJoin) joins.push('LEFT JOIN fhir_medication_requests mr ON p.anonymous_patient_id = mr.anonymous_patient_id');
+  if (needsProcedureJoin) joins.push('LEFT JOIN fhir_procedures pr ON p.anonymous_patient_id = pr.anonymous_patient_id');
+  if (needsEncounterJoin) joins.push('LEFT JOIN fhir_encounters e ON p.anonymous_patient_id = e.anonymous_patient_id');
   
   // Get distinct patients with their hospital IDs
   const query = `
     SELECT DISTINCT p.upi, p.hospital_id as hospitalId
     FROM fhir_patients p
-    LEFT JOIN fhir_conditions c ON p.anonymous_patient_id = c.anonymous_patient_id
-    LEFT JOIN fhir_observations o ON p.anonymous_patient_id = o.anonymous_patient_id
+    ${joins.join('\n    ')}
     ${whereClause}
   `;
   
