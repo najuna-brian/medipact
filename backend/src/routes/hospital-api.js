@@ -476,26 +476,81 @@ router.post('/upload-csv', authenticateHospital, upload.single('file'), async (r
     }
 
     // Parse adapter output to extract results
-    // Adapter outputs "✓ Consent Topic: 0.0.xxxxx" or "Consent Topic: 0.0.xxxxx"
-    const consentTopicMatch = stdout.match(/[✓]?\s*Consent Topic: (0\.0\.\d+)/);
-    const dataTopicMatch = stdout.match(/[✓]?\s*Data Topic: (0\.0\.\d+)/);
-    // Match actual adapter output format (with optional "  - " prefix from summary)
-    const recordsMatch = stdout.match(/\s*-\s*FHIR resources processed: (\d+)/) || 
-                         stdout.match(/FHIR resources processed: (\d+)/) ||
-                         stdout.match(/\s*-\s*CSV records read: (\d+)/) ||
-                         stdout.match(/CSV records read: (\d+)/);
-    const consentProofsMatch = stdout.match(/\s*-\s*Consent proofs: (\d+)/) ||
-                               stdout.match(/Consent proofs: (\d+)/);
-    const dataProofsMatch = stdout.match(/\s*-\s*Provenance proofs \(double anonymization\): (\d+)/) ||
-                            stdout.match(/Provenance proofs \(double anonymization\): (\d+)/) ||
-                            stdout.match(/\s*-\s*Provenance proofs: (\d+)/) ||
-                            stdout.match(/Provenance proofs: (\d+)/);
+    // Try multiple patterns to catch different output formats
+    const consentTopicMatch = stdout.match(/[✓]?\s*Consent Topic: (0\.0\.\d+)/) ||
+                              stdout.match(/Consent Topic:\s*(0\.0\.\d+)/);
+    const dataTopicMatch = stdout.match(/[✓]?\s*Data Topic: (0\.0\.\d+)/) ||
+                           stdout.match(/Data Topic:\s*(0\.0\.\d+)/);
+    
+    // Try multiple patterns for records (with different spacing/formatting)
+    const recordsMatch = stdout.match(/[-\s]*FHIR resources processed:\s*(\d+)/i) || 
+                         stdout.match(/[-\s]*CSV records read:\s*(\d+)/i) ||
+                         stdout.match(/FHIR resources processed:\s*(\d+)/i) ||
+                         stdout.match(/CSV records read:\s*(\d+)/i) ||
+                         stdout.match(/resources processed:\s*(\d+)/i);
+    
+    const consentProofsMatch = stdout.match(/[-\s]*Consent proofs:\s*(\d+)/i) ||
+                               stdout.match(/Consent proofs:\s*(\d+)/i);
+    
+    const dataProofsMatch = stdout.match(/[-\s]*Provenance proofs \(double anonymization\):\s*(\d+)/i) ||
+                            stdout.match(/Provenance proofs \(double anonymization\):\s*(\d+)/i) ||
+                            stdout.match(/[-\s]*Provenance proofs:\s*(\d+)/i) ||
+                            stdout.match(/Provenance proofs:\s*(\d+)/i) ||
+                            stdout.match(/[-\s]*Data proofs:\s*(\d+)/i) ||
+                            stdout.match(/Data proofs:\s*(\d+)/i);
 
-    const recordsProcessed = recordsMatch ? parseInt(recordsMatch[1], 10) : 0;
-    const consentProofs = consentProofsMatch ? parseInt(consentProofsMatch[1], 10) : 0;
-    const dataProofs = dataProofsMatch ? parseInt(dataProofsMatch[1], 10) : 0;
+    let recordsProcessed = recordsMatch ? parseInt(recordsMatch[1], 10) : 0;
+    let consentProofs = consentProofsMatch ? parseInt(consentProofsMatch[1], 10) : 0;
+    let dataProofs = dataProofsMatch ? parseInt(dataProofsMatch[1], 10) : 0;
     const consentTopicId = consentTopicMatch ? consentTopicMatch[1] : null;
     const dataTopicId = dataTopicMatch ? dataTopicMatch[1] : null;
+
+    // Fallback: Count records directly from database if parsing failed
+    if (recordsProcessed === 0) {
+      try {
+        const { all, getDatabaseType } = await import('../db/database.js');
+        const dbType = getDatabaseType();
+        const db = getDatabase();
+        
+        // Count all FHIR resources for this hospital
+        const countQueries = [];
+        const tables = ['fhir_patients', 'fhir_conditions', 'fhir_observations', 
+                       'fhir_encounters', 'fhir_medication_requests', 'fhir_procedures',
+                       'fhir_imaging_studies', 'fhir_allergies', 'fhir_coverage'];
+        
+        for (const table of tables) {
+          try {
+            if (dbType === 'postgresql') {
+              const result = await db.query(
+                `SELECT COUNT(*) as count FROM ${table} WHERE hospital_id = $1`,
+                [hospitalId]
+              );
+              if (result.rows && result.rows[0]) {
+                recordsProcessed += parseInt(result.rows[0].count || 0);
+              }
+            } else {
+              const { get } = await import('../db/database.js');
+              const result = await get(
+                `SELECT COUNT(*) as count FROM ${table} WHERE hospital_id = ?`,
+                [hospitalId]
+              );
+              recordsProcessed += parseInt(result?.count || 0);
+            }
+          } catch (error) {
+            // Table might not exist, skip it
+            if (!error.message.includes('does not exist') && !error.message.includes('no such table')) {
+              console.warn(`[CSV Upload] Error counting ${table}:`, error.message);
+            }
+          }
+        }
+        
+        if (recordsProcessed > 0) {
+          console.log(`[CSV Upload] Fallback: Counted ${recordsProcessed} records from database`);
+        }
+      } catch (error) {
+        console.warn('[CSV Upload] Fallback count failed:', error.message);
+      }
+    }
 
     // Debug: Log what we extracted
     console.log('[CSV Upload] Parsed results:', {
@@ -504,7 +559,8 @@ router.post('/upload-csv', authenticateHospital, upload.single('file'), async (r
       dataProofs,
       consentTopicId,
       dataTopicId,
-      stdoutPreview: stdout.substring(0, 1000) // First 1000 chars for debugging
+      stdoutLength: stdout.length,
+      stdoutPreview: stdout.substring(0, 2000) // First 2000 chars for debugging
     });
 
     // Calculate revenue split
