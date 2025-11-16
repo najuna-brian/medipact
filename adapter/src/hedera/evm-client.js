@@ -1,6 +1,6 @@
 /**
  * Hedera EVM Client
- *
+*
  * Handles smart contract interactions on Hedera EVM:
  * - ConsentManager contract for managing patient consent proofs
  * - RevenueSplitter contract for executing payouts

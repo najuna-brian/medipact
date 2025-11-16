@@ -5,6 +5,12 @@
  */
 
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs/promises';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { registerHospital, getHospital, updateHospital } from '../services/hospital-registry-service.js';
 import { verifyHospital } from '../services/hospital-registry-service.js';
@@ -13,6 +19,23 @@ import { submitVerificationDocuments, getVerificationStatus, isHospitalVerified 
 import { getConsentStatistics } from '../db/consent-db.js';
 
 const router = express.Router();
+const execAsync = promisify(exec);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'), false);
+    }
+  }
+});
 
 // Middleware for hospital authentication
 async function authenticateHospital(req, res, next) {
@@ -310,6 +333,145 @@ router.get('/:hospitalId/consent/statistics', authenticateHospital, async (req, 
   } catch (error) {
     console.error('Error fetching consent statistics:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/hospital/upload-csv
+ * Upload and process CSV file using the adapter
+ */
+router.post('/upload-csv', authenticateHospital, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+
+    const hospitalId = req.hospitalId;
+    const hospitalCountry = req.body.hospitalCountry;
+    const hospitalLocation = req.body.hospitalLocation || null;
+    const apiKey = req.headers['x-api-key'] || req.headers['X-API-Key'];
+
+    if (!hospitalCountry) {
+      return res.status(400).json({ error: 'Hospital country is required' });
+    }
+
+    // Get adapter directory (assumes adapter is at ../adapter from backend/)
+    // __dirname is backend/src/routes, so go up 3 levels to get to project root
+    const projectRoot = path.resolve(__dirname, '../../..');
+    const adapterDir = path.join(projectRoot, 'adapter');
+    const adapterDataDir = path.join(adapterDir, 'data');
+    const adapterScript = path.join(adapterDir, 'src', 'index.js');
+    const inputFile = path.join(adapterDataDir, 'raw_data.csv');
+
+    // Ensure adapter data directory exists
+    await fs.mkdir(adapterDataDir, { recursive: true });
+
+    // Save uploaded file to adapter's data directory
+    await fs.writeFile(inputFile, req.file.buffer);
+
+    // Prepare environment variables for adapter
+    const env = {
+      ...process.env,
+      OPERATOR_ID: process.env.OPERATOR_ID,
+      OPERATOR_KEY: process.env.OPERATOR_KEY,
+      HEDERA_NETWORK: process.env.HEDERA_NETWORK || 'testnet',
+      CONSENT_MANAGER_ADDRESS: process.env.CONSENT_MANAGER_ADDRESS,
+      REVENUE_SPLITTER_ADDRESS: process.env.REVENUE_SPLITTER_ADDRESS,
+      LOCAL_CURRENCY_CODE: process.env.LOCAL_CURRENCY_CODE,
+      USD_TO_LOCAL_RATE: process.env.USD_TO_LOCAL_RATE,
+      HOSPITAL_COUNTRY: hospitalCountry,
+      HOSPITAL_LOCATION: hospitalLocation,
+      HOSPITAL_ID: hospitalId,
+      HOSPITAL_API_KEY: apiKey,
+      BACKEND_API_URL: process.env.FRONTEND_URL || process.env.BACKEND_API_URL || 'http://localhost:3002',
+    };
+
+    // Execute adapter script
+    let stdout = '';
+    let stderr = '';
+    try {
+      const result = await execAsync(
+        `cd "${adapterDir}" && node "${adapterScript}"`,
+        {
+          maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+          env,
+        }
+      );
+      stdout = result.stdout || '';
+      stderr = result.stderr || '';
+    } catch (error) {
+      stdout = error.stdout || '';
+      stderr = error.stderr || '';
+      console.error('Adapter execution error:', error.message);
+      console.error('Adapter stdout:', stdout);
+      console.error('Adapter stderr:', stderr);
+      
+      // Clean up file
+      await fs.unlink(inputFile).catch(() => {});
+      
+      return res.status(500).json({
+        error: 'Adapter execution failed',
+        details: stderr || stdout || error.message,
+      });
+    }
+
+    // Parse adapter output to extract results
+    const consentTopicMatch = stdout.match(/Consent Topic: (0\.0\.\d+)/);
+    const dataTopicMatch = stdout.match(/Data Topic: (0\.0\.\d+)/);
+    const recordsMatch = stdout.match(/Records processed: (\d+)/);
+    const consentProofsMatch = stdout.match(/Consent proofs: (\d+)/);
+    const dataProofsMatch = stdout.match(/Data proofs: (\d+)/);
+
+    const recordsProcessed = recordsMatch ? parseInt(recordsMatch[1], 10) : 0;
+    const consentProofs = consentProofsMatch ? parseInt(consentProofsMatch[1], 10) : 0;
+    const dataProofs = dataProofsMatch ? parseInt(dataProofsMatch[1], 10) : 0;
+    const consentTopicId = consentTopicMatch ? consentTopicMatch[1] : null;
+    const dataTopicId = dataTopicMatch ? dataTopicMatch[1] : null;
+
+    // Calculate revenue split
+    const hbarPerRecord = 0.01;
+    const totalHbar = recordsProcessed * hbarPerRecord;
+    const hbarToUsdRate = 0.05;
+    const totalUsd = totalHbar * hbarToUsdRate;
+    
+    const revenue = {
+      totalHbar,
+      totalUsd,
+      patient: {
+        hbar: totalHbar * 0.6,
+        usd: totalUsd * 0.6,
+        percentage: 60,
+      },
+      hospital: {
+        hbar: totalHbar * 0.25,
+        usd: totalUsd * 0.25,
+        percentage: 25,
+      },
+      medipact: {
+        hbar: totalHbar * 0.15,
+        usd: totalUsd * 0.15,
+        percentage: 15,
+      },
+    };
+
+    // Clean up input file
+    await fs.unlink(inputFile).catch(() => {});
+
+    res.json({
+      recordsProcessed,
+      consentProofs,
+      dataProofs,
+      consentTopicId,
+      dataTopicId,
+      transactions: [], // Adapter output parsing can be enhanced to extract transaction IDs
+      revenue,
+    });
+  } catch (error) {
+    console.error('Error processing CSV upload:', error);
+    res.status(500).json({
+      error: 'Processing failed',
+      details: error.message,
+    });
   }
 });
 

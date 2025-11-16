@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
-import fs from 'fs/promises';
-import { processFile } from '@/lib/adapter/processor';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,88 +23,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save uploaded file temporarily
-    // Resolve adapter path: from frontend/, adapter is at ../adapter (one level up)
-    const adapterPath = process.env.ADAPTER_PATH 
-      ? path.resolve(process.env.ADAPTER_PATH)
-      : path.resolve(path.dirname(process.cwd()), 'adapter');
-    const dataDir = path.join(adapterPath, 'data');
-    const tempFilePath = path.join(dataDir, 'uploaded_data.csv');
-
-    // Ensure data directory exists
-    await fs.mkdir(dataDir, { recursive: true });
-
-    // Write file
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await fs.writeFile(tempFilePath, buffer);
+    // Forward the request to the backend API
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+    
+    // Create a new FormData to forward to backend
+    const backendFormData = new FormData();
+    backendFormData.append('file', file);
+    if (hospitalId) backendFormData.append('hospitalId', hospitalId);
+    if (hospitalCountry) backendFormData.append('hospitalCountry', hospitalCountry);
+    if (hospitalLocation) backendFormData.append('hospitalLocation', hospitalLocation);
+    if (apiKey) backendFormData.append('apiKey', apiKey);
 
     try {
-      // Process the file using the adapter
-      const result = await processFile(tempFilePath, adapterPath, {
-        hospitalId,
-        hospitalCountry,
-        hospitalLocation,
-        apiKey,
+      const response = await fetch(`${backendUrl}/api/hospital/upload-csv`, {
+        method: 'POST',
+        body: backendFormData,
+        headers: {
+          // Forward authentication headers if needed
+          ...(apiKey && { 'X-API-Key': apiKey }),
+          ...(hospitalId && { 'X-Hospital-ID': hospitalId }),
+        },
       });
 
-      if (!result.success) {
-        await fs.unlink(tempFilePath).catch(() => {});
+      const data = await response.json();
+
+      if (!response.ok) {
         return NextResponse.json(
           { 
-            error: result.error || 'Processing failed',
-            details: result.details 
+            error: data.error || 'Processing failed',
+            details: data.details || data.message
           },
-          { status: 500 }
+          { status: response.status }
         );
       }
 
-      // Calculate revenue split (matching adapter logic)
-      const hbarPerRecord = 0.01;
-      const totalHbar = (result.recordsProcessed || 0) * hbarPerRecord;
-      const hbarToUsdRate = 0.05;
-      const totalUsd = totalHbar * hbarToUsdRate;
-      
-      const revenue = {
-        totalHbar,
-        totalUsd,
-        patient: {
-          hbar: totalHbar * 0.6,
-          usd: totalUsd * 0.6,
-          percentage: 60,
-        },
-        hospital: {
-          hbar: totalHbar * 0.25,
-          usd: totalUsd * 0.25,
-          percentage: 25,
-        },
-        medipact: {
-          hbar: totalHbar * 0.15,
-          usd: totalUsd * 0.15,
-          percentage: 15,
-        },
-      };
-
-      // Clean up temp file
-      await fs.unlink(tempFilePath).catch(() => {});
-
-      return NextResponse.json({
-        recordsProcessed: result.recordsProcessed || 0,
-        consentProofs: result.consentProofs || 0,
-        dataProofs: result.dataProofs || 0,
-        consentTopicId: result.consentTopicId,
-        dataTopicId: result.dataTopicId,
-        transactions: result.transactions || [],
-        revenue,
-      });
+      return NextResponse.json(data);
     } catch (error: any) {
-      // Clean up temp file on error
-      await fs.unlink(tempFilePath).catch(() => {});
-      
-      console.error('Processing error:', error);
+      console.error('Backend forwarding error:', error);
       return NextResponse.json(
         {
-          error: 'Processing failed',
+          error: 'Failed to connect to backend',
           details: error.message,
         },
         { status: 500 }
