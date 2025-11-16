@@ -727,19 +727,15 @@ router.post('/migrate/fhir', async (req, res) => {
     if (dbType === 'postgresql') {
       // PostgreSQL migration - parse the schema string
       // Split schema into individual CREATE TABLE statements
-      // Use regex to find complete CREATE TABLE statements (up to closing );)
+      // Match CREATE TABLE statements from start to closing );
       const tableStatements = [];
-      const tableRegex = /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)[\s\S]*?\);?/gi;
-      let match;
       
-      while ((match = tableRegex.exec(completeSchema)) !== null) {
+      // Find all CREATE TABLE statements by matching from CREATE TABLE to the closing );
+      const tableMatches = completeSchema.matchAll(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)[\s\S]*?\);/gi);
+      
+      for (const match of tableMatches) {
         let statement = match[0].trim();
         const tableName = match[1];
-        
-        // Ensure statement ends with semicolon
-        if (!statement.endsWith(';')) {
-          statement += ';';
-        }
         
         // Ensure IF NOT EXISTS is present
         if (!statement.includes('IF NOT EXISTS')) {
