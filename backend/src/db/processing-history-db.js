@@ -4,7 +4,7 @@
  * CRUD operations for processing history (CSV uploads).
  */
 
-import { run, get, all } from './database.js';
+import { run, get, all, getDatabase } from './database.js';
 import { getDatabaseType } from './database.js';
 
 /**
@@ -27,7 +27,9 @@ export async function createProcessingHistory(historyData) {
   const processedAt = status === 'completed' ? now : null;
 
   if (dbType === 'postgresql') {
-    const result = await run(
+    // Use db.query() directly to get RETURNING value (run() doesn't return rows)
+    const db = getDatabase();
+    const result = await db.query(
       `INSERT INTO processing_history (
         hospital_id, file_name, records_processed, consent_proofs, data_proofs,
         consent_topic_id, data_topic_id, status, processed_at, created_at
