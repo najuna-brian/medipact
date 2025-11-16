@@ -50,6 +50,16 @@ export interface QueryFilters {
   ageRange?: string;
   gender?: 'Male' | 'Female' | 'Other' | 'Unknown';
   hospitalId?: string;
+  // Multi-domain filters (all 10 FHIR domains)
+  resourceType?: 'Patient' | 'Encounter' | 'Condition' | 'Observation' | 
+                  'MedicationRequest' | 'Procedure' | 'ImagingStudy' | 
+                  'AllergyIntolerance' | 'Coverage';
+  medicationCode?: string;
+  medicationName?: string;
+  procedureCode?: string;
+  procedureName?: string;
+  encounterType?: string;
+  encounterClass?: 'AMB' | 'IMP' | 'EMER' | 'VR';
   preview?: boolean;
   limit?: number;
 }

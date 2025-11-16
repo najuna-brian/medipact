@@ -4,16 +4,32 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Database, Search, Filter, Loader2 } from 'lucide-react';
 import { DatasetCard } from '@/components/DatasetCard/DatasetCard';
-import { useDatasets } from '@/hooks/useDatasets';
-import { useState } from 'react';
+import { useDatasets, useQueryData } from '@/hooks/useDatasets';
+import { QueryBuilder } from '@/components/QueryBuilder/QueryBuilder';
+import { QueryFilters } from '@/lib/api/marketplace';
+import { useState, useEffect } from 'react';
 
 export default function ResearcherCatalogPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [countryFilter, setCountryFilter] = useState<string | undefined>();
+  const [queryFilters, setQueryFilters] = useState<QueryFilters | null>(null);
+  const [researcherId, setResearcherId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get researcher ID from sessionStorage
+    const id = sessionStorage.getItem('researcherId');
+    setResearcherId(id);
+  }, []);
 
   const { data, isLoading, error } = useDatasets({
     country: countryFilter,
   });
+
+  const { data: queryResult, isLoading: queryLoading } = useQueryData(
+    queryFilters || {},
+    researcherId,
+    !!queryFilters && !!researcherId
+  );
 
   // Filter datasets by search query
   const filteredDatasets = data?.datasets?.filter((dataset) => {
@@ -34,8 +50,8 @@ export default function ResearcherCatalogPage() {
           <p className="text-muted-foreground">Browse anonymized medical datasets for research</p>
         </div>
 
-        <div className="mb-6 flex gap-4">
-          <div className="relative flex-1">
+        <div className="mb-6">
+          <div className="relative mb-4 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
             <input
               type="text"
@@ -45,11 +61,32 @@ export default function ResearcherCatalogPage() {
               className="w-full rounded-lg border py-2 pl-10 pr-4"
             />
           </div>
-          <Button variant="outline" onClick={() => setCountryFilter(undefined)}>
-            <Filter className="mr-2 h-4 w-4" />
-            Filters
-          </Button>
+
+          <QueryBuilder
+            onQuery={(filters) => {
+              setQueryFilters(filters);
+            }}
+            onReset={() => {
+              setQueryFilters(null);
+            }}
+          />
         </div>
+
+        {queryResult && (
+          <Card className="mb-6">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Query Results</p>
+                  <p className="text-2xl font-bold">{queryResult.count} records found</p>
+                </div>
+                {queryResult.preview && (
+                  <p className="text-sm text-muted-foreground">Preview mode</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {isLoading && (
           <div className="flex items-center justify-center py-12">
