@@ -14,7 +14,7 @@ import { verifyAdminToken, extractTokenFromHeader } from '../services/admin-auth
 import { completeWithdrawal, retryFailedWithdrawals } from '../services/withdrawal-service.js';
 import { getPendingWithdrawals, getWithdrawalHistoryForUser } from '../db/withdrawal-db.js';
 import { triggerWithdrawalJob } from '../services/automatic-withdrawal-job.js';
-import { all } from '../db/database.js';
+import { all, run } from '../db/database.js';
 import { initDatabase, getDatabase, getDatabaseType } from '../db/database.js';
 import fs from 'fs';
 import path from 'path';
@@ -914,6 +914,310 @@ router.post('/migrate/fhir', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'Migration failed',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+/**
+ * POST /api/admin/cleanup/duplicates
+ * Clean up duplicate patient contacts (merge by keeping latest entry)
+ */
+router.post('/cleanup/duplicates', authenticateAdmin, async (req, res) => {
+  try {
+    const dbType = getDatabaseType();
+    const db = getDatabase();
+    
+    console.log('[ADMIN API] Starting duplicate contact cleanup...');
+    
+    const results = {
+      duplicateEmails: [],
+      duplicatePhones: [],
+      duplicateNationalIds: [],
+      merged: [],
+      errors: []
+    };
+    
+    if (dbType === 'postgresql') {
+      // Find duplicate emails
+      const duplicateEmails = await all(`
+        SELECT email, array_agg(upi) as upis, array_agg(id) as ids, 
+               array_agg(updated_at) as updated_ats
+        FROM patient_contacts
+        WHERE email IS NOT NULL
+        GROUP BY email
+        HAVING COUNT(*) > 1
+      `);
+      
+      // Find duplicate phones
+      const duplicatePhones = await all(`
+        SELECT phone, array_agg(upi) as upis, array_agg(id) as ids,
+               array_agg(updated_at) as updated_ats
+        FROM patient_contacts
+        WHERE phone IS NOT NULL
+        GROUP BY phone
+        HAVING COUNT(*) > 1
+      `);
+      
+      // Find duplicate national IDs
+      const duplicateNationalIds = await all(`
+        SELECT national_id, array_agg(upi) as upis, array_agg(id) as ids,
+               array_agg(updated_at) as updated_ats
+        FROM patient_contacts
+        WHERE national_id IS NOT NULL
+        GROUP BY national_id
+        HAVING COUNT(*) > 1
+      `);
+      
+      results.duplicateEmails = (duplicateEmails.rows || duplicateEmails || []);
+      results.duplicatePhones = (duplicatePhones.rows || duplicatePhones || []);
+      results.duplicateNationalIds = (duplicateNationalIds.rows || duplicateNationalIds || []);
+      
+      // Merge duplicates: keep the one with the latest updated_at, delete others
+      for (const dup of results.duplicateEmails) {
+        try {
+          // PostgreSQL array_agg returns arrays, handle both array and single value
+          const upis = Array.isArray(dup.upis) ? dup.upis : (dup.upis ? [dup.upis] : []);
+          const updatedAts = Array.isArray(dup.updated_ats) ? dup.updated_ats : (dup.updated_ats ? [dup.updated_ats] : []);
+          
+          if (upis.length <= 1) continue; // No duplicates
+          
+          // Find the index of the latest entry
+          const latestIndex = updatedAts.reduce((maxIdx, date, idx) => {
+            return new Date(date) > new Date(updatedAts[maxIdx]) ? idx : maxIdx;
+          }, 0);
+          
+          const keepUPI = upis[latestIndex];
+          const deleteUPIs = upis.filter((_, idx) => idx !== latestIndex);
+          
+          // Update all references to use the kept UPI
+          for (const deleteUPI of deleteUPIs) {
+            // Update hospital_linkages
+            await db.query(`
+              UPDATE hospital_linkages SET upi = $1 WHERE upi = $2
+            `, [keepUPI, deleteUPI]);
+            
+            // Update patient_consents
+            await db.query(`
+              UPDATE patient_consents SET upi = $1 WHERE upi = $2
+            `, [keepUPI, deleteUPI]);
+            
+            // Delete duplicate contact
+            await db.query(`
+              DELETE FROM patient_contacts WHERE upi = $1
+            `, [deleteUPI]);
+            
+            results.merged.push({ type: 'email', kept: keepUPI, deleted: deleteUPI });
+          }
+        } catch (error) {
+          results.errors.push({ type: 'email', error: error.message, data: dup });
+        }
+      }
+      
+      // Similar for phones and national IDs
+      for (const dup of results.duplicatePhones) {
+        try {
+          const upis = Array.isArray(dup.upis) ? dup.upis : (dup.upis ? [dup.upis] : []);
+          const updatedAts = Array.isArray(dup.updated_ats) ? dup.updated_ats : (dup.updated_ats ? [dup.updated_ats] : []);
+          
+          if (upis.length <= 1) continue; // No duplicates
+          
+          const latestIndex = updatedAts.reduce((maxIdx, date, idx) => {
+            return new Date(date) > new Date(updatedAts[maxIdx]) ? idx : maxIdx;
+          }, 0);
+          
+          const keepUPI = upis[latestIndex];
+          const deleteUPIs = upis.filter((_, idx) => idx !== latestIndex);
+          
+          for (const deleteUPI of deleteUPIs) {
+            await db.query(`UPDATE hospital_linkages SET upi = $1 WHERE upi = $2`, [keepUPI, deleteUPI]);
+            await db.query(`UPDATE patient_consents SET upi = $1 WHERE upi = $2`, [keepUPI, deleteUPI]);
+            await db.query(`DELETE FROM patient_contacts WHERE upi = $1`, [deleteUPI]);
+            results.merged.push({ type: 'phone', kept: keepUPI, deleted: deleteUPI });
+          }
+        } catch (error) {
+          results.errors.push({ type: 'phone', error: error.message, data: dup });
+        }
+      }
+      
+      for (const dup of results.duplicateNationalIds) {
+        try {
+          const upis = Array.isArray(dup.upis) ? dup.upis : (dup.upis ? [dup.upis] : []);
+          const updatedAts = Array.isArray(dup.updated_ats) ? dup.updated_ats : (dup.updated_ats ? [dup.updated_ats] : []);
+          
+          if (upis.length <= 1) continue; // No duplicates
+          
+          const latestIndex = updatedAts.reduce((maxIdx, date, idx) => {
+            return new Date(date) > new Date(updatedAts[maxIdx]) ? idx : maxIdx;
+          }, 0);
+          
+          const keepUPI = upis[latestIndex];
+          const deleteUPIs = upis.filter((_, idx) => idx !== latestIndex);
+          
+          for (const deleteUPI of deleteUPIs) {
+            await db.query(`UPDATE hospital_linkages SET upi = $1 WHERE upi = $2`, [keepUPI, deleteUPI]);
+            await db.query(`UPDATE patient_consents SET upi = $1 WHERE upi = $2`, [keepUPI, deleteUPI]);
+            await db.query(`DELETE FROM patient_contacts WHERE upi = $1`, [deleteUPI]);
+            results.merged.push({ type: 'nationalId', kept: keepUPI, deleted: deleteUPI });
+          }
+        } catch (error) {
+          results.errors.push({ type: 'nationalId', error: error.message, data: dup });
+        }
+      }
+    } else {
+      // SQLite version (similar logic)
+      const duplicateEmails = await all(`
+        SELECT email, GROUP_CONCAT(upi) as upis, GROUP_CONCAT(id) as ids,
+               GROUP_CONCAT(updated_at) as updated_ats
+        FROM patient_contacts
+        WHERE email IS NOT NULL
+        GROUP BY email
+        HAVING COUNT(*) > 1
+      `);
+      
+      // Process similar to PostgreSQL...
+      results.duplicateEmails = duplicateEmails || [];
+    }
+    
+    // After cleanup, try to create unique indexes
+    try {
+      if (dbType === 'postgresql') {
+        // Check if index exists
+        const emailIndexCheck = await db.query(`
+          SELECT 1 FROM pg_indexes 
+          WHERE indexname = 'idx_contacts_email_unique' 
+          AND schemaname = 'public'
+        `);
+        
+        if (emailIndexCheck.rows.length === 0) {
+          await db.query(`
+            CREATE UNIQUE INDEX idx_contacts_email_unique 
+            ON patient_contacts(email) 
+            WHERE email IS NOT NULL
+          `);
+          console.log('[ADMIN API] Created unique index on patient_contacts.email');
+        }
+        
+        const phoneIndexCheck = await db.query(`
+          SELECT 1 FROM pg_indexes 
+          WHERE indexname = 'idx_contacts_phone_unique' 
+          AND schemaname = 'public'
+        `);
+        
+        if (phoneIndexCheck.rows.length === 0) {
+          await db.query(`
+            CREATE UNIQUE INDEX idx_contacts_phone_unique 
+            ON patient_contacts(phone) 
+            WHERE phone IS NOT NULL
+          `);
+          console.log('[ADMIN API] Created unique index on patient_contacts.phone');
+        }
+      }
+    } catch (indexError) {
+      console.warn('[ADMIN API] Could not create unique indexes:', indexError.message);
+    }
+    
+    res.json({
+      success: true,
+      message: 'Duplicate cleanup completed',
+      results: {
+        duplicatesFound: {
+          emails: results.duplicateEmails.length,
+          phones: results.duplicatePhones.length,
+          nationalIds: results.duplicateNationalIds.length
+        },
+        merged: results.merged.length,
+        errors: results.errors.length,
+        details: results
+      }
+    });
+  } catch (error) {
+    console.error('[ADMIN API] Cleanup error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Cleanup failed',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+/**
+ * POST /api/admin/cleanup/reset
+ * ⚠️  DANGER: Clear all data except admins (for fresh start)
+ */
+router.post('/cleanup/reset', authenticateAdmin, async (req, res) => {
+  try {
+    const { confirm } = req.body;
+    
+    if (confirm !== 'DELETE_ALL_DATA') {
+      return res.status(400).json({
+        success: false,
+        error: 'Confirmation required. Send { "confirm": "DELETE_ALL_DATA" } to proceed.'
+      });
+    }
+    
+    const dbType = getDatabaseType();
+    const db = getDatabase();
+    
+    console.log('[ADMIN API] ⚠️  RESETTING ALL DATA (except admins)...');
+    
+    const tables = [
+      'processing_history',
+      'patient_consents',
+      'hospital_linkages',
+      'patient_contacts',
+      'patient_identities',
+      'fhir_encounters',
+      'fhir_conditions',
+      'fhir_observations',
+      'fhir_medication_requests',
+      'fhir_procedures',
+      'fhir_imaging_studies',
+      'fhir_allergies',
+      'fhir_coverage',
+      'fhir_patients',
+      'hospitals',
+      'researchers'
+    ];
+    
+    const deleted = {};
+    
+    for (const table of tables) {
+      try {
+        if (dbType === 'postgresql') {
+          const result = await db.query(`DELETE FROM ${table}`);
+          deleted[table] = result.rowCount || 0;
+        } else {
+          const result = await run(`DELETE FROM ${table}`);
+          deleted[table] = result.changes || 0;
+        }
+        console.log(`[ADMIN API] Deleted ${deleted[table]} rows from ${table}`);
+      } catch (error) {
+        // Table might not exist, that's okay
+        if (!error.message.includes('does not exist') && !error.message.includes('no such table')) {
+          console.warn(`[ADMIN API] Error deleting from ${table}:`, error.message);
+        }
+        deleted[table] = 0;
+      }
+    }
+    
+    // Verify admins are still there
+    const adminCount = await all('SELECT COUNT(*) as count FROM admins');
+    const count = dbType === 'postgresql' 
+      ? (adminCount.rows?.[0]?.count || adminCount[0]?.count || 0)
+      : (adminCount[0]?.count || 0);
+    
+    res.json({
+      success: true,
+      message: 'Database reset complete. All data cleared except admins.',
+      deleted,
+      adminsPreserved: count
+    });
+  } catch (error) {
+    console.error('[ADMIN API] Reset error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Reset failed',
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
