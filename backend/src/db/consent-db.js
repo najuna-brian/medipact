@@ -230,6 +230,133 @@ export async function getConsentsByUPI(upi) {
 }
 
 /**
+ * Get consent statistics for a hospital
+ * Returns counts of:
+ * - Patients with on-chain consent (hcs_topic_id is not null)
+ * - Total active consents
+ * - Records associated with active consents (from FHIR tables)
+ */
+export async function getConsentStatistics(hospitalId) {
+  const dbType = getDatabaseType();
+  
+  if (dbType === 'postgresql') {
+    // Count patients with on-chain consent (hcs_topic_id is not null)
+    const onChainResult = await get(
+      `SELECT COUNT(DISTINCT anonymous_patient_id) as count
+       FROM patient_consents
+       WHERE hospital_id = $1
+         AND status = 'active'
+         AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+         AND hcs_topic_id IS NOT NULL`,
+      [hospitalId]
+    );
+    
+    // Count total active consents
+    const activeConsentsResult = await get(
+      `SELECT COUNT(*) as count
+       FROM patient_consents
+       WHERE hospital_id = $1
+         AND status = 'active'
+         AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)`,
+      [hospitalId]
+    );
+    
+    // Count records (FHIR resources) associated with active consents
+    // This counts all FHIR resources (patients, conditions, observations) for patients with active consent
+    const recordsResult = await get(
+      `SELECT COUNT(*) as count
+       FROM (
+         SELECT DISTINCT p.anonymous_patient_id
+         FROM patient_consents p
+         WHERE p.hospital_id = $1
+           AND p.status = 'active'
+           AND (p.expires_at IS NULL OR p.expires_at > CURRENT_TIMESTAMP)
+       ) consented_patients
+       LEFT JOIN fhir_patients fp ON fp.anonymous_patient_id = consented_patients.anonymous_patient_id
+       LEFT JOIN fhir_conditions fc ON fc.anonymous_patient_id = consented_patients.anonymous_patient_id
+       LEFT JOIN fhir_observations fo ON fo.anonymous_patient_id = consented_patients.anonymous_patient_id
+       WHERE fp.anonymous_patient_id IS NOT NULL
+          OR fc.anonymous_patient_id IS NOT NULL
+          OR fo.anonymous_patient_id IS NOT NULL`,
+      [hospitalId]
+    );
+    
+    // Also count total FHIR records for this hospital (for comparison)
+    const totalRecordsResult = await get(
+      `SELECT 
+        (SELECT COUNT(*) FROM fhir_patients WHERE hospital_id = $1) +
+        (SELECT COUNT(*) FROM fhir_conditions WHERE hospital_id = $1) +
+        (SELECT COUNT(*) FROM fhir_observations WHERE hospital_id = $1) as count`,
+      [hospitalId]
+    );
+    
+    return {
+      patientsWithOnChainConsent: parseInt(onChainResult?.count || 0),
+      totalActiveConsents: parseInt(activeConsentsResult?.count || 0),
+      recordsWithActiveConsent: parseInt(recordsResult?.count || 0),
+      totalRecords: parseInt(totalRecordsResult?.count || 0)
+    };
+  } else {
+    // SQLite version
+    const onChainResult = await get(
+      `SELECT COUNT(DISTINCT anonymous_patient_id) as count
+       FROM patient_consents
+       WHERE hospital_id = ?
+         AND status = 'active'
+         AND (expires_at IS NULL OR expires_at > datetime('now'))
+         AND hcs_topic_id IS NOT NULL`,
+      [hospitalId]
+    );
+    
+    const activeConsentsResult = await get(
+      `SELECT COUNT(*) as count
+       FROM patient_consents
+       WHERE hospital_id = ?
+         AND status = 'active'
+         AND (expires_at IS NULL OR expires_at > datetime('now'))`,
+      [hospitalId]
+    );
+    
+    // For SQLite, we'll use a simpler approach
+    const recordsResult = await get(
+      `SELECT COUNT(DISTINCT 
+         CASE 
+           WHEN fp.anonymous_patient_id IS NOT NULL THEN fp.anonymous_patient_id
+           WHEN fc.anonymous_patient_id IS NOT NULL THEN fc.anonymous_patient_id
+           WHEN fo.anonymous_patient_id IS NOT NULL THEN fo.anonymous_patient_id
+         END
+       ) as count
+       FROM patient_consents p
+       LEFT JOIN fhir_patients fp ON fp.anonymous_patient_id = p.anonymous_patient_id AND fp.hospital_id = ?
+       LEFT JOIN fhir_conditions fc ON fc.anonymous_patient_id = p.anonymous_patient_id AND fc.hospital_id = ?
+       LEFT JOIN fhir_observations fo ON fo.anonymous_patient_id = p.anonymous_patient_id AND fo.hospital_id = ?
+       WHERE p.hospital_id = ?
+         AND p.status = 'active'
+         AND (p.expires_at IS NULL OR p.expires_at > datetime('now'))
+         AND (fp.anonymous_patient_id IS NOT NULL 
+              OR fc.anonymous_patient_id IS NOT NULL 
+              OR fo.anonymous_patient_id IS NOT NULL)`,
+      [hospitalId, hospitalId, hospitalId, hospitalId]
+    );
+    
+    const totalRecordsResult = await get(
+      `SELECT 
+        (SELECT COUNT(*) FROM fhir_patients WHERE hospital_id = ?) +
+        (SELECT COUNT(*) FROM fhir_conditions WHERE hospital_id = ?) +
+        (SELECT COUNT(*) FROM fhir_observations WHERE hospital_id = ?) as count`,
+      [hospitalId, hospitalId, hospitalId]
+    );
+    
+    return {
+      patientsWithOnChainConsent: parseInt(onChainResult?.count || 0),
+      totalActiveConsents: parseInt(activeConsentsResult?.count || 0),
+      recordsWithActiveConsent: parseInt(recordsResult?.count || 0),
+      totalRecords: parseInt(totalRecordsResult?.count || 0)
+    };
+  }
+}
+
+/**
  * Map database row to camelCase object (for SQLite)
  */
 function mapConsentRow(row) {

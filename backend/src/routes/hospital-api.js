@@ -10,6 +10,7 @@ import { registerHospital, getHospital, updateHospital } from '../services/hospi
 import { verifyHospital } from '../services/hospital-registry-service.js';
 import { createHospital, getHospital as getHospitalFromDB, updateHospital as updateHospitalInDB, verifyHospitalApiKey, hospitalExists } from '../db/hospital-db.js';
 import { submitVerificationDocuments, getVerificationStatus, isHospitalVerified } from '../services/hospital-verification-service.js';
+import { getConsentStatistics } from '../db/consent-db.js';
 
 const router = express.Router();
 
@@ -286,6 +287,28 @@ router.get('/:hospitalId/verification-status', authenticateHospital, async (req,
     res.json(status);
   } catch (error) {
     console.error('Error fetching verification status:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/hospital/:hospitalId/consent/statistics
+ * Get consent statistics for a hospital
+ */
+router.get('/:hospitalId/consent/statistics', authenticateHospital, async (req, res) => {
+  try {
+    const { hospitalId } = req.params;
+    
+    // Verify hospital ID matches authenticated hospital
+    if (hospitalId !== req.hospitalId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const statistics = await getConsentStatistics(hospitalId);
+    
+    res.json(statistics);
+  } catch (error) {
+    console.error('Error fetching consent statistics:', error);
     res.status(500).json({ error: error.message });
   }
 });
