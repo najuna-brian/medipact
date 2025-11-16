@@ -727,19 +727,37 @@ router.post('/migrate/fhir', async (req, res) => {
     if (dbType === 'postgresql') {
       // PostgreSQL migration - parse the schema string
       // Split schema into individual CREATE TABLE statements
-      // Match CREATE TABLE statements from start to closing );
+      // Use the same approach as the migration script: split on CREATE TABLE
+      const statements = completeSchema.split('CREATE TABLE').filter(s => s.trim());
+      
       const tableStatements = [];
       
-      // Find all CREATE TABLE statements by matching from CREATE TABLE to the closing );
-      const tableMatches = completeSchema.matchAll(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)[\s\S]*?\);/gi);
-      
-      for (const match of tableMatches) {
-        let statement = match[0].trim();
-        const tableName = match[1];
+      for (let i = 0; i < statements.length; i++) {
+        let statement = 'CREATE TABLE' + statements[i].trim();
+        
+        // Extract table name first
+        const tableMatch = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)/i);
+        if (!tableMatch) continue;
+        
+        const tableName = tableMatch[1];
+        
+        // Find the end of this CREATE TABLE statement (the closing );)
+        // Look for ); that's followed by newline and then CREATE (next statement) or end of string
+        const endMatch = statement.match(/\);[\s\n]*(?:CREATE|$)/);
+        if (endMatch) {
+          // Extract just the CREATE TABLE statement up to the closing );
+          const endIndex = statement.indexOf(endMatch[0]);
+          statement = statement.substring(0, endIndex + 2); // Include );
+        }
         
         // Ensure IF NOT EXISTS is present
         if (!statement.includes('IF NOT EXISTS')) {
           statement = statement.replace(/CREATE TABLE\s+/, 'CREATE TABLE IF NOT EXISTS ');
+        }
+        
+        // Ensure statement ends with semicolon
+        if (!statement.trim().endsWith(';')) {
+          statement = statement.trim() + ';';
         }
         
         tableStatements.push({ tableName, statement });
