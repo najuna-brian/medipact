@@ -443,7 +443,9 @@ router.post('/upload-csv', authenticateHospital, upload.single('file'), async (r
       HOSPITAL_LOCATION: hospitalLocation,
       HOSPITAL_ID: hospitalId,
       HOSPITAL_API_KEY: apiKey,
-      BACKEND_API_URL: process.env.FRONTEND_URL || process.env.BACKEND_API_URL || 'http://localhost:3002',
+      // Adapter runs in same container as backend, so use localhost
+      // This avoids network issues and is faster
+      BACKEND_API_URL: process.env.BACKEND_API_URL || 'http://localhost:3002',
     };
 
     // Execute adapter script
