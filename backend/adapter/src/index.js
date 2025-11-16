@@ -308,19 +308,19 @@ async function main() {
     const patientDataHashes = new Map(); // Track data hashes per patient
     
     // Generate data hashes for each patient from processed FHIR resources
-    const patientResources = new Map();
+    const patientDataMap = new Map();
     processedResources.forEach(processed => {
       const anonymousId = processed.processed.anonymousPatientId;
       if (anonymousId) {
-        if (!patientResources.has(anonymousId)) {
-          patientResources.set(anonymousId, []);
+        if (!patientDataMap.has(anonymousId)) {
+          patientDataMap.set(anonymousId, []);
         }
-        patientResources.get(anonymousId).push(processed.anonymized);
+        patientDataMap.get(anonymousId).push(processed.anonymized);
       }
     });
     
     // Generate consent hashes
-    for (const [anonymousPID, resources] of patientResources) {
+    for (const [anonymousPID, resources] of patientDataMap) {
       const dataHash = hashBatch(resources);
       patientDataHashes.set(anonymousPID, dataHash);
     }
