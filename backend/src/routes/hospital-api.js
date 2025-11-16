@@ -508,7 +508,7 @@ router.post('/upload-csv', authenticateHospital, upload.single('file'), async (r
     // Fallback: Count records directly from database if parsing failed
     if (recordsProcessed === 0) {
       try {
-        const { all, getDatabaseType } = await import('../db/database.js');
+        const { getDatabase, getDatabaseType } = await import('../db/database.js');
         const dbType = getDatabaseType();
         const db = getDatabase();
         
