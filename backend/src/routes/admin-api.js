@@ -726,41 +726,34 @@ router.post('/migrate/fhir', async (req, res) => {
     
     if (dbType === 'postgresql') {
       // PostgreSQL migration - parse the schema string
-      // Split schema into individual CREATE TABLE statements
-      // Use the same approach as the migration script: split on CREATE TABLE
+      // Use EXACT same approach as migrate-fhir-complete-schema.js script
       const statements = completeSchema.split('CREATE TABLE').filter(s => s.trim());
-      
-      const tableStatements = [];
-      
+
       for (let i = 0; i < statements.length; i++) {
-        let statement = 'CREATE TABLE' + statements[i].trim();
+        const statement = 'CREATE TABLE' + statements[i].trim();
         
-        // Extract table name first
+        // Extract table name
         const tableMatch = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)/i);
         if (!tableMatch) continue;
         
         const tableName = tableMatch[1];
-        
-        // Find the end of this CREATE TABLE statement (the closing );)
-        // Look for ); that's followed by newline and then CREATE (next statement) or end of string
-        const endMatch = statement.match(/\);[\s\n]*(?:CREATE|$)/);
-        if (endMatch) {
-          // Extract just the CREATE TABLE statement up to the closing );
-          const endIndex = statement.indexOf(endMatch[0]);
-          statement = statement.substring(0, endIndex + 2); // Include );
+
+        try {
+          // Use the ENTIRE statement as-is (same as migration script)
+          // PostgreSQL will handle comments and multiple statements
+          await db.query(statement);
+          results.tablesCreated.push(tableName);
+          console.log(`[ADMIN API] Created table: ${tableName}`);
+        } catch (error) {
+          if (error.message.includes('already exists') || error.code === '42P07') {
+            results.tablesSkipped.push(tableName);
+            console.log(`[ADMIN API] Table ${tableName} already exists, skipping`);
+          } else {
+            results.errors.push({ table: tableName, error: error.message });
+            console.error(`[ADMIN API] Error creating table ${tableName}:`, error.message);
+            // Continue with other tables - don't fail the entire migration
+          }
         }
-        
-        // Ensure IF NOT EXISTS is present
-        if (!statement.includes('IF NOT EXISTS')) {
-          statement = statement.replace(/CREATE TABLE\s+/, 'CREATE TABLE IF NOT EXISTS ');
-        }
-        
-        // Ensure statement ends with semicolon
-        if (!statement.trim().endsWith(';')) {
-          statement = statement.trim() + ';';
-        }
-        
-        tableStatements.push({ tableName, statement });
       }
       
       // Create tables
