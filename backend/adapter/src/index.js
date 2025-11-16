@@ -472,9 +472,9 @@ async function main() {
     // Step 12: Execute real revenue distribution using backend API
     // This uses Hedera Account IDs for direct HBAR transfers
     const hospitalId = process.env.HOSPITAL_ID;
-    const backendApiUrl = process.env.BACKEND_API_URL || 'http://localhost:3002';
+    const revenueBackendApiUrl = process.env.BACKEND_API_URL || 'http://localhost:3002';
     
-    if (hospitalId && backendApiUrl) {
+    if (hospitalId && revenueBackendApiUrl) {
       console.log('=== 7. EXECUTE REVENUE DISTRIBUTION ===');
       try {
         // Calculate records per patient for proportional distribution
