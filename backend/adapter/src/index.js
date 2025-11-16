@@ -207,24 +207,34 @@ async function main() {
     let pidIndex = 0;
 
     // First pass: Build patient mapping from Patient resources
-    console.log(`   Building patient mapping from ${fhirBundle.entry.filter(e => e.resource.resourceType === 'Patient').length} Patient resources...`);
-    for (const entry of fhirBundle.entry) {
-      if (entry.resource.resourceType === 'Patient') {
-        const originalId = entry.resource.id;
-        const anonymousId = `PID-${String(pidIndex + 1).padStart(3, '0')}`;
-        patientMapping.set(originalId, anonymousId);
-        // Also add with Patient/ prefix for lookup flexibility
-        patientMapping.set(`Patient/${originalId}`, anonymousId);
-        console.log(`     ${originalId} -> ${anonymousId}`);
-        pidIndex++;
+    // This mapping connects original patient IDs (from CSV) to anonymous IDs (PID-001, etc.)
+    // After anonymization, all resources will reference these anonymous IDs
+    const patientResources = fhirBundle.entry.filter(e => e.resource.resourceType === 'Patient');
+    console.log(`   Building patient mapping from ${patientResources.length} Patient resources...`);
+    
+    for (const entry of patientResources) {
+      const originalId = entry.resource.id;
+      if (!originalId) {
+        console.warn(`     ⚠️  Skipping Patient resource without ID`);
+        continue;
       }
+      
+      const anonymousId = `PID-${String(pidIndex + 1).padStart(3, '0')}`;
+      // Map original ID to anonymous ID
+      patientMapping.set(originalId, anonymousId);
+      // Also add with Patient/ prefix for lookup flexibility (FHIR reference format)
+      patientMapping.set(`Patient/${originalId}`, anonymousId);
+      // Also map anonymous ID to itself (for resources that might already be anonymized)
+      patientMapping.set(anonymousId, anonymousId);
+      console.log(`     ${originalId} -> ${anonymousId}`);
+      pidIndex++;
     }
     
     if (patientMapping.size === 0) {
       console.error('   ⚠️  WARNING: No Patient resources found in bundle!');
       console.error('   Bundle contains:', fhirBundle.entry.map(e => e.resource.resourceType).join(', '));
     } else {
-      console.log(`   ✓ Built patient mapping for ${patientMapping.size / 2} patients\n`);
+      console.log(`   ✓ Built patient mapping for ${patientMapping.size / 3} patients (${patientMapping.size} total mappings)\n`);
     }
 
     // Second pass: Process all resources
@@ -235,17 +245,22 @@ async function main() {
       upi: null
     };
 
+    // Process resources, skipping those without valid patient mappings
+    // This is expected for some resource types that don't require patient references
     for (const entry of fhirBundle.entry) {
       try {
         const processed = await processFHIRResource(entry.resource, context);
         processedResources.push(processed);
       } catch (error) {
-        // Log error but continue processing other resources
-        // Some resources may fail due to missing patient mappings, which is OK
-        console.error(`     ✗ Error processing ${entry.resource.resourceType} ${entry.resource.id}:`, error.message);
-        // Only skip if it's a critical error (not just missing patient mapping)
-        if (!error.message.includes('Patient mapping not found')) {
-          // For non-patient-mapping errors, we might want to handle differently
+        // Skip resources that can't be mapped to patients (e.g., standalone Coverage without patient)
+        // This is acceptable - not all resources need patient mappings
+        if (error.message.includes('Patient mapping not found') || 
+            error.message.includes('missing subject reference') ||
+            error.message.includes('missing beneficiary')) {
+          console.error(`     ⚠️  Skipping ${entry.resource.resourceType} ${entry.resource.id}: ${error.message}`);
+        } else {
+          // Log other errors but continue
+          console.error(`     ✗ Error processing ${entry.resource.resourceType} ${entry.resource.id}:`, error.message);
         }
       }
     }
