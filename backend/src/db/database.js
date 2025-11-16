@@ -1170,28 +1170,43 @@ async function createSQLiteTables() {
   `);
 
   // Processing History Table
-  await run(`
-    CREATE TABLE IF NOT EXISTS processing_history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      hospital_id VARCHAR(32) NOT NULL,
-      file_name VARCHAR(255) NOT NULL,
-      records_processed INTEGER NOT NULL DEFAULT 0,
-      consent_proofs INTEGER NOT NULL DEFAULT 0,
-      data_proofs INTEGER NOT NULL DEFAULT 0,
-      consent_topic_id VARCHAR(50),
-      data_topic_id VARCHAR(50),
-      status VARCHAR(20) NOT NULL DEFAULT 'processing',
-      processed_at TIMESTAMP,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CHECK (status IN ('processing', 'completed', 'failed'))
-    )
-  `);
+  try {
+    await run(`
+      CREATE TABLE IF NOT EXISTS processing_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        hospital_id VARCHAR(32) NOT NULL,
+        file_name VARCHAR(255) NOT NULL,
+        records_processed INTEGER NOT NULL DEFAULT 0,
+        consent_proofs INTEGER NOT NULL DEFAULT 0,
+        data_proofs INTEGER NOT NULL DEFAULT 0,
+        consent_topic_id VARCHAR(50),
+        data_topic_id VARCHAR(50),
+        status VARCHAR(20) NOT NULL DEFAULT 'processing',
+        processed_at TIMESTAMP,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CHECK (status IN ('processing', 'completed', 'failed'))
+      )
+    `);
 
-  // Create index for faster queries
-  await run(`
-    CREATE INDEX IF NOT EXISTS idx_processing_history_hospital_id 
-    ON processing_history(hospital_id, created_at DESC)
-  `);
+    // Create index for faster queries
+    try {
+      await run(`
+        CREATE INDEX IF NOT EXISTS idx_processing_history_hospital_id 
+        ON processing_history(hospital_id, created_at DESC)
+      `);
+    } catch (indexError) {
+      // Index might already exist, ignore if it's a duplicate error
+      if (!indexError.message.includes('already exists')) {
+        console.warn('Warning creating processing_history index:', indexError.message);
+      }
+    }
+  } catch (tableError) {
+    // Table might already exist, but log other errors
+    if (!tableError.message.includes('already exists')) {
+      console.error('Error creating processing_history table:', tableError.message);
+      throw tableError;
+    }
+  }
 
   // Admins Table
   await run(`
