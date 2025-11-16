@@ -35,6 +35,9 @@ import {
   executeRealPayout
 } from './hedera/evm-client.js';
 import { distributeRevenueAfterProcessing } from './services/revenue-integration.js';
+import { csvToFHIRBundle } from './transformers/csv-to-fhir-transformer.js';
+import { processFHIRResource } from './handlers/resource-handler.js';
+import { storeFHIRResources } from './storage/fhir-storage.js';
 import { Hbar } from '@hashgraph/sdk';
 
 dotenv.config();
@@ -179,83 +182,214 @@ async function main() {
     const rawRecords = await parseCSV(INPUT_FILE);
     console.log(`   ✓ Read ${rawRecords.length} records from ${INPUT_FILE}\n`);
 
-    // Step 5: Anonymize data with demographics
-    console.log('5. Anonymizing patient data with demographics...');
+    // Step 5: Convert CSV to FHIR Bundle (all 10 domains)
+    console.log('5. Converting CSV to FHIR R4 Bundle (all 10 domains)...');
+    const fhirBundle = csvToFHIRBundle(rawRecords, {
+      country: hospitalInfo.country,
+      location: hospitalInfo.location,
+      hospitalId: process.env.HOSPITAL_ID || null
+    });
+    console.log(`   ✓ Created FHIR Bundle with ${fhirBundle.entry.length} resources`);
+    const resourceCounts = {};
+    fhirBundle.entry.forEach(entry => {
+      const type = entry.resource.resourceType;
+      resourceCounts[type] = (resourceCounts[type] || 0) + 1;
+    });
+    Object.entries(resourceCounts).forEach(([type, count]) => {
+      console.log(`     - ${type}: ${count}`);
+    });
+    console.log('');
+
+    // Step 6: Process FHIR resources (anonymize and prepare for storage)
+    console.log('6. Processing and anonymizing FHIR resources...');
+    const processedResources = [];
+    const patientMapping = new Map();
+    let pidIndex = 0;
+
+    // First pass: Build patient mapping from Patient resources
+    for (const entry of fhirBundle.entry) {
+      if (entry.resource.resourceType === 'Patient') {
+        const originalId = entry.resource.id;
+        const anonymousId = `PID-${String(pidIndex + 1).padStart(3, '0')}`;
+        patientMapping.set(originalId, anonymousId);
+        pidIndex++;
+      }
+    }
+
+    // Second pass: Process all resources
+    const context = {
+      hospitalId: process.env.HOSPITAL_ID || null,
+      hospitalInfo,
+      patientMapping,
+      upi: null
+    };
+
+    for (const entry of fhirBundle.entry) {
+      try {
+        const processed = await processFHIRResource(entry.resource, context);
+        processedResources.push(processed);
+      } catch (error) {
+        console.error(`     ✗ Error processing ${entry.resource.resourceType} ${entry.resource.id}:`, error.message);
+      }
+    }
+
+    console.log(`   ✓ Processed ${processedResources.length} FHIR resources\n`);
+
+    // Step 7: Store FHIR resources to backend (if configured)
+    const apiKey = process.env.HOSPITAL_API_KEY;
+    const backendApiUrl = process.env.BACKEND_API_URL;
+    if (apiKey && backendApiUrl && context.hospitalId) {
+      console.log('7. Storing FHIR resources to backend...');
+      try {
+        const storageResult = await storeFHIRResources(
+          processedResources,
+          context.hospitalId,
+          apiKey
+        );
+        console.log(`   ✓ Stored: ${storageResult.successful} successful, ${storageResult.failed} failed\n`);
+      } catch (error) {
+        console.error(`   ✗ Storage failed: ${error.message}\n`);
+      }
+    } else {
+      console.log('7. Skipping backend storage (no API key, backend URL, or hospital ID)\n');
+    }
+
+    // Step 8: Generate anonymized CSV for legacy compatibility
+    console.log('8. Generating anonymized CSV (legacy format)...');
     const anonymizationResult = anonymizeWithDemographics(
       rawRecords,
       hospitalInfo
     );
-    const { records: anonymizedRecords, patientMapping, upiMapping } = anonymizationResult;
-    console.log(`   ✓ Anonymized ${anonymizedRecords.length} records`);
-    console.log(`   ✓ Mapped ${patientMapping.size} unique patients`);
-    if (upiMapping) {
-      console.log(`   ✓ UPI mapping: ${upiMapping.size} patients with UPI`);
-    }
-    console.log(`   ✓ Demographics preserved: Age Range, Country, Gender, Occupation Category\n`);
-
-    // Step 6: Write anonymized data to CSV
-    console.log('6. Writing anonymized data...');
+    const { records: anonymizedRecords, patientMapping: csvPatientMapping, upiMapping } = anonymizationResult;
     await writeAnonymizedCSV(anonymizedRecords, OUTPUT_FILE);
-    console.log('   ✓ Anonymized data saved\n');
+    console.log(`   ✓ Anonymized CSV saved: ${anonymizedRecords.length} records\n`);
 
-    // Step 7: Process consent proofs (one per unique patient) - NO original patient ID
-    console.log('7. Processing consent proofs...');
+    // Step 9: Process consent proofs (one per unique patient) - NO original patient ID
+    console.log('9. Processing consent proofs...');
     const consentResults = [];
     const patientDataHashes = new Map(); // Track data hashes per patient
     
-    // First, generate data hashes for each patient
-    for (const [originalPatientId, anonymousPID] of patientMapping) {
-      // Find all records for this patient
-      const patientRecords = anonymizedRecords.filter(r => r['Anonymous PID'] === anonymousPID);
-      if (patientRecords.length > 0) {
-        // Generate hash of all records for this patient
-        const dataHash = hashBatch(patientRecords);
-        patientDataHashes.set(anonymousPID, dataHash);
+    // Generate data hashes for each patient from processed FHIR resources
+    const patientResources = new Map();
+    processedResources.forEach(processed => {
+      const anonymousId = processed.processed.anonymousPatientId;
+      if (anonymousId) {
+        if (!patientResources.has(anonymousId)) {
+          patientResources.set(anonymousId, []);
+        }
+        patientResources.get(anonymousId).push(processed.anonymized);
       }
+    });
+    
+    // Generate consent hashes
+    for (const [anonymousPID, resources] of patientResources) {
+      const dataHash = hashBatch(resources);
+      patientDataHashes.set(anonymousPID, dataHash);
     }
     
     // Process consent proofs (NO original patient ID)
-    for (const [originalPatientId, anonymousPID] of patientMapping) {
-      const dataHash = patientDataHashes.get(anonymousPID);
-      if (dataHash) {
-        const result = await processConsentProof(anonymousPID, dataHash, consentTopicId, client);
-        consentResults.push(result);
-        console.log(`   ✓ Consent proof for ${anonymousPID}: ${result.hashScanLink}`);
+    for (const [anonymousPID, dataHash] of patientDataHashes) {
+      const result = await processConsentProof(anonymousPID, dataHash, consentTopicId, client);
+      consentResults.push(result);
+      console.log(`   ✓ Consent proof for ${anonymousPID}: ${result.hashScanLink}`);
+    }
+    console.log('');
+
+    // Step 10: Apply Stage 2 (Chain) anonymization and create provenance proofs
+    console.log('10. Applying Stage 2 (Chain) anonymization and creating provenance proofs...');
+    const dataResults = [];
+    
+    for (const processed of processedResources) {
+      try {
+        // Stage 1: Storage anonymization (already done in processFHIRResource)
+        const storageHash = hashPatientRecord(processed.anonymized);
+        
+        // Stage 2: Chain anonymization (further generalization)
+        const { anonymizeForChain } = await import('./fhir/fhir-anonymizer.js');
+        const chainAnonymized = await anonymizeForChain(
+          processed.anonymized,
+          processed.resourceType,
+          context
+        );
+        const chainHash = hashPatientRecord(chainAnonymized);
+        
+        // Get anonymous patient ID
+        const anonymousPatientId = processed.processed.anonymousPatientId || 
+                                   processed.processed.id || 
+                                   'unknown';
+        
+        // Generate provenance proof linking both hashes
+        const provenanceProof = generateProvenanceProof(
+          storageHash,
+          chainHash,
+          anonymousPatientId,
+          processed.resourceType
+        );
+        
+        // Create provenance record
+        const provenanceRecord = {
+          storage: {
+            hash: storageHash,
+            anonymizationLevel: 'storage',
+            timestamp: new Date().toISOString()
+          },
+          chain: {
+            hash: chainHash,
+            anonymizationLevel: 'chain',
+            derivedFrom: storageHash,
+            timestamp: new Date().toISOString()
+          },
+          anonymousPatientId,
+          resourceType: processed.resourceType,
+          hospitalId: context.hospitalId,
+          timestamp: new Date().toISOString(),
+          provenanceProof
+        };
+        
+        // Submit provenance record to HCS
+        const transactionId = await submitMessage(
+          client, 
+          dataTopicId, 
+          JSON.stringify(provenanceRecord)
+        );
+
+        dataResults.push({
+          resourceType: processed.resourceType,
+          anonymousId: anonymousPatientId,
+          storageHash,
+          chainHash,
+          provenanceProof,
+          transactionId,
+          hashScanLink: getHashScanLink(transactionId)
+        });
+
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error(`     ✗ Provenance proof failed for ${processed.resourceType}:`, error.message);
       }
     }
-    console.log('');
+    console.log(`   ✓ Created ${dataResults.length} provenance proofs\n`);
 
-    // Step 8: Apply Stage 2 (Chain) anonymization
-    console.log('8. Applying Stage 2 (Chain) anonymization...');
-    const chainAnonymizedRecords = anonymizeCSVRecordsForChain(anonymizedRecords);
-    console.log(`   ✓ Applied chain anonymization to ${chainAnonymizedRecords.length} records\n`);
-
-    // Step 9: Process data proofs with double anonymization (one per record)
-    console.log('9. Processing provenance proofs to HCS...');
-    const dataResults = [];
-    for (let i = 0; i < anonymizedRecords.length; i++) {
-      const storageRecord = anonymizedRecords[i];
-      const chainRecord = chainAnonymizedRecords[i];
-      
-      const result = await processPatientRecord(storageRecord, chainRecord, dataTopicId, client);
-      dataResults.push(result);
-      console.log(`   ✓ Provenance proof for ${result.anonymousPID}: ${result.hashScanLink}`);
-      
-      // Small delay to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    console.log('');
-
-    // Step 10: Display summary
+    // Step 11: Display summary
     console.log('=== Processing Complete ===\n');
     console.log('Summary:');
-    console.log(`  - Records processed: ${anonymizedRecords.length}`);
+    console.log(`  - CSV records read: ${rawRecords.length}`);
+    console.log(`  - FHIR resources created: ${fhirBundle.entry.length}`);
+    console.log(`  - FHIR resources processed: ${processedResources.length}`);
     console.log(`  - Unique patients: ${patientMapping.size}`);
     console.log(`  - Consent proofs: ${consentResults.length}`);
     console.log(`  - Provenance proofs (double anonymization): ${dataResults.length}`);
     console.log(`  - Output file: ${OUTPUT_FILE}\n`);
+    
+    // Display resource type breakdown
+    console.log('FHIR Resource Breakdown:');
+    Object.entries(resourceCounts).forEach(([type, count]) => {
+      console.log(`  - ${type}: ${count}`);
+    });
+    console.log('');
 
-    // Step 11: Display topic links
+    // Step 12: Display topic links
     const { getHederaNetwork } = await import('./utils/network-config.js');
     const network = getHederaNetwork();
     const networkPath = network === 'mainnet' ? '' : `${network}.`;
@@ -263,7 +397,7 @@ async function main() {
     console.log(`  Consent Topic: https://hashscan.io/${networkPath}topic/${consentTopicId}`);
     console.log(`  Data Topic: https://hashscan.io/${networkPath}topic/${dataTopicId}\n`);
 
-    // Step 12: Payout simulation (placeholder)
+    // Step 13: Payout simulation (placeholder)
     // Note: This is a simulation for demo purposes.
     // In production, this would use actual HBAR transfers via TransferTransaction.
     // Currency conversion rates are example values and should be fetched from:
