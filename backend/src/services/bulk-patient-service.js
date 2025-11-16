@@ -70,6 +70,27 @@ function normalizePatientRecord(record) {
 }
 
 /**
+ * Derive default payment method information from phone number for bulk uploads.
+ * For now, we treat phone as the default mobile money payment method when present.
+ */
+function derivePaymentFromPhone(phone) {
+  if (!phone) {
+    return {
+      paymentMethod: null,
+      mobileMoneyProvider: null,
+      mobileMoneyNumber: null
+    };
+  }
+
+  // Basic normalization: keep as-is for now; providers can be inferred later if needed
+  return {
+    paymentMethod: 'mobile_money',
+    mobileMoneyProvider: null,
+    mobileMoneyNumber: phone
+  };
+}
+
+/**
  * Process bulk patient registration
  * @param {Array<Object>|string} data - Array of patient records or CSV string
  * @param {string} hospitalId - Hospital ID
@@ -101,12 +122,48 @@ export async function processBulkRegistration(
     patients: []
   };
   
+  // Track seen phones/emails within this bulk to avoid duplicates in a single upload
+  const seenPhones = new Set();
+  const seenEmails = new Set();
+  
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
     
     try {
       // Normalize record
       const normalized = normalizePatientRecord(record);
+      
+      // Normalize contact fields for duplicate detection (must match patient_contacts normalization)
+      const normalizedPhone = normalized.phone ? normalized.phone.replace(/\D/g, '') : null;
+      const normalizedEmail = normalized.email ? normalized.email.toLowerCase().trim() : null;
+      
+      // Enforce uniqueness of phone within this bulk upload
+      if (normalizedPhone) {
+        if (seenPhones.has(normalizedPhone)) {
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            errors: [`Duplicate phone number in bulk upload: ${normalized.phone}`],
+            record: normalized
+          });
+          continue;
+        }
+        seenPhones.add(normalizedPhone);
+      }
+      
+      // Enforce uniqueness of email within this bulk upload
+      if (normalizedEmail) {
+        if (seenEmails.has(normalizedEmail)) {
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            errors: [`Duplicate email in bulk upload: ${normalized.email}`],
+            record: normalized
+          });
+          continue;
+        }
+        seenEmails.add(normalizedEmail);
+      }
       
       // Validate
       const validation = validatePatientRecord(normalized);
@@ -129,8 +186,11 @@ export async function processBulkRegistration(
         async (upi, patientData) => {
           // Create patient without Hedera account (will be created lazily on first payment)
           // Include all normalized data (including email/phone/nationalId) for contact creation
+          // For bulk uploads, use phone as the default payment method when available.
+          const paymentDefaults = derivePaymentFromPhone(normalized.phone);
           await createPatient(upi, {
             ...normalized,
+            ...paymentDefaults,
             hederaAccountId: null, // Account created lazily when revenue is distributed
             encryptedPrivateKey: null
           });

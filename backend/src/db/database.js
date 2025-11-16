@@ -380,6 +380,9 @@ async function createPostgreSQLTables() {
   await client.query(`CREATE INDEX IF NOT EXISTS idx_contacts_email ON patient_contacts(email)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_contacts_phone ON patient_contacts(phone)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_contacts_national_id ON patient_contacts(national_id)`);
+  // Enforce global uniqueness for email and phone (non-null) to prevent duplicates across patients
+  await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_email_unique ON patient_contacts(email) WHERE email IS NOT NULL`);
+  await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_phone_unique ON patient_contacts(phone) WHERE phone IS NOT NULL`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_preferences_upi ON patient_data_preferences(upi)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_approvals_upi ON patient_researcher_approvals(upi)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_approvals_researcher ON patient_researcher_approvals(researcher_id)`);
@@ -1175,6 +1178,9 @@ async function createSQLiteTables() {
   await run(`CREATE INDEX IF NOT EXISTS idx_contacts_email ON patient_contacts(email)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_contacts_phone ON patient_contacts(phone)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_contacts_national_id ON patient_contacts(national_id)`);
+  // Enforce global uniqueness for email and phone to prevent duplicates across patients
+  await run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_email_unique ON patient_contacts(email)`);
+  await run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_phone_unique ON patient_contacts(phone)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_preferences_upi ON patient_data_preferences(upi)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_approvals_upi ON patient_researcher_approvals(upi)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_approvals_researcher ON patient_researcher_approvals(researcher_id)`);
