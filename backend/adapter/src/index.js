@@ -248,23 +248,24 @@ async function main() {
         const originalId = patient.id;
         if (!originalId) continue;
         
-        // Extract email and phone from Patient resource
+        // Extract email, phone, and national ID from Patient resource or raw records
         const email = patient.telecom?.find(t => t.system === 'email')?.value;
         const phone = patient.telecom?.find(t => t.system === 'phone')?.value;
-        const name = patient.name?.[0]?.text || rawRecords.find(r => 
+        const originalRecord = rawRecords.find(r => 
           (r['Patient ID'] || r['Patient Name']) === originalId
-        )?.['Patient Name'];
-        const dateOfBirth = patient.birthDate || rawRecords.find(r => 
-          (r['Patient ID'] || r['Patient Name']) === originalId
-        )?.['Date of Birth'];
+        );
+        const nationalId = originalRecord?.['National ID'] || originalRecord?.['nationalId'] || null;
+        const name = patient.name?.[0]?.text || originalRecord?.['Patient Name'];
+        const dateOfBirth = patient.birthDate || originalRecord?.['Date of Birth'];
         
-        // Try to lookup UPI by email/phone first (automatic linking)
+        // Try to lookup UPI by email/phone/nationalId (ANY of these will link to existing UPI)
         let upi = null;
-        if (email || phone) {
+        if (email || phone || nationalId) {
           try {
             const lookupResponse = await axios.post(`${backendApiUrl}/api/patient/lookup`, {
-              email,
-              phone
+              email: email || null,
+              phone: phone || null,
+              nationalId: nationalId || null
             }, {
               timeout: 5000,
               validateStatus: (status) => status < 500 // Don't throw on 404
@@ -272,7 +273,8 @@ async function main() {
             
             if (lookupResponse.data && lookupResponse.data.upi) {
               upi = lookupResponse.data.upi;
-              console.log(`     ✓ Found existing UPI for ${originalId} by ${email ? 'email' : 'phone'}: ${upi}`);
+              const foundBy = email ? 'email' : (phone ? 'phone' : 'nationalId');
+              console.log(`     ✓ Found existing UPI for ${originalId} by ${foundBy}: ${upi}`);
             }
           } catch (error) {
             // Lookup failed, will generate UPI below
@@ -290,7 +292,7 @@ async function main() {
               name,
               dateOfBirth,
               phone: phone || null,
-              nationalId: null
+              nationalId: nationalId || null
             });
             // Check if this UPI exists (deterministic match)
             try {
@@ -431,20 +433,23 @@ async function main() {
             );
             
             if (originalRecord) {
-              const email = originalRecord['Email'] || originalRecord['email'];
-              const phone = originalRecord['Phone Number'] || originalRecord['phone'];
+              const email = originalRecord['Email'] || originalRecord['email'] || null;
+              const phone = originalRecord['Phone Number'] || originalRecord['phone'] || null;
+              const nationalId = originalRecord['National ID'] || originalRecord['nationalId'] || null;
               const name = originalRecord['Patient Name'] || originalRecord['name'];
               const dateOfBirth = originalRecord['Date of Birth'] || originalRecord['dateOfBirth'];
               
               // Create/update patient and contact via backend API
+              // This will automatically link to existing UPI if email/phone/nationalId matches
               try {
                 // Use getOrCreateUPI endpoint which handles contact lookup automatically
+                // ANY of email/phone/nationalId will link to existing UPI
                 await axios.post(`${storageBackendApiUrl}/api/patient/register`, {
                   name,
                   dateOfBirth,
                   email,
                   phone,
-                  nationalId: originalRecord['National ID'] || originalRecord['nationalId'] || null
+                  nationalId
                 }, {
                   headers: {
                     'Content-Type': 'application/json'
