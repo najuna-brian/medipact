@@ -391,6 +391,9 @@ async function main() {
           const anonymousId = patientMapping.get(originalId);
           if (anonymousId && patientContexts.has(anonymousId)) {
             resourceContext = patientContexts.get(anonymousId);
+            console.log(`[Adapter] Processing Patient ${originalId} -> ${anonymousId} with UPI: ${resourceContext.upi || 'NULL'}`);
+          } else {
+            console.log(`[Adapter] Processing Patient ${originalId} -> ${anonymousId || 'NO_MAPPING'} with UPI: NULL (no context found)`);
           }
         }
         

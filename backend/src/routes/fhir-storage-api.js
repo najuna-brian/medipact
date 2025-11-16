@@ -50,6 +50,16 @@ async function storeResources(req, res, tableName) {
 
     for (const resource of resources) {
       try {
+        // Log patient resources to see if they have UPIs
+        if (tableName === 'fhir_patients') {
+          console.log(`[FHIR Storage] Storing patient:`, {
+            anonymousPatientId: resource.anonymousPatientId,
+            upi: resource.upi || 'NULL',
+            hospitalId: hospitalId,
+            hasUPI: !!resource.upi
+          });
+        }
+        
         if (dbType === 'postgresql') {
           await storeResourcePostgreSQL(db, tableName, resource, hospitalId);
         } else {
