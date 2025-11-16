@@ -51,7 +51,8 @@ export default function HospitalProcessingPage() {
             <div className="space-y-6">
               {processingHistory.map((item) => {
                 const processedDate = item.processedAt ? new Date(item.processedAt) : (item.createdAt ? new Date(item.createdAt) : null);
-            <Card key={item.id}>
+                return (
+                  <Card key={item.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -126,8 +127,8 @@ export default function HospitalProcessingPage() {
                 )}
               </CardContent>
             </Card>
-              );
-            })}
+                );
+              })}
             </div>
           )}
 
