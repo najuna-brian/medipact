@@ -20,7 +20,7 @@ import {
   submitMessage, 
   getHashScanLink 
 } from './hedera/hcs-client.js';
-import { recordConsentOnChain } from './hedera/evm-client.js';
+import { recordConsentOnChain, isConsentValidOnChain } from './hedera/evm-client.js';
 
 dotenv.config();
 
@@ -113,6 +113,9 @@ async function main() {
  */
 async function processSystem(systemConfig, hederaContext) {
   const { consentTopicId, dataTopicId, client } = hederaContext;
+  const consentManagerAddress = process.env.CONSENT_MANAGER_ADDRESS;
+  const requireOnchainConsent =
+    process.env.REQUIRE_ONCHAIN_CONSENT === 'true' && !!consentManagerAddress;
 
   // Step 1: Extract data
   const extractor = new UniversalExtractor(systemConfig);
@@ -134,6 +137,16 @@ async function processSystem(systemConfig, hederaContext) {
   console.log(`\n   Unique Patients: ${patientMapping.size}`);
 
   // Step 3: Process and anonymize resources
+  // --------------------------------------
+  // For each resource type:
+  // - Run the generic resource handler to:
+  //   - Normalize FHIR resources into a shared "processed" shape that includes anonymousPatientId
+  //   - Produce a Stage 1 (storage) anonymized payload for each resource
+  // - While processing Patient resources, we also build a patientDataHashes map:
+  //   Map<anonymousPatientId, storageHash> where storageHash = hash of all Stage 1 records
+  //   for that patient. This hash (H1) is used later to:
+  //   - Create a single consent proof per patient (no PII, only anonymousPatientId + hashes)
+  //   - Link Storage H1 and Chain H2 in a provenance record stored on Hedera HCS.
   console.log('\n2. Processing and anonymizing resources...');
   const hospitalInfo = {
     country: process.env.HOSPITAL_COUNTRY || systemConfig.hospitalCountry || 'Unknown',
@@ -147,10 +160,13 @@ async function processSystem(systemConfig, hederaContext) {
     upi: null // Will be looked up if needed
   };
 
+  // All processed resources (Stage 1 payload + normalized FHIR resource with anonymousPatientId)
   const processedResources = [];
+
+  // Map of per-patient Stage 1 data hash (H1), used for consent + provenance linking
   const patientDataHashes = new Map();
 
-  // Process each resource type
+  // Process each resource type and build per-patient storage hashes (H1)
   for (const [resourceType, resources] of Object.entries(extractionResult.resources)) {
     if (resources.length === 0) continue;
 
@@ -185,6 +201,78 @@ async function processSystem(systemConfig, hederaContext) {
 
   console.log(`   ✓ Processed ${processedResources.length} resources\n`);
 
+  // OPTIONAL: Consent-first mode (for direct EMR integrations)
+  //
+  // When REQUIRE_ONCHAIN_CONSENT=true and CONSENT_MANAGER_ADDRESS is configured,
+  // the adapter will:
+  //   1. Check the ConsentManager contract for each anonymousPatientId
+  //   2. ONLY keep resources for patients who already have an active on-chain consent
+  //   3. Skip storage + HCS submissions for patients without valid on-chain consent
+  //
+  // This is intended for production EMR integrations where consent is collected
+  // at the hospital (e.g., via patient app or hospital workflow) and written to
+  // the ConsentManager contract BEFORE any data extraction.
+  let filteredResources = processedResources;
+  let filteredPatientDataHashes = patientDataHashes;
+
+  if (requireOnchainConsent) {
+    console.log('3. Verifying existing on-chain consent before storing data...');
+
+    const anonymousIds = new Set();
+    for (const processed of processedResources) {
+      const anonymousPatientId =
+        processed.processed.anonymousPatientId || processed.processed.id || null;
+      if (anonymousPatientId) {
+        anonymousIds.add(anonymousPatientId);
+      }
+    }
+
+    const allowedIds = new Set();
+    for (const anonymousId of anonymousIds) {
+      const isValid = await isConsentValidOnChain(
+        client,
+        consentManagerAddress,
+        anonymousId
+      );
+      if (isValid) {
+        allowedIds.add(anonymousId);
+      } else {
+        console.warn(
+          `   ⚠️  Skipping patient ${anonymousId} - no valid consent found on-chain`
+        );
+      }
+    }
+
+    filteredResources = processedResources.filter((processed) => {
+      const anonymousPatientId =
+        processed.processed.anonymousPatientId || processed.processed.id || null;
+      return anonymousPatientId && allowedIds.has(anonymousPatientId);
+    });
+
+    filteredPatientDataHashes = new Map(
+      Array.from(patientDataHashes.entries()).filter(([anonymousId]) =>
+        allowedIds.has(anonymousId)
+      )
+    );
+
+    console.log(
+      `   ✓ ${filteredPatientDataHashes.size}/${patientDataHashes.size} patients have valid on-chain consent\n`
+    );
+
+    if (filteredResources.length === 0) {
+      console.log(
+        '   ⚠️  No patients with valid on-chain consent. Skipping storage and HCS submissions for this system.\n'
+      );
+      await extractor.disconnect();
+      return {
+        summary: extractionResult.summary,
+        processed: 0,
+        consentProofs: 0,
+        dataProofs: 0
+      };
+    }
+  }
+
   // Step 4: Store to backend
   console.log('3. Storing resources to backend...');
   const apiKey = systemConfig.connection?.apiKey || process.env.HOSPITAL_API_KEY;
@@ -192,7 +280,7 @@ async function processSystem(systemConfig, hederaContext) {
   if (apiKey && systemConfig.hospitalId) {
     try {
       const storageResult = await storeFHIRResources(
-        processedResources,
+        filteredResources,
         systemConfig.hospitalId,
         apiKey
       );
@@ -208,7 +296,7 @@ async function processSystem(systemConfig, hederaContext) {
   console.log('4. Submitting consent proofs to HCS...');
   const consentResults = [];
 
-  for (const [anonymousId, dataHash] of patientDataHashes) {
+  for (const [anonymousId, dataHash] of filteredPatientDataHashes) {
     try {
       const consentHash = hashBatch([{ anonymousId, dataHash, timestamp: new Date().toISOString() }]);
       const transactionId = await submitMessage(client, consentTopicId, consentHash);
@@ -244,7 +332,7 @@ async function processSystem(systemConfig, hederaContext) {
   console.log('5. Applying Stage 2 (Chain) anonymization and submitting provenance proofs to HCS...');
   const dataResults = [];
 
-  for (const processed of processedResources) {
+  for (const processed of filteredResources) {
     try {
       // Stage 1: Storage anonymization (already done in processFHIRResource)
       const storageHash = hashPatientRecord(processed.anonymized);

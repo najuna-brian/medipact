@@ -1,14 +1,19 @@
 /**
  * Hedera EVM Client
- * 
+ *
  * Handles smart contract interactions on Hedera EVM:
- * - ConsentManager contract for recording consent proofs
+ * - ConsentManager contract for managing patient consent proofs
  * - RevenueSplitter contract for executing payouts
+ *
+ * IMPORTANT:
+ * - All consent-related functions here are designed to work with ANONYMOUS patient IDs only.
+ * - NO PII (name, phone, hospital MRN, etc.) should ever be sent to the contract.
  */
 
 import {
   ContractExecuteTransaction,
   ContractFunctionParameters,
+  ContractCallQuery,
   TransferTransaction,
   Hbar,
   HbarUnit,
@@ -66,6 +71,43 @@ export async function recordConsentOnChain(
   } catch (error) {
     console.error('Error recording consent on-chain:', error);
     throw error;
+  }
+}
+
+/**
+ * Check if consent exists and is valid on-chain using ConsentManager contract.
+ * This is a READ-ONLY operation (no HBAR spend for state changes).
+ *
+ * @param {Client} client - Hedera client
+ * @param {string} consentManagerAddress - Contract address (EVM format: 0x...)
+ * @param {string} anonymousPatientId - Anonymous patient ID (e.g., PID-001)
+ * @returns {Promise<boolean>} True if consent exists and is valid, false otherwise
+ */
+export async function isConsentValidOnChain(
+  client,
+  consentManagerAddress,
+  anonymousPatientId
+) {
+  try {
+    const contractId = ContractId.fromEvmAddress(0, 0, consentManagerAddress);
+
+    const functionParameters = new ContractFunctionParameters().addString(
+      anonymousPatientId
+    );
+
+    const query = new ContractCallQuery()
+      .setContractId(contractId)
+      .setGas(100000)
+      .setFunction('isConsentValid', functionParameters);
+
+    const response = await query.execute(client);
+    return response.getBool(0);
+  } catch (error) {
+    // If contract reverts with ConsentNotFound or similar, treat as no consent
+    console.warn(
+      `   ⚠️  On-chain consent check failed for ${anonymousPatientId}: ${error.message}`
+    );
+    return false;
   }
 }
 

@@ -1,8 +1,20 @@
 /**
- * MediPact Adapter - Main Entry Point
- * 
- * This script processes hospital EHR data, anonymizes it, and submits
- * proof hashes to Hedera Consensus Service (HCS).
+ * MediPact CSV Adapter - Main Entry Point
+ *
+ * PRIMARY USE-CASE (TODAY):
+ * - Hospital uploads a CSV export of EHR data (no direct EMR integration needed)
+ * - Adapter applies DOUBLE ANONYMIZATION:
+ *   - Stage 1: Storage anonymization (kept in MediPact backend)
+ *   - Stage 2: Chain anonymization (max privacy for blockchain proofs)
+ * - Adapter generates:
+ *   - Consent proofs on Hedera HCS (per patient, NO PII)
+ *   - Optional on-chain consent records in ConsentManager (per anonymous patient ID)
+ *   - Provenance records linking Storage H1 and Chain H2 for each record
+ *
+ * IMPORTANT:
+ * - This adapter is currently the "consent CREATION" path for CSV uploads.
+ * - The consent-FIRST pre-check (checking ConsentManager before processing) is implemented
+ *   in the universal EMR adapter (index-universal.js) and can be extended here later.
  */
 
 import path from 'path';
