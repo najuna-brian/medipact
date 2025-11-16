@@ -116,53 +116,87 @@ router.get('/:hospitalId/patients', authenticateHospital, async (req, res) => {
     
     // Get distinct patients from FHIR resources (CSV uploads)
     // Count by UPI to avoid duplicates - same patient, different encounters = one patient
+    // Handle missing tables gracefully (FHIR tables may not exist if migration hasn't run)
     let fhirPatients = [];
-    if (dbType === 'postgresql') {
-      const result = await all(
-        `SELECT DISTINCT ON (upi)
-          anonymous_patient_id as "anonymousPatientId",
-          upi,
-          hospital_id as "hospitalId",
-          created_at as "createdAt",
-          (SELECT COUNT(*) FROM fhir_encounters WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1) as "encounterCount",
-          (SELECT COUNT(*) FROM fhir_conditions WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1) as "conditionCount",
-          (SELECT COUNT(*) FROM fhir_observations WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1) as "observationCount"
-        FROM fhir_patients fp
-        WHERE hospital_id = $1 AND upi IS NOT NULL
-        ORDER BY upi, created_at DESC`,
-        [hospitalId]
-      );
-      fhirPatients = result.rows || result;
-    } else {
-      // SQLite - get distinct UPIs with latest record info
-      const rows = await all(
-        `SELECT 
-          fp1.anonymous_patient_id as anonymousPatientId,
-          fp1.upi,
-          fp1.hospital_id as hospitalId,
-          fp1.created_at as createdAt,
-          (SELECT COUNT(*) FROM fhir_encounters WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?) as encounterCount,
-          (SELECT COUNT(*) FROM fhir_conditions WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?) as conditionCount,
-          (SELECT COUNT(*) FROM fhir_observations WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?) as observationCount
-        FROM fhir_patients fp1
-        INNER JOIN (
-          SELECT upi, MAX(created_at) as max_created
-          FROM fhir_patients
-          WHERE hospital_id = ? AND upi IS NOT NULL
-          GROUP BY upi
-        ) fp2 ON fp1.upi = fp2.upi AND fp1.created_at = fp2.max_created
-        WHERE fp1.hospital_id = ?`,
-        [hospitalId, hospitalId, hospitalId, hospitalId, hospitalId]
-      );
-      fhirPatients = rows.map(row => ({
-        anonymousPatientId: row.anonymousPatientId,
-        upi: row.upi,
-        hospitalId: row.hospitalId,
-        createdAt: row.createdAt,
-        encounterCount: row.encounterCount,
-        conditionCount: row.conditionCount,
-        observationCount: row.observationCount
-      }));
+    try {
+      if (dbType === 'postgresql') {
+        // Check if fhir_encounters table exists
+        const { get } = await import('../db/database.js');
+        const tableCheck = await get(
+          `SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'fhir_encounters'
+          ) as exists`
+        );
+        const hasEncountersTable = tableCheck?.exists || false;
+        
+        const result = await all(
+          `SELECT DISTINCT ON (upi)
+            anonymous_patient_id as "anonymousPatientId",
+            upi,
+            hospital_id as "hospitalId",
+            created_at as "createdAt",
+            ${hasEncountersTable ? `(SELECT COUNT(*) FROM fhir_encounters WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1)` : '0'} as "encounterCount",
+            (SELECT COUNT(*) FROM fhir_conditions WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1) as "conditionCount",
+            (SELECT COUNT(*) FROM fhir_observations WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1) as "observationCount"
+          FROM fhir_patients fp
+          WHERE hospital_id = $1 AND upi IS NOT NULL
+          ORDER BY upi, created_at DESC`,
+          [hospitalId]
+        );
+        fhirPatients = result.rows || result;
+      } else {
+        // SQLite - check if table exists
+        const { get } = await import('../db/database.js');
+        let hasEncountersTable = false;
+        try {
+          const tableCheck = await get(
+            `SELECT name FROM sqlite_master WHERE type='table' AND name='fhir_encounters'`
+          );
+          hasEncountersTable = !!tableCheck;
+        } catch (e) {
+          // Table doesn't exist
+        }
+        
+        // SQLite - get distinct UPIs with latest record info
+        const rows = await all(
+          `SELECT 
+            fp1.anonymous_patient_id as anonymousPatientId,
+            fp1.upi,
+            fp1.hospital_id as hospitalId,
+            fp1.created_at as createdAt,
+            ${hasEncountersTable ? `(SELECT COUNT(*) FROM fhir_encounters WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?)` : '0'} as encounterCount,
+            (SELECT COUNT(*) FROM fhir_conditions WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?) as conditionCount,
+            (SELECT COUNT(*) FROM fhir_observations WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?) as observationCount
+          FROM fhir_patients fp1
+          INNER JOIN (
+            SELECT upi, MAX(created_at) as max_created
+            FROM fhir_patients
+            WHERE hospital_id = ? AND upi IS NOT NULL
+            GROUP BY upi
+          ) fp2 ON fp1.upi = fp2.upi AND fp1.created_at = fp2.max_created
+          WHERE fp1.hospital_id = ?`,
+          [hospitalId, hospitalId, hospitalId, hospitalId, hospitalId]
+        );
+        fhirPatients = rows.map(row => ({
+          anonymousPatientId: row.anonymousPatientId,
+          upi: row.upi,
+          hospitalId: row.hospitalId,
+          createdAt: row.createdAt,
+          encounterCount: parseInt(row.encounterCount || 0),
+          conditionCount: parseInt(row.conditionCount || 0),
+          observationCount: parseInt(row.observationCount || 0)
+        }));
+      }
+    } catch (error) {
+      // If fhir_patients table doesn't exist, just return empty array
+      if (error.message.includes('does not exist') || error.message.includes('no such table')) {
+        console.warn('FHIR tables not found, returning empty patient list:', error.message);
+        fhirPatients = [];
+      } else {
+        throw error;
+      }
     }
     
     // Combine both sources, using UPI as the unique key
