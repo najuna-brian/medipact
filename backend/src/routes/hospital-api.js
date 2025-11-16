@@ -476,8 +476,9 @@ router.post('/upload-csv', authenticateHospital, upload.single('file'), async (r
     }
 
     // Parse adapter output to extract results
-    const consentTopicMatch = stdout.match(/Consent Topic: (0\.0\.\d+)/);
-    const dataTopicMatch = stdout.match(/Data Topic: (0\.0\.\d+)/);
+    // Adapter outputs "✓ Consent Topic: 0.0.xxxxx" or "Consent Topic: 0.0.xxxxx"
+    const consentTopicMatch = stdout.match(/[✓]?\s*Consent Topic: (0\.0\.\d+)/);
+    const dataTopicMatch = stdout.match(/[✓]?\s*Data Topic: (0\.0\.\d+)/);
     // Match actual adapter output format
     const recordsMatch = stdout.match(/FHIR resources processed: (\d+)/) || 
                          stdout.match(/CSV records read: (\d+)/);
