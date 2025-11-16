@@ -196,8 +196,7 @@ CREATE TABLE IF NOT EXISTS fhir_conditions (
 
 CREATE INDEX idx_fhir_conditions_patient ON fhir_conditions(anonymous_patient_id);
 CREATE INDEX idx_fhir_conditions_upi ON fhir_conditions(upi);
-CREATE INDEX idx_fhir_conditions_icd10 ON fhir_conditions(condition_code_icd10);
-CREATE INDEX idx_fhir_conditions_snomed ON fhir_conditions(condition_code_snomed);
+CREATE INDEX IF NOT EXISTS idx_fhir_conditions_code ON fhir_conditions(condition_code);
 CREATE INDEX idx_fhir_conditions_name ON fhir_conditions(condition_name);
 CREATE INDEX idx_fhir_conditions_diagnosis_date ON fhir_conditions(diagnosis_date);
 CREATE INDEX idx_fhir_conditions_status ON fhir_conditions(status);
@@ -314,11 +313,9 @@ CREATE TABLE IF NOT EXISTS fhir_observations (
 
 CREATE INDEX idx_fhir_observations_patient ON fhir_observations(anonymous_patient_id);
 CREATE INDEX idx_fhir_observations_upi ON fhir_observations(upi);
-CREATE INDEX idx_fhir_observations_loinc ON fhir_observations(observation_code_loinc);
+CREATE INDEX IF NOT EXISTS idx_fhir_observations_code ON fhir_observations(observation_code);
 CREATE INDEX idx_fhir_observations_name ON fhir_observations(observation_name);
-CREATE INDEX idx_fhir_observations_category ON fhir_observations(category_code);
 CREATE INDEX idx_fhir_observations_effective_date ON fhir_observations(effective_date);
-CREATE INDEX idx_fhir_observations_encounter ON fhir_observations(encounter_id_ref);
 CREATE INDEX idx_fhir_observations_hospital ON fhir_observations(hospital_id);
 
 -- Observation Components (for panels like CBC)
