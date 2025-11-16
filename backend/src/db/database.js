@@ -429,7 +429,19 @@ async function createPostgreSQLTables() {
       AND schemaname = 'public'
     `);
     if (emailIndexCheck.rows.length === 0) {
-      await client.query(`CREATE UNIQUE INDEX idx_contacts_email_unique ON patient_contacts(email) WHERE email IS NOT NULL`);
+      // Check for duplicates before creating index
+      const duplicateEmails = await client.query(`
+        SELECT email, COUNT(*) as count 
+        FROM patient_contacts 
+        WHERE email IS NOT NULL 
+        GROUP BY email 
+        HAVING COUNT(*) > 1
+      `);
+      if (duplicateEmails.rows.length > 0) {
+        console.warn(`Warning: Cannot create unique index on patient_contacts.email - ${duplicateEmails.rows.length} duplicate email(s) found. Index will be created after duplicates are resolved.`);
+      } else {
+        await client.query(`CREATE UNIQUE INDEX idx_contacts_email_unique ON patient_contacts(email) WHERE email IS NOT NULL`);
+      }
     }
   } catch (error) {
     // Index might already exist or duplicates might exist - log and continue
@@ -444,7 +456,19 @@ async function createPostgreSQLTables() {
       AND schemaname = 'public'
     `);
     if (phoneIndexCheck.rows.length === 0) {
-      await client.query(`CREATE UNIQUE INDEX idx_contacts_phone_unique ON patient_contacts(phone) WHERE phone IS NOT NULL`);
+      // Check for duplicates before creating index
+      const duplicatePhones = await client.query(`
+        SELECT phone, COUNT(*) as count 
+        FROM patient_contacts 
+        WHERE phone IS NOT NULL 
+        GROUP BY phone 
+        HAVING COUNT(*) > 1
+      `);
+      if (duplicatePhones.rows.length > 0) {
+        console.warn(`Warning: Cannot create unique index on patient_contacts.phone - ${duplicatePhones.rows.length} duplicate phone(s) found. Index will be created after duplicates are resolved.`);
+      } else {
+        await client.query(`CREATE UNIQUE INDEX idx_contacts_phone_unique ON patient_contacts(phone) WHERE phone IS NOT NULL`);
+      }
     }
   } catch (error) {
     // Index might already exist or duplicates might exist - log and continue
