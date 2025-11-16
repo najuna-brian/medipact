@@ -10,6 +10,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +19,7 @@ import {
   useVerificationStatus,
   useHospitalPatients,
   useHospital,
+  useHospitalConsentStats,
 } from '@/hooks/usePatientIdentity';
 import { useRouter } from 'next/navigation';
 import { HederaAccountId } from '@/components/HederaAccountId/HederaAccountId';
@@ -36,6 +38,10 @@ export default function HospitalDashboardPage() {
     apiKey
   );
   const { data: hospitalData } = useHospital(hospitalId, apiKey);
+  const { data: consentStats, isLoading: consentStatsLoading } = useHospitalConsentStats(
+    hospitalId,
+    apiKey
+  );
 
   // Listen for hospital verification updates from admin
   useEffect(() => {
@@ -191,7 +197,7 @@ export default function HospitalDashboardPage() {
             </Card>
           )}
 
-          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Patients Enrolled</CardTitle>
@@ -211,30 +217,49 @@ export default function HospitalDashboardPage() {
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
+                <div className="text-2xl font-bold">
+                  {consentStatsLoading ? '...' : consentStats?.totalRecords || 0}
+                </div>
                 <p className="text-xs text-muted-foreground">Medical records</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Hospital Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Consent Status</CardTitle>
+                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0 HBAR</div>
-                <p className="text-xs text-muted-foreground">25% of total</p>
+                <div className="text-2xl font-bold">
+                  {consentStatsLoading ? '...' : consentStats?.patientsWithOnChainConsent || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">Patients with on-chain consent</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending Uploads</CardTitle>
-                <Upload className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Active Consents</CardTitle>
+                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">Files to process</p>
+                <div className="text-2xl font-bold">
+                  {consentStatsLoading ? '...' : consentStats?.totalActiveConsents || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">Total active consents</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Consented Records</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {consentStatsLoading ? '...' : consentStats?.recordsWithActiveConsent || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">Records with active consent</p>
               </CardContent>
             </Card>
           </div>

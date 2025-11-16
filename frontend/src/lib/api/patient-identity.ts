@@ -316,6 +316,35 @@ export async function submitVerificationDocuments(
 /**
  * Get verification status
  */
+export interface ConsentStatistics {
+  patientsWithOnChainConsent: number;
+  totalActiveConsents: number;
+  recordsWithActiveConsent: number;
+  totalRecords: number;
+}
+
+/**
+ * Get consent statistics for a hospital
+ */
+export async function getConsentStatistics(
+  hospitalId: string,
+  apiKey: string
+): Promise<ConsentStatistics> {
+  const trimmedHospitalId = hospitalId.trim();
+  const trimmedApiKey = apiKey.trim();
+  
+  const response = await patientIdentityClient.get(
+    `/hospital/${trimmedHospitalId}/consent/statistics`,
+    {
+      headers: {
+        'X-Hospital-ID': trimmedHospitalId,
+        'X-API-Key': trimmedApiKey,
+      },
+    }
+  );
+  return response.data;
+}
+
 export async function getVerificationStatus(
   hospitalId: string,
   apiKey: string

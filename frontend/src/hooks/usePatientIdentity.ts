@@ -25,6 +25,7 @@ import {
   getHospitalPatients,
   registerHospitalPatient,
   bulkRegisterPatients,
+  getConsentStatistics,
   type PatientPII,
   type HospitalInfo,
   // type Patient,
@@ -35,6 +36,7 @@ import {
   type PatientLookupRequest,
   type VerificationDocuments,
   type BulkRegistrationRequest,
+  type ConsentStatistics,
 } from '@/lib/api/patient-identity';
 
 // Health Check
@@ -330,6 +332,25 @@ export function useBulkRegisterPatients() {
       // Invalidate specific hospital's patient list
       queryClient.invalidateQueries({ queryKey: ['hospital', 'patients', variables.hospitalId] });
     },
+  });
+}
+
+// Hospital Consent Statistics
+export function useHospitalConsentStats(hospitalId: string | null, apiKey: string | null) {
+  const hasValidCredentials = !!hospitalId && !!apiKey && hospitalId.trim().length > 0 && apiKey.trim().length > 0;
+  
+  return useQuery<ConsentStatistics>({
+    queryKey: ['hospital', 'consent-stats', hospitalId],
+    queryFn: () => {
+      if (!hospitalId || !apiKey) {
+        throw new Error('Hospital credentials required');
+      }
+      return getConsentStatistics(hospitalId.trim(), apiKey.trim());
+    },
+    enabled: hasValidCredentials,
+    refetchInterval: 60000, // Refetch every minute
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 }
 
