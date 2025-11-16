@@ -420,8 +420,38 @@ async function createPostgreSQLTables() {
   await client.query(`CREATE INDEX IF NOT EXISTS idx_contacts_phone ON patient_contacts(phone)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_contacts_national_id ON patient_contacts(national_id)`);
   // Enforce global uniqueness for email and phone (non-null) to prevent duplicates across patients
-  await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_email_unique ON patient_contacts(email) WHERE email IS NOT NULL`);
-  await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_phone_unique ON patient_contacts(phone) WHERE phone IS NOT NULL`);
+  // Wrap in try-catch because IF NOT EXISTS doesn't prevent errors if duplicates exist
+  try {
+    // Check if index exists first
+    const emailIndexCheck = await client.query(`
+      SELECT 1 FROM pg_indexes 
+      WHERE indexname = 'idx_contacts_email_unique' 
+      AND schemaname = 'public'
+    `);
+    if (emailIndexCheck.rows.length === 0) {
+      await client.query(`CREATE UNIQUE INDEX idx_contacts_email_unique ON patient_contacts(email) WHERE email IS NOT NULL`);
+    }
+  } catch (error) {
+    // Index might already exist or duplicates might exist - log and continue
+    if (!error.message.includes('already exists') && !error.message.includes('duplicate key')) {
+      console.warn('Warning: Could not create unique index on patient_contacts.email:', error.message);
+    }
+  }
+  try {
+    const phoneIndexCheck = await client.query(`
+      SELECT 1 FROM pg_indexes 
+      WHERE indexname = 'idx_contacts_phone_unique' 
+      AND schemaname = 'public'
+    `);
+    if (phoneIndexCheck.rows.length === 0) {
+      await client.query(`CREATE UNIQUE INDEX idx_contacts_phone_unique ON patient_contacts(phone) WHERE phone IS NOT NULL`);
+    }
+  } catch (error) {
+    // Index might already exist or duplicates might exist - log and continue
+    if (!error.message.includes('already exists') && !error.message.includes('duplicate key')) {
+      console.warn('Warning: Could not create unique index on patient_contacts.phone:', error.message);
+    }
+  }
   await client.query(`CREATE INDEX IF NOT EXISTS idx_preferences_upi ON patient_data_preferences(upi)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_approvals_upi ON patient_researcher_approvals(upi)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_approvals_researcher ON patient_researcher_approvals(researcher_id)`);
