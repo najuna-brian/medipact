@@ -353,7 +353,7 @@ export default function HospitalDashboardPage() {
                               {patient.verified ? 'Verified' : 'Pending'}
                             </Badge>
                             {patient.source === 'csv_upload' && (
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="info" className="text-xs">
                                 CSV
                               </Badge>
                             )}
