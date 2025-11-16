@@ -332,6 +332,30 @@ async function createPostgreSQLTables() {
     )
   `);
 
+  // Processing History Table
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS processing_history (
+      id SERIAL PRIMARY KEY,
+      hospital_id VARCHAR(32) NOT NULL,
+      file_name VARCHAR(255) NOT NULL,
+      records_processed INTEGER NOT NULL DEFAULT 0,
+      consent_proofs INTEGER NOT NULL DEFAULT 0,
+      data_proofs INTEGER NOT NULL DEFAULT 0,
+      consent_topic_id VARCHAR(50),
+      data_topic_id VARCHAR(50),
+      status VARCHAR(20) NOT NULL DEFAULT 'processing',
+      processed_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (status IN ('processing', 'completed', 'failed'))
+    )
+  `);
+
+  // Create index for faster queries
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS idx_processing_history_hospital_id 
+    ON processing_history(hospital_id, created_at DESC)
+  `);
+
   // Admins Table
   await client.query(`
     CREATE TABLE IF NOT EXISTS admins (
@@ -1128,6 +1152,30 @@ async function createSQLiteTables() {
       CHECK (user_type IN ('patient', 'hospital')),
       CHECK (payment_method IN ('bank', 'mobile_money'))
     )
+  `);
+
+  // Processing History Table
+  await run(`
+    CREATE TABLE IF NOT EXISTS processing_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      hospital_id VARCHAR(32) NOT NULL,
+      file_name VARCHAR(255) NOT NULL,
+      records_processed INTEGER NOT NULL DEFAULT 0,
+      consent_proofs INTEGER NOT NULL DEFAULT 0,
+      data_proofs INTEGER NOT NULL DEFAULT 0,
+      consent_topic_id VARCHAR(50),
+      data_topic_id VARCHAR(50),
+      status VARCHAR(20) NOT NULL DEFAULT 'processing',
+      processed_at TIMESTAMP,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (status IN ('processing', 'completed', 'failed'))
+    )
+  `);
+
+  // Create index for faster queries
+  await run(`
+    CREATE INDEX IF NOT EXISTS idx_processing_history_hospital_id 
+    ON processing_history(hospital_id, created_at DESC)
   `);
 
   // Admins Table

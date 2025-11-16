@@ -326,6 +326,42 @@ export interface ConsentStatistics {
 /**
  * Get consent statistics for a hospital
  */
+export interface ProcessingHistoryItem {
+  id: number;
+  hospitalId: string;
+  fileName: string;
+  recordsProcessed: number;
+  consentProofs: number;
+  dataProofs: number;
+  consentTopicId: string | null;
+  dataTopicId: string | null;
+  status: 'processing' | 'completed' | 'failed';
+  processedAt: string | null;
+  createdAt: string;
+}
+
+/**
+ * Get processing history for a hospital
+ */
+export async function getProcessingHistory(
+  hospitalId: string,
+  apiKey: string,
+  limit: number = 50
+): Promise<ProcessingHistoryItem[]> {
+  const trimmedHospitalId = hospitalId.trim();
+  const trimmedApiKey = apiKey.trim();
+  const response = await patientIdentityClient.get(
+    `/hospital/${trimmedHospitalId}/processing-history?limit=${limit}`,
+    {
+      headers: {
+        'X-Hospital-ID': trimmedHospitalId,
+        'X-API-Key': trimmedApiKey,
+      },
+    }
+  );
+  return response.data;
+}
+
 export async function getConsentStatistics(
   hospitalId: string,
   apiKey: string

@@ -337,6 +337,30 @@ router.get('/:hospitalId/consent/statistics', authenticateHospital, async (req, 
 });
 
 /**
+ * GET /api/hospital/:hospitalId/processing-history
+ * Get processing history for a hospital
+ */
+router.get('/:hospitalId/processing-history', authenticateHospital, async (req, res) => {
+  try {
+    const { hospitalId } = req.params;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    // Verify hospital ID matches authenticated hospital
+    if (hospitalId !== req.hospitalId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { getProcessingHistory } = await import('../db/processing-history-db.js');
+    const history = await getProcessingHistory(hospitalId, limit);
+    
+    res.json(history);
+  } catch (error) {
+    console.error('Error fetching processing history:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * POST /api/hospital/upload-csv
  * Upload and process CSV file using the adapter
  */
@@ -486,6 +510,19 @@ router.post('/upload-csv', authenticateHospital, upload.single('file'), async (r
 
     // Clean up input file
     await fs.unlink(inputFile).catch(() => {});
+
+    // Save processing history
+    const { createProcessingHistory } = await import('../db/processing-history-db.js');
+    await createProcessingHistory({
+      hospitalId,
+      fileName: req.file.originalname,
+      recordsProcessed,
+      consentProofs,
+      dataProofs,
+      consentTopicId,
+      dataTopicId,
+      status: 'completed',
+    });
 
     res.json({
       recordsProcessed,

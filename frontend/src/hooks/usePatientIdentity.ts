@@ -26,8 +26,10 @@ import {
   registerHospitalPatient,
   bulkRegisterPatients,
   getConsentStatistics,
+  getProcessingHistory,
   type PatientPII,
   type HospitalInfo,
+  type ProcessingHistoryItem,
   // type Patient,
   // type Hospital,
   // type HospitalLinkage,
@@ -349,6 +351,25 @@ export function useHospitalConsentStats(hospitalId: string | null, apiKey: strin
     },
     enabled: hasValidCredentials,
     refetchInterval: 60000, // Refetch every minute
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+  });
+}
+
+// Get Processing History
+export function useProcessingHistory(hospitalId: string | null, apiKey: string | null, limit: number = 50) {
+  const hasValidCredentials = !!hospitalId && !!apiKey && hospitalId.trim().length > 0 && apiKey.trim().length > 0;
+  
+  return useQuery<ProcessingHistoryItem[]>({
+    queryKey: ['hospital', 'processing-history', hospitalId, limit],
+    queryFn: () => {
+      if (!hospitalId || !apiKey) {
+        throw new Error('Hospital credentials required');
+      }
+      return getProcessingHistory(hospitalId.trim(), apiKey.trim(), limit);
+    },
+    enabled: hasValidCredentials,
+    refetchInterval: 30000, // Refetch every 30 seconds to show new uploads
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
