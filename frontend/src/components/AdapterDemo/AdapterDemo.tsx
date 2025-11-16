@@ -32,7 +32,14 @@ export default function AdapterDemo() {
     setResult(null);
 
     try {
-      processMutation.mutate(file, {
+      // Use demo hospital info for the demo component
+      processMutation.mutate({
+        file,
+        hospitalId: 'DEMO-HOSPITAL',
+        hospitalCountry: 'Uganda',
+        hospitalLocation: 'Demo Location',
+        apiKey: 'demo-api-key',
+      }, {
         onSuccess: (data) => {
           setResult(data);
           setStatus({ status: 'completed', progress: 100, message: 'Processing completed!' });
