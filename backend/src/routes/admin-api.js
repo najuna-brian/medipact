@@ -727,24 +727,32 @@ router.post('/migrate/fhir', async (req, res) => {
     if (dbType === 'postgresql') {
       // PostgreSQL migration - parse the schema string
       // Split schema into individual CREATE TABLE statements
-      const statements = completeSchema.split('CREATE TABLE').filter(s => s.trim());
+      // Use regex to find complete CREATE TABLE statements (up to closing );)
+      const tableStatements = [];
+      const tableRegex = /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)[\s\S]*?\);?/gi;
+      let match;
       
-      for (let i = 0; i < statements.length; i++) {
-        const statement = 'CREATE TABLE' + statements[i].trim();
+      while ((match = tableRegex.exec(completeSchema)) !== null) {
+        let statement = match[0].trim();
+        const tableName = match[1];
         
-        // Extract table name
-        const tableMatch = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)/i);
-        if (!tableMatch) continue;
+        // Ensure statement ends with semicolon
+        if (!statement.endsWith(';')) {
+          statement += ';';
+        }
         
-        const tableName = tableMatch[1];
+        // Ensure IF NOT EXISTS is present
+        if (!statement.includes('IF NOT EXISTS')) {
+          statement = statement.replace(/CREATE TABLE\s+/, 'CREATE TABLE IF NOT EXISTS ');
+        }
         
+        tableStatements.push({ tableName, statement });
+      }
+      
+      // Create tables
+      for (const { tableName, statement } of tableStatements) {
         try {
-          // Ensure IF NOT EXISTS is present
-          const sql = statement.includes('IF NOT EXISTS')
-            ? statement
-            : statement.replace(/CREATE TABLE\s+/, 'CREATE TABLE IF NOT EXISTS ');
-          
-          await db.query(sql);
+          await db.query(statement);
           results.tablesCreated.push(tableName);
           console.log(`[ADMIN API] Created table: ${tableName}`);
         } catch (error) {
@@ -754,6 +762,7 @@ router.post('/migrate/fhir', async (req, res) => {
           } else {
             results.errors.push({ table: tableName, error: error.message });
             console.error(`[ADMIN API] Error creating table ${tableName}:`, error.message);
+            // Continue with other tables - don't fail the entire migration
           }
         }
       }
