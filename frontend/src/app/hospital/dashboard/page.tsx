@@ -330,20 +330,37 @@ export default function HospitalDashboardPage() {
                   </div>
                 ) : patientsData && patientsData.patients.length > 0 ? (
                   <div className="space-y-2">
-                    {patientsData.patients.slice(0, 5).map((patient) => (
-                      <div
-                        key={patient.upi}
-                        className="flex items-center justify-between rounded-lg border p-2"
-                      >
-                        <div>
-                          <p className="text-sm font-medium">{patient.hospitalPatientId}</p>
-                          <p className="font-mono text-xs text-muted-foreground">{patient.upi}</p>
+                    {patientsData.patients.slice(0, 5).map((patient) => {
+                      const totalRecords = (patient.encounterCount || 0) + 
+                                          (patient.conditionCount || 0) + 
+                                          (patient.observationCount || 0);
+                      return (
+                        <div
+                          key={patient.upi}
+                          className="flex items-center justify-between rounded-lg border p-2"
+                        >
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{patient.hospitalPatientId}</p>
+                            <p className="font-mono text-xs text-muted-foreground">{patient.upi}</p>
+                            {totalRecords > 0 && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {totalRecords} record{totalRecords !== 1 ? 's' : ''}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge variant={patient.verified ? 'success' : 'warning'}>
+                              {patient.verified ? 'Verified' : 'Pending'}
+                            </Badge>
+                            {patient.source === 'csv_upload' && (
+                              <Badge variant="outline" className="text-xs">
+                                CSV
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                        <Badge variant={patient.verified ? 'success' : 'warning'}>
-                          {patient.verified ? 'Verified' : 'Pending'}
-                        </Badge>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {patientsData.patients.length > 5 && (
                       <p className="pt-2 text-center text-xs text-muted-foreground">
                         +{patientsData.patients.length - 5} more patients

@@ -575,12 +575,20 @@ export interface HospitalPatient {
   hospitalPatientId: string;
   linkedAt: string;
   verified: boolean;
-  verificationMethod: string;
+  verificationMethod: string | null;
+  source?: 'registered' | 'csv_upload';
+  encounterCount?: number;
+  conditionCount?: number;
+  observationCount?: number;
+  hasCSVRecords?: boolean;
 }
 
 export interface HospitalPatientsResponse {
   hospitalId: string;
   totalPatients: number;
+  registeredPatients?: number;
+  csvUploadPatients?: number;
+  totalRecords?: number;
   patients: HospitalPatient[];
 }
 
