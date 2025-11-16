@@ -715,7 +715,7 @@ router.post('/migrate/fhir', async (req, res) => {
     const __dirname = path.dirname(__filename);
     const schemaPath = path.join(__dirname, '../../src/models/fhir-complete-schema.js');
     const schemaModule = await import(schemaPath);
-    const completeSchema = schemaModule.CompleteFHIRSchema;
+    const completeSchema = schemaModule.CompleteFHIRSchema; // This is a string, not an object
     
     const db = getDatabase();
     const results = {
@@ -725,14 +725,24 @@ router.post('/migrate/fhir', async (req, res) => {
     };
     
     if (dbType === 'postgresql') {
-      // PostgreSQL migration
-      for (const tableName in completeSchema.postgresql) {
+      // PostgreSQL migration - parse the schema string
+      // Split schema into individual CREATE TABLE statements
+      const statements = completeSchema.split('CREATE TABLE').filter(s => s.trim());
+      
+      for (let i = 0; i < statements.length; i++) {
+        const statement = 'CREATE TABLE' + statements[i].trim();
+        
+        // Extract table name
+        const tableMatch = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)/i);
+        if (!tableMatch) continue;
+        
+        const tableName = tableMatch[1];
+        
         try {
-          const createTableSQL = completeSchema.postgresql[tableName];
-          // Add IF NOT EXISTS if not present
-          const sql = createTableSQL.includes('IF NOT EXISTS') 
-            ? createTableSQL 
-            : createTableSQL.replace(/CREATE TABLE\s+/, 'CREATE TABLE IF NOT EXISTS ');
+          // Ensure IF NOT EXISTS is present
+          const sql = statement.includes('IF NOT EXISTS')
+            ? statement
+            : statement.replace(/CREATE TABLE\s+/, 'CREATE TABLE IF NOT EXISTS ');
           
           await db.query(sql);
           results.tablesCreated.push(tableName);
@@ -749,24 +759,23 @@ router.post('/migrate/fhir', async (req, res) => {
       }
       
       // Create indexes
-      if (completeSchema.postgresqlIndexes) {
-        for (const indexSQL of completeSchema.postgresqlIndexes) {
-          try {
-            const sql = indexSQL.includes('IF NOT EXISTS')
-              ? indexSQL
-              : indexSQL.replace(/CREATE (UNIQUE )?INDEX\s+/, 'CREATE $1INDEX IF NOT EXISTS ');
-            await db.query(sql);
-          } catch (error) {
-            // Ignore errors for indexes that already exist or have constraint issues
-            if (error.message.includes('already exists') || 
-                error.code === '42P07' || 
-                error.message.includes('unique index') ||
-                error.message.includes('duplicate key')) {
-              console.log(`[ADMIN API] Index already exists or has constraint, skipping: ${indexSQL.substring(0, 50)}...`);
-            } else {
-              results.errors.push({ index: indexSQL.substring(0, 50), error: error.message });
-              console.warn(`[ADMIN API] Index creation warning: ${error.message}`);
-            }
+      const indexStatements = completeSchema.match(/CREATE INDEX[^;]+;/gi) || [];
+      for (const indexStmt of indexStatements) {
+        try {
+          const sql = indexStmt.includes('IF NOT EXISTS')
+            ? indexStmt
+            : indexStmt.replace(/CREATE (UNIQUE )?INDEX\s+/, 'CREATE $1INDEX IF NOT EXISTS ');
+          await db.query(sql);
+        } catch (error) {
+          // Ignore errors for indexes that already exist or have constraint issues
+          if (error.message.includes('already exists') || 
+              error.code === '42P07' || 
+              error.message.includes('unique index') ||
+              error.message.includes('duplicate key')) {
+            console.log(`[ADMIN API] Index already exists or has constraint, skipping: ${indexStmt.substring(0, 50)}...`);
+          } else {
+            results.errors.push({ index: indexStmt.substring(0, 50), error: error.message });
+            console.warn(`[ADMIN API] Index creation warning: ${error.message}`);
           }
         }
       }
@@ -775,18 +784,38 @@ router.post('/migrate/fhir', async (req, res) => {
       const { promisify } = await import('util');
       const run = promisify(db.run.bind(db));
       
-      for (const tableName in completeSchema.sqlite) {
+      // Split on CREATE TABLE but handle both "CREATE TABLE" and "CREATE TABLE IF NOT EXISTS"
+      const statements = completeSchema.split(/(?=CREATE TABLE)/).filter(s => s.trim() && s.includes('CREATE TABLE'));
+      
+      for (let i = 0; i < statements.length; i++) {
+        let statement = statements[i].trim();
+        
+        // Ensure we have "IF NOT EXISTS" for SQLite
+        if (!statement.includes('IF NOT EXISTS')) {
+          statement = statement.replace(/CREATE TABLE\s+/, 'CREATE TABLE IF NOT EXISTS ');
+        }
+        
+        // Adapt for SQLite
+        statement = statement
+          .replace(/SERIAL PRIMARY KEY/g, 'INTEGER PRIMARY KEY AUTOINCREMENT')
+          .replace(/VARCHAR\((\d+)\)/g, 'TEXT')
+          .replace(/TIMESTAMP/g, 'TEXT')
+          .replace(/DATE/g, 'TEXT')
+          .replace(/DECIMAL\([^)]+\)/g, 'REAL')
+          .replace(/JSONB/g, 'TEXT');
+        
+        // Extract table name
+        const tableMatch = statement.match(/CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(\w+)/i);
+        if (!tableMatch) continue;
+        
+        const tableName = tableMatch[1];
+        
         try {
-          const createTableSQL = completeSchema.sqlite[tableName];
-          const sql = createTableSQL.includes('IF NOT EXISTS')
-            ? createTableSQL
-            : createTableSQL.replace(/CREATE TABLE\s+/, 'CREATE TABLE IF NOT EXISTS ');
-          
-          await run(sql);
+          await run(statement);
           results.tablesCreated.push(tableName);
           console.log(`[ADMIN API] Created table: ${tableName}`);
         } catch (error) {
-          if (error.message.includes('already exists')) {
+          if (error.message.includes('already exists') || error.code === 'SQLITE_CONSTRAINT') {
             results.tablesSkipped.push(tableName);
             console.log(`[ADMIN API] Table ${tableName} already exists, skipping`);
           } else {
@@ -796,23 +825,20 @@ router.post('/migrate/fhir', async (req, res) => {
         }
       }
       
-      // Create indexes
-      if (completeSchema.sqliteIndexes) {
-        for (const indexSQL of completeSchema.sqliteIndexes) {
-          try {
-            const sql = indexSQL.includes('IF NOT EXISTS')
-              ? indexSQL
-              : indexSQL.replace(/CREATE (UNIQUE )?INDEX\s+/, 'CREATE $1INDEX IF NOT EXISTS ');
-            await run(sql);
-          } catch (error) {
-            // Ignore errors for indexes that already exist
-            if (error.message.includes('already exists') || 
-                error.message.includes('duplicate column name')) {
-              console.log(`[ADMIN API] Index already exists, skipping: ${indexSQL.substring(0, 50)}...`);
-            } else {
-              results.errors.push({ index: indexSQL.substring(0, 50), error: error.message });
-              console.warn(`[ADMIN API] Index creation warning: ${error.message}`);
-            }
+      // Create indexes separately for SQLite
+      const indexStatements = completeSchema.match(/CREATE INDEX[^;]+;/gi) || [];
+      for (const indexStmt of indexStatements) {
+        try {
+          const adapted = indexStmt.replace(/CREATE INDEX/g, 'CREATE INDEX IF NOT EXISTS');
+          await run(adapted);
+        } catch (error) {
+          // Ignore errors for indexes that already exist
+          if (error.message.includes('already exists') || 
+              error.message.includes('duplicate column name')) {
+            console.log(`[ADMIN API] Index already exists, skipping: ${indexStmt.substring(0, 50)}...`);
+          } else {
+            results.errors.push({ index: indexStmt.substring(0, 50), error: error.message });
+            console.warn(`[ADMIN API] Index creation warning: ${error.message}`);
           }
         }
       }
