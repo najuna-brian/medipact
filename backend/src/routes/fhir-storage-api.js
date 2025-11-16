@@ -33,9 +33,20 @@ async function authenticateAdapter(req, res, next) {
  */
 async function storeResources(req, res, tableName) {
   try {
+    console.log(`[FHIR Storage API] Received request for ${tableName}:`, {
+      hospitalId: req.body.hospitalId,
+      resourceCount: req.body.resources?.length || 0,
+      timestamp: new Date().toISOString()
+    });
+    
     const { hospitalId, resources } = req.body;
 
     if (!hospitalId || !resources || !Array.isArray(resources)) {
+      console.error(`[FHIR Storage API] Invalid request for ${tableName}:`, {
+        hasHospitalId: !!hospitalId,
+        hasResources: !!resources,
+        isArray: Array.isArray(resources)
+      });
       return res.status(400).json({
         error: 'hospitalId and resources array are required',
       });
@@ -67,9 +78,18 @@ async function storeResources(req, res, tableName) {
         }
         results.created++;
       } catch (error) {
+        console.error(`[FHIR Storage] Error storing ${tableName} resource:`, {
+          resource: resource.id || resource.anonymousPatientId || 'unknown',
+          error: error.message,
+          code: error.code,
+          constraint: error.constraint,
+          detail: error.detail,
+          stack: error.stack?.substring(0, 300) // First 300 chars of stack
+        });
         results.errors.push({
           resource: resource.id || resource.anonymousPatientId || 'unknown',
-          error: error.message
+          error: error.message,
+          detail: error.detail || error.constraint
         });
       }
     }

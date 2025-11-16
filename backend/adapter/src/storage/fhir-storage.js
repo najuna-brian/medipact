@@ -39,11 +39,19 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
       await storeResourceType(resourceType, resources, hospitalId, apiKey);
       results.successful += resources.length;
     } catch (error) {
-      console.error(`Error storing ${resourceType}:`, error.message);
+      console.error(`[Adapter Storage] Error storing ${resourceType}:`, {
+        message: error.message,
+        response: error.response?.data || error.response?.status || 'No response',
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        count: resources.length,
+        endpoint: getStorageEndpoint(resourceType)
+      });
       results.failed += resources.length;
       results.errors.push({
         resourceType,
         error: error.message,
+        response: error.response?.data || error.response?.status,
         count: resources.length
       });
     }
@@ -62,22 +70,39 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
     throw new Error(`No storage endpoint for resource type: ${resourceType}`);
   }
 
-  const response = await axios.post(
-    `${BACKEND_API_URL}${endpoint}`,
-    {
-      hospitalId,
-      resources
-    },
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Hospital-ID': hospitalId,
-        'X-API-Key': apiKey
+  const url = `${BACKEND_API_URL}${endpoint}`;
+  console.log(`[Adapter Storage] Storing ${resourceType}: ${resources.length} resources to ${url}`);
+  
+  try {
+    const response = await axios.post(
+      url,
+      {
+        hospitalId,
+        resources
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Hospital-ID': hospitalId,
+          'X-API-Key': apiKey
+        },
+        timeout: 30000 // 30 second timeout
       }
-    }
-  );
+    );
 
-  return response.data;
+    console.log(`[Adapter Storage] Successfully stored ${resourceType}:`, response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`[Adapter Storage] Request failed for ${resourceType}:`, {
+      url,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      code: error.code
+    });
+    throw error;
+  }
 }
 
 /**
