@@ -353,10 +353,16 @@ router.get('/:hospitalId/processing-history', authenticateHospital, async (req, 
     const { getProcessingHistory } = await import('../db/processing-history-db.js');
     const history = await getProcessingHistory(hospitalId, limit);
     
-    res.json(history);
+    console.log(`[Processing History] Fetched ${history?.length || 0} records for hospital ${hospitalId}`);
+    
+    res.json(history || []);
   } catch (error) {
     console.error('Error fetching processing history:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

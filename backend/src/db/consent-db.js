@@ -281,12 +281,19 @@ export async function getConsentStatistics(hospitalId) {
       [hospitalId]
     );
     
-    // Also count total FHIR records for this hospital (for comparison)
+    // Also count total FHIR records for this hospital (all resource types)
+    // Count all FHIR resource types, not just patients, conditions, observations
     const totalRecordsResult = await get(
       `SELECT 
         (SELECT COUNT(*) FROM fhir_patients WHERE hospital_id = $1) +
         (SELECT COUNT(*) FROM fhir_conditions WHERE hospital_id = $1) +
-        (SELECT COUNT(*) FROM fhir_observations WHERE hospital_id = $1) as count`,
+        (SELECT COUNT(*) FROM fhir_observations WHERE hospital_id = $1) +
+        (SELECT COUNT(*) FROM fhir_encounters WHERE hospital_id = $1) +
+        (SELECT COUNT(*) FROM fhir_medication_requests WHERE hospital_id = $1) +
+        (SELECT COUNT(*) FROM fhir_procedures WHERE hospital_id = $1) +
+        (SELECT COUNT(*) FROM fhir_imaging_studies WHERE hospital_id = $1) +
+        (SELECT COUNT(*) FROM fhir_allergies WHERE hospital_id = $1) +
+        (SELECT COUNT(*) FROM fhir_coverage WHERE hospital_id = $1) as count`,
       [hospitalId]
     );
     

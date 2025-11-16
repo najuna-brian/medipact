@@ -41,8 +41,14 @@ export default function HospitalProcessingPage() {
 
           {error && (
             <Card className="border-red-200">
-              <CardContent className="py-8 text-center">
-                <p className="text-red-600">Error loading processing history: {error.message}</p>
+              <CardContent className="py-8">
+                <p className="text-red-600 font-semibold mb-2">Error loading processing history</p>
+                <p className="text-sm text-red-500">{error.message}</p>
+                {!hospitalId || !apiKey ? (
+                  <p className="text-xs text-red-400 mt-2">
+                    Missing hospital credentials. Please log in again.
+                  </p>
+                ) : null}
               </CardContent>
             </Card>
           )}
