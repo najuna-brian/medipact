@@ -5,7 +5,7 @@
  * Run this after initial database setup.
  */
 
-import { getDatabase, getDatabaseType } from '../src/db/database.js';
+import { initDatabase, getDatabase, getDatabaseType } from '../src/db/database.js';
 import { promisify } from 'util';
 import fs from 'fs';
 import path from 'path';
@@ -21,8 +21,34 @@ const schemaModule = await import(schemaPath);
 async function migrate() {
   console.log('=== Migrating Complete FHIR Schema ===\n');
 
-  const db = getDatabase();
-  const dbType = getDatabaseType();
+  // Initialize database first
+  console.log('Initializing database connection...');
+  try {
+    await initDatabase();
+    console.log('✓ Database initialized\n');
+  } catch (error) {
+    // If database is already initialized or has constraint issues, continue
+    // The database might already be set up, we just need to add FHIR tables
+    if (error.message.includes('UNIQUE constraint') || error.message.includes('already exists')) {
+      console.log('⚠️  Database initialization warning (may already be initialized):', error.message);
+      console.log('Continuing with FHIR schema migration...\n');
+    } else {
+      throw error;
+    }
+  }
+
+  // Try to get database - if initDatabase failed, try to get existing connection
+  let db;
+  let dbType;
+  try {
+    db = getDatabase();
+    dbType = getDatabaseType();
+  } catch (error) {
+    // If getDatabase fails, try initializing again
+    await initDatabase();
+    db = getDatabase();
+    dbType = getDatabaseType();
+  }
 
   console.log(`Database Type: ${dbType}\n`);
 
@@ -84,10 +110,16 @@ async function migrateSQLite(db, schema) {
   const run = promisify(db.run.bind(db));
 
   // SQLite doesn't support all PostgreSQL features, so we need to adapt
-  const statements = schema.split('CREATE TABLE').filter(s => s.trim());
+  // Split on CREATE TABLE but handle both "CREATE TABLE" and "CREATE TABLE IF NOT EXISTS"
+  const statements = schema.split(/(?=CREATE TABLE)/).filter(s => s.trim() && s.includes('CREATE TABLE'));
 
   for (let i = 0; i < statements.length; i++) {
-    let statement = 'CREATE TABLE IF NOT EXISTS' + statements[i].trim();
+    let statement = statements[i].trim();
+    
+    // Ensure we have "IF NOT EXISTS" for SQLite
+    if (!statement.includes('IF NOT EXISTS')) {
+      statement = statement.replace(/CREATE TABLE\s+/, 'CREATE TABLE IF NOT EXISTS ');
+    }
     
     // Adapt for SQLite
     statement = statement
@@ -113,8 +145,12 @@ async function migrateSQLite(db, schema) {
       await run(statement);
       console.log(`  ✓ ${tableName} created`);
     } catch (error) {
-      console.error(`  ✗ Error creating ${tableName}:`, error.message);
-      // Continue with other tables
+      if (error.message.includes('already exists') || error.code === 'SQLITE_CONSTRAINT') {
+        console.log(`  ⚠️  ${tableName} already exists or has constraint, skipping`);
+      } else {
+        console.error(`  ✗ Error creating ${tableName}:`, error.message);
+        // Continue with other tables - don't fail the entire migration
+      }
     }
   }
 
@@ -125,7 +161,10 @@ async function migrateSQLite(db, schema) {
       const adapted = indexStmt.replace(/CREATE INDEX/g, 'CREATE INDEX IF NOT EXISTS');
       await run(adapted);
     } catch (error) {
-      // Index might already exist, continue
+      // Index might already exist or have constraint issues, continue
+      if (!error.message.includes('already exists') && !error.code?.includes('CONSTRAINT')) {
+        console.warn(`  ⚠️  Index creation warning: ${error.message}`);
+      }
     }
   }
 }
