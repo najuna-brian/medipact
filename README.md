@@ -88,77 +88,65 @@ MediPact leverages the complete Hedera ecosystem to solve healthcare data challe
 
 ```mermaid
 graph TB
-    subgraph SOURCES[" "]
-        direction TB
+    subgraph "Healthcare Data Sources"
         EHR[🏥 Hospital EHR Systems<br/>CSV/FHIR Export]
         PATIENT[👤 Patient Records<br/>Demographics, Conditions, Observations]
     end
     
-    subgraph PROCESSING[" "]
-        direction TB
+    subgraph "MediPact Processing"
         ADAPTER[Adapter<br/>Anonymization & FHIR Conversion]
         BACKEND[Backend<br/>Database & API]
     end
     
-    subgraph HCS[" "]
-        direction TB
+    subgraph "Hedera HCS - Immutable Proofs"
         CONSENT_TOPIC[Consent Topic<br/>Patient Consent Records]
         DATA_TOPIC[Data Topic<br/>Provenance Hashes H1 + H2]
         HASHSCAN[HashScan<br/>Public Verification]
     end
     
-    subgraph EVM[" "]
-        direction TB
+    subgraph "Hedera EVM - Smart Contracts"
         CONSENT_MGR[ConsentManager<br/>On-Chain Consent Registry]
         REVENUE[RevenueSplitter<br/>60/25/15 Auto-Distribution]
     end
     
-    subgraph ACCOUNTS[" "]
-        direction TB
+    subgraph "Hedera Accounts - Native Wallets"
         PAT_ACCT[Patient Accounts<br/>0.0.xxxxx]
         HOSP_ACCT[Hospital Accounts<br/>0.0.xxxxx]
         RES_ACCT[Researcher Accounts<br/>0.0.xxxxx]
         PLATFORM[Platform Account<br/>0.0.xxxxx]
     end
     
-    subgraph PAYMENTS[" "]
-        direction TB
+    subgraph "HBAR - Micropayments"
         PAYMENT[Researcher Payment<br/>USD → HBAR]
         DISTRIBUTION[Revenue Distribution<br/>60% Patient, 25% Hospital, 15% Platform]
     end
     
-    subgraph CONSUMERS[" "]
-        direction TB
+    subgraph "Data Consumers"
         RESEARCHER[🔬 Researchers<br/>Query & Purchase Datasets]
     end
     
-    %% Data Flow - Vertical spacing
-    SOURCES --> PROCESSING
+    %% Data Flow
     EHR --> ADAPTER
     PATIENT --> ADAPTER
     ADAPTER --> BACKEND
     
     %% HCS Flow - Immutable Proofs
-    PROCESSING --> HCS
     ADAPTER -->|Submit Consent Proof| CONSENT_TOPIC
     ADAPTER -->|Submit Data Hash| DATA_TOPIC
     CONSENT_TOPIC --> HASHSCAN
     DATA_TOPIC --> HASHSCAN
     
     %% Smart Contract Flow
-    HCS --> EVM
     ADAPTER -->|Record Consent| CONSENT_MGR
     BACKEND -->|Verify Consent| CONSENT_MGR
     BACKEND -->|Trigger Distribution| REVENUE
     
     %% Account Creation
-    EVM --> ACCOUNTS
     BACKEND -->|Create on Registration| HOSP_ACCT
     BACKEND -->|Create on Registration| RES_ACCT
     BACKEND -->|Create on First Payment| PAT_ACCT
     
     %% Payment Flow
-    ACCOUNTS --> PAYMENTS
     RESEARCHER -->|Purchase Dataset| PAYMENT
     PAYMENT -->|HBAR Transfer| PLATFORM
     PLATFORM -->|Verify Payment| REVENUE
@@ -170,37 +158,22 @@ graph TB
     DISTRIBUTION -->|15% HBAR| PLATFORM
     
     %% Researcher Access
-    CONSUMERS --> PROCESSING
     RESEARCHER -->|Query with Filters| BACKEND
     BACKEND -->|Validate Consent| CONSENT_MGR
     BACKEND -->|Grant Access| RESEARCHER
     
-    %% Enhanced styling with better colors and visibility
-    style SOURCES fill:#E8F5E9,stroke:#4CAF50,stroke-width:4px,color:#1B5E20
-    style PROCESSING fill:#FFF3E0,stroke:#FF9800,stroke-width:4px,color:#E65100
-    style HCS fill:#E3F2FD,stroke:#2196F3,stroke-width:4px,color:#0D47A1
-    style EVM fill:#F3E5F5,stroke:#9C27B0,stroke-width:4px,color:#4A148C
-    style ACCOUNTS fill:#E0F2F1,stroke:#009688,stroke-width:4px,color:#004D40
-    style PAYMENTS fill:#FFF9C4,stroke:#FBC02D,stroke-width:4px,color:#F57F17
-    style CONSUMERS fill:#E8F5E9,stroke:#4CAF50,stroke-width:4px,color:#1B5E20
-    
-    style CONSENT_TOPIC fill:#1976D2,color:#fff,stroke:#0D47A1,stroke-width:4px
-    style DATA_TOPIC fill:#1976D2,color:#fff,stroke:#0D47A1,stroke-width:4px
-    style CONSENT_MGR fill:#7B1FA2,color:#fff,stroke:#4A148C,stroke-width:4px
-    style REVENUE fill:#7B1FA2,color:#fff,stroke:#4A148C,stroke-width:4px
-    style PAT_ACCT fill:#00796B,color:#fff,stroke:#004D40,stroke-width:4px
-    style HOSP_ACCT fill:#00796B,color:#fff,stroke:#004D40,stroke-width:4px
-    style RES_ACCT fill:#00796B,color:#fff,stroke:#004D40,stroke-width:4px
-    style PLATFORM fill:#00796B,color:#fff,stroke:#004D40,stroke-width:4px
-    style HASHSCAN fill:#FFC107,color:#000,stroke:#F57C00,stroke-width:5px
-    
-    style EHR fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:3px
-    style PATIENT fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:3px
-    style ADAPTER fill:#FF9800,color:#fff,stroke:#E65100,stroke-width:3px
-    style BACKEND fill:#FF9800,color:#fff,stroke:#E65100,stroke-width:3px
-    style RESEARCHER fill:#4CAF50,color:#fff,stroke:#2E7D32,stroke-width:3px
-    style PAYMENT fill:#FBC02D,color:#000,stroke:#F57F17,stroke-width:3px
-    style DISTRIBUTION fill:#FBC02D,color:#000,stroke:#F57F17,stroke-width:3px
+    style CONSENT_TOPIC fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style DATA_TOPIC fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style CONSENT_MGR fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style REVENUE fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style PAT_ACCT fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style HOSP_ACCT fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style RES_ACCT fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style PLATFORM fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style HASHSCAN fill:#FFD700,color:#000,stroke:#FFA500,stroke-width:2px
+    style EHR fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    style PATIENT fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    style RESEARCHER fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
 ```
 
 ### How Hedera Solves Healthcare Data Challenges
