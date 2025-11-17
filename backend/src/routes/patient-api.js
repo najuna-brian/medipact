@@ -237,8 +237,8 @@ router.post('/lookup', async (req, res) => {
     
     // For patient recovery, verify contact info matches
     // This is a simplified check - full access control is in hospital portal
-    const { getPatientContact } = await import('../db/patient-contacts-db.js');
-    const contact = await getPatientContact(upi);
+    const { getPatientContactByUPI } = await import('../db/patient-contacts-db.js');
+    const contact = await getPatientContactByUPI(upi);
     
     if (!contact) {
       return res.json({ found: false, message: 'Patient not found' });

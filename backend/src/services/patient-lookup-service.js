@@ -205,8 +205,8 @@ export async function checkLookupPermission(contactInfo, requesterType, requeste
       // Fallback: If requesterId matches found UPI and contact info matches, allow
       // This is for the "Forgot UPI" recovery flow
       if (requesterId === upi) {
-        const { getPatientContact } = await import('../db/patient-contacts-db.js');
-        const contact = await getPatientContact(upi);
+        const { getPatientContactByUPI } = await import('../db/patient-contacts-db.js');
+        const contact = await getPatientContactByUPI(upi);
         if (contact) {
           let matches = 0;
           if (contactInfo.email && contact.email && contact.email.toLowerCase() === contactInfo.email.toLowerCase()) matches++;

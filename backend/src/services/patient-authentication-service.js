@@ -8,7 +8,7 @@
  */
 
 import { getPatient } from '../db/patient-db.js';
-import { getPatientContact } from '../db/patient-contacts-db.js';
+import { getPatientContactByUPI } from '../db/patient-contacts-db.js';
 import { PrivateKey, PublicKey } from '@hashgraph/sdk';
 import crypto from 'crypto';
 
@@ -108,7 +108,7 @@ export async function verifyPatientOwnershipByContact(upi, contactInfo) {
   }
   
   // 2. Get patient contacts
-  const contact = await getPatientContact(upi);
+  const contact = await getPatientContactByUPI(upi);
   
   if (!contact) {
     return { verified: false, reason: 'No contact information on file' };
