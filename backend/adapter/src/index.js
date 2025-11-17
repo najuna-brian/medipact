@@ -471,6 +471,87 @@ async function main() {
           }
         }
         
+        // Create hospital-patient linkages for all registered patients
+        // This ensures patients uploaded via CSV are registered as patients of this hospital
+        if (storageBackendApiUrl && storageHospitalId && apiKey && upiMapping.size > 0) {
+          console.log('   Creating hospital-patient linkages...');
+          
+          for (const [originalId, upi] of upiMapping) {
+            // Get the anonymous patient ID for this patient (used as hospitalPatientId)
+            const anonymousPatientId = patientMapping.get(originalId);
+            if (!anonymousPatientId) {
+              console.warn(`     ⚠️  No anonymous ID found for ${originalId}, skipping linkage`);
+              continue;
+            }
+            
+            // Find the original record to get patient details
+            const originalRecord = rawRecords.find(r => 
+              (r['Patient ID'] || r['Patient Name']) === originalId
+            );
+            
+            if (!originalRecord) {
+              console.warn(`     ⚠️  No original record found for ${originalId}, skipping linkage`);
+              continue;
+            }
+            
+            // Extract patient information
+            const name = originalRecord['Patient Name'] || originalRecord['name'] || 'Unknown';
+            const dateOfBirth = originalRecord['Date of Birth'] || originalRecord['dateOfBirth'] || '';
+            const email = originalRecord['Email'] || originalRecord['email'] || null;
+            const phone = originalRecord['Phone Number'] || originalRecord['phone'] || null;
+            const nationalId = originalRecord['National ID'] || originalRecord['nationalId'] || null;
+            
+            // Use anonymous patient ID as hospitalPatientId (or original Patient ID if available)
+            const hospitalPatientId = originalRecord['Patient ID'] || 
+                                      originalRecord['patient id'] || 
+                                      originalRecord['id'] || 
+                                      anonymousPatientId;
+            
+            try {
+              // Create hospital-patient linkage via backend API
+              // This endpoint will:
+              // 1. Get or create UPI (already done, but ensures consistency)
+              // 2. Create/update patient contact info
+              // 3. Create hospital-patient linkage
+              await axios.post(
+                `${storageBackendApiUrl}/api/hospital/${storageHospitalId}/patients`,
+                {
+                  name,
+                  dateOfBirth,
+                  email,
+                  phone,
+                  nationalId,
+                  hospitalPatientId: hospitalPatientId
+                },
+                {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Hospital-ID': storageHospitalId,
+                    'X-API-Key': apiKey
+                  },
+                  timeout: 10000,
+                  validateStatus: (status) => status < 500 // Accept 2xx, 3xx, 4xx (not 5xx)
+                }
+              );
+              console.log(`     ✓ Linked patient ${upi} (${name}) to hospital ${storageHospitalId}`);
+            } catch (error) {
+              // Linkage might already exist (409), or patient might already be registered (400)
+              // These are acceptable - the patient is already linked
+              if (error.response?.status === 409 || error.response?.status === 400) {
+                console.log(`     → Patient ${upi} already linked to hospital ${storageHospitalId}`);
+              } else if (error.response?.status >= 500) {
+                // Server errors should be logged
+                console.warn(`     ⚠️  Failed to create linkage for ${upi}: ${error.response?.data?.error || error.message}`);
+              } else {
+                // Other 4xx errors might be validation issues, log but continue
+                console.warn(`     ⚠️  Linkage creation returned ${error.response?.status} for ${upi}: ${error.response?.data?.error || error.message}`);
+              }
+            }
+          }
+          
+          console.log(`   ✓ Completed hospital-patient linkage creation\n`);
+        }
+        
         process.stdout.write('   Starting storage...\n');
         console.error('[Index] ===== ABOUT TO CALL storeFHIRResources =====');
         console.error(`[Index] processedResources length: ${processedResources?.length || 'undefined'}`);
