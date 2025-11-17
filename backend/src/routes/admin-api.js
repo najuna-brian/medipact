@@ -1223,5 +1223,219 @@ router.post('/cleanup/reset', authenticateAdmin, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/admin/migrate/fhir-columns-to-camelcase
+ * Run FHIR column migration from snake_case to camelCase
+ * Safely renames columns without losing data (PostgreSQL only)
+ */
+router.post('/migrate/fhir-columns-to-camelcase', async (req, res) => {
+  try {
+    console.log('[ADMIN API] Starting FHIR column migration to camelCase...');
+    
+    const db = getDatabase();
+    const dbType = getDatabaseType();
+    
+    if (dbType !== 'postgresql') {
+      return res.json({
+        success: true,
+        message: 'Migration skipped - not PostgreSQL',
+        databaseType: dbType,
+        note: 'This migration is only needed for PostgreSQL. SQLite tables already use camelCase.'
+      });
+    }
+    
+    // Import the migration logic from the script
+    const columnMappings = {
+      fhir_patients: {
+        'anonymous_patient_id': 'anonymousPatientId',
+        'age_range': 'ageRange',
+        'hospital_id': 'hospitalId',
+        'created_at': 'createdAt',
+        'updated_at': 'updatedAt'
+      },
+      fhir_conditions: {
+        'anonymous_patient_id': 'anonymousPatientId',
+        'condition_code': 'conditionCode',
+        'condition_name': 'conditionName',
+        'diagnosis_date': 'diagnosisDate',
+        'hospital_id': 'hospitalId',
+        'created_at': 'createdAt'
+      },
+      fhir_observations: {
+        'anonymous_patient_id': 'anonymousPatientId',
+        'observation_code': 'observationCode',
+        'observation_name': 'observationName',
+        'effective_date': 'effectiveDate',
+        'hospital_id': 'hospitalId',
+        'reference_range': 'referenceRange',
+        'created_at': 'createdAt'
+      },
+      fhir_encounters: {
+        'anonymous_patient_id': 'anonymousPatientId',
+        'encounter_id': 'encounterId',
+        'encounter_type': 'encounterType',
+        'admission_date': 'admissionDate',
+        'discharge_date': 'dischargeDate',
+        'hospital_id': 'hospitalId',
+        'created_at': 'createdAt'
+      },
+      fhir_medication_requests: {
+        'anonymous_patient_id': 'anonymousPatientId',
+        'medication_code': 'medicationCode',
+        'medication_name': 'medicationName',
+        'prescribed_date': 'prescribedDate',
+        'hospital_id': 'hospitalId',
+        'created_at': 'createdAt'
+      },
+      fhir_procedures: {
+        'anonymous_patient_id': 'anonymousPatientId',
+        'procedure_code': 'procedureCode',
+        'procedure_name': 'procedureName',
+        'procedure_date': 'procedureDate',
+        'hospital_id': 'hospitalId',
+        'created_at': 'createdAt'
+      },
+      fhir_imaging_studies: {
+        'anonymous_patient_id': 'anonymousPatientId',
+        'study_id': 'studyId',
+        'modality': 'modality',
+        'study_date': 'studyDate',
+        'hospital_id': 'hospitalId',
+        'created_at': 'createdAt'
+      },
+      fhir_allergies: {
+        'anonymous_patient_id': 'anonymousPatientId',
+        'allergy_code': 'allergyCode',
+        'allergy_name': 'allergyName',
+        'reaction_date': 'reactionDate',
+        'hospital_id': 'hospitalId',
+        'created_at': 'createdAt'
+      },
+      fhir_coverage: {
+        'anonymous_patient_id': 'anonymousPatientId',
+        'coverage_type': 'coverageType',
+        'policy_number': 'policyNumber',
+        'start_date': 'startDate',
+        'end_date': 'endDate',
+        'hospital_id': 'hospitalId',
+        'created_at': 'createdAt'
+      }
+    };
+    
+    async function checkColumnExists(tableName, columnName) {
+      try {
+        const result = await db.query(`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = $1 AND column_name = $2
+        `, [tableName, columnName]);
+        return result.rows.length > 0;
+      } catch (error) {
+        return false;
+      }
+    }
+    
+    const results = {
+      tablesProcessed: [],
+      columnsRenamed: [],
+      columnsSkipped: [],
+      errors: []
+    };
+    
+    // Process each table
+    for (const [tableName, mappings] of Object.entries(columnMappings)) {
+      console.log(`[ADMIN API] Processing table: ${tableName}`);
+      
+      // Check if table exists
+      let tableExists = false;
+      try {
+        const tableCheck = await db.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_name = $1
+        `, [tableName]);
+        tableExists = tableCheck.rows.length > 0;
+      } catch (error) {
+        console.log(`[ADMIN API] Error checking table ${tableName}: ${error.message}`);
+      }
+      
+      if (!tableExists) {
+        console.log(`[ADMIN API] Table ${tableName} does not exist, skipping...`);
+        continue;
+      }
+      
+      results.tablesProcessed.push(tableName);
+      
+      // Rename each column
+      for (const [oldName, newName] of Object.entries(mappings)) {
+        const oldExists = await checkColumnExists(tableName, oldName);
+        const newExists = await checkColumnExists(tableName, newName);
+        
+        if (newExists) {
+          console.log(`[ADMIN API] Column ${tableName}.${newName} already exists (already migrated)`);
+          results.columnsSkipped.push(`${tableName}.${newName}`);
+        } else if (oldExists) {
+          try {
+            console.log(`[ADMIN API] Renaming ${tableName}.${oldName} to "${newName}"...`);
+            await db.query(`ALTER TABLE ${tableName} RENAME COLUMN ${oldName} TO "${newName}"`);
+            console.log(`[ADMIN API] ✓ Renamed ${tableName}.${oldName} to "${newName}"`);
+            results.columnsRenamed.push(`${tableName}.${oldName} -> ${newName}`);
+          } catch (error) {
+            console.error(`[ADMIN API] Failed to rename ${tableName}.${oldName}: ${error.message}`);
+            results.errors.push({ table: tableName, column: oldName, error: error.message });
+          }
+        } else {
+          console.log(`[ADMIN API] Column ${tableName}.${oldName} does not exist (skipping)`);
+        }
+      }
+    }
+    
+    // Update indexes
+    console.log('[ADMIN API] Updating indexes...');
+    const indexMappings = {
+      'anonymous_patient_id': 'anonymousPatientId',
+      'hospital_id': 'hospitalId',
+      'condition_code': 'conditionCode',
+      'observation_code': 'observationCode',
+      'effective_date': 'effectiveDate',
+      'diagnosis_date': 'diagnosisDate'
+    };
+    
+    for (const [oldCol, newCol] of Object.entries(indexMappings)) {
+      for (const tableName of results.tablesProcessed) {
+        try {
+          // Drop old index if exists
+          await db.query(`DROP INDEX IF EXISTS idx_${tableName}_${oldCol}`);
+          // Create new index with camelCase column name
+          await db.query(`CREATE INDEX IF NOT EXISTS idx_${tableName}_${newCol} ON ${tableName}("${newCol}")`);
+        } catch (error) {
+          // Index operations are not critical, just log
+          console.log(`[ADMIN API] Index update note for ${tableName}.${newCol}: ${error.message}`);
+        }
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: 'FHIR column migration to camelCase completed',
+      databaseType: dbType,
+      results: {
+        tablesProcessed: results.tablesProcessed.length,
+        columnsRenamed: results.columnsRenamed.length,
+        columnsSkipped: results.columnsSkipped.length,
+        errors: results.errors.length,
+        details: results
+      }
+    });
+  } catch (error) {
+    console.error('[ADMIN API] Column migration error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Column migration failed',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
 export default router;
 
