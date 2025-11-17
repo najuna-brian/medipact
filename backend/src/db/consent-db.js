@@ -236,10 +236,60 @@ export async function getConsentsByUPI(upi) {
  * - Total active consents
  * - Records associated with active consents (from FHIR tables)
  */
+/**
+ * Helper function to get the correct column name (handles both snake_case and camelCase)
+ * Checks which column exists and returns the appropriate name
+ */
+async function getColumnName(tableName, camelCaseName, snakeCaseName) {
+  const dbType = getDatabaseType();
+  if (dbType !== 'postgresql') {
+    // SQLite always uses camelCase
+    return `"${camelCaseName}"`;
+  }
+  
+  const db = getDatabase();
+  try {
+    // Check if camelCase column exists
+    const camelCheck = await db.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = $1 AND column_name = $2
+    `, [tableName, camelCaseName]);
+    
+    if (camelCheck.rows.length > 0) {
+      return `"${camelCaseName}"`;
+    }
+    
+    // Check if snake_case column exists
+    const snakeCheck = await db.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = $1 AND column_name = $2
+    `, [tableName, snakeCaseName]);
+    
+    if (snakeCheck.rows.length > 0) {
+      return snakeCaseName;
+    }
+    
+    // Default to camelCase (for new tables)
+    return `"${camelCaseName}"`;
+  } catch (error) {
+    // If table doesn't exist, default to camelCase
+    return `"${camelCaseName}"`;
+  }
+}
+
 export async function getConsentStatistics(hospitalId) {
   const dbType = getDatabaseType();
   
   if (dbType === 'postgresql') {
+    // Get correct column names (handles both snake_case and camelCase)
+    const fpAnonymousId = await getColumnName('fhir_patients', 'anonymousPatientId', 'anonymous_patient_id');
+    const fpHospitalId = await getColumnName('fhir_patients', 'hospitalId', 'hospital_id');
+    const fcAnonymousId = await getColumnName('fhir_conditions', 'anonymousPatientId', 'anonymous_patient_id');
+    const fcHospitalId = await getColumnName('fhir_conditions', 'hospitalId', 'hospital_id');
+    const foAnonymousId = await getColumnName('fhir_observations', 'anonymousPatientId', 'anonymous_patient_id');
+    const foHospitalId = await getColumnName('fhir_observations', 'hospitalId', 'hospital_id');
     // Count patients with on-chain consent (hcs_topic_id is not null)
     const onChainResult = await get(
       `SELECT COUNT(DISTINCT anonymous_patient_id) as count
@@ -263,7 +313,7 @@ export async function getConsentStatistics(hospitalId) {
     
     // Count records (FHIR resources) associated with active consents
     // This counts all FHIR resources (patients, conditions, observations) for patients with active consent
-    // PostgreSQL uses camelCase with quoted identifiers for FHIR tables (consistent with SQLite)
+    // Uses dynamic column names to handle both snake_case (pre-migration) and camelCase (post-migration)
     const recordsResult = await get(
       `SELECT COUNT(*) as count
        FROM (
@@ -273,12 +323,12 @@ export async function getConsentStatistics(hospitalId) {
            AND p.status = 'active'
            AND (p.expires_at IS NULL OR p.expires_at > CURRENT_TIMESTAMP)
        ) consented_patients
-       LEFT JOIN fhir_patients fp ON fp."anonymousPatientId" = consented_patients.anonymous_patient_id AND fp."hospitalId" = $1
-       LEFT JOIN fhir_conditions fc ON fc."anonymousPatientId" = consented_patients.anonymous_patient_id AND fc."hospitalId" = $1
-       LEFT JOIN fhir_observations fo ON fo."anonymousPatientId" = consented_patients.anonymous_patient_id AND fo."hospitalId" = $1
-       WHERE fp."anonymousPatientId" IS NOT NULL
-          OR fc."anonymousPatientId" IS NOT NULL
-          OR fo."anonymousPatientId" IS NOT NULL`,
+       LEFT JOIN fhir_patients fp ON fp.${fpAnonymousId} = consented_patients.anonymous_patient_id AND fp.${fpHospitalId} = $1
+       LEFT JOIN fhir_conditions fc ON fc.${fcAnonymousId} = consented_patients.anonymous_patient_id AND fc.${fcHospitalId} = $1
+       LEFT JOIN fhir_observations fo ON fo.${foAnonymousId} = consented_patients.anonymous_patient_id AND fo.${foHospitalId} = $1
+       WHERE fp.${fpAnonymousId} IS NOT NULL
+          OR fc.${fcAnonymousId} IS NOT NULL
+          OR fo.${foAnonymousId} IS NOT NULL`,
       [hospitalId, hospitalId, hospitalId]
     );
     
