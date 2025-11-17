@@ -76,7 +76,6 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
   });
 
   // Store each resource type
-  const resourceTypes = Object.keys(resourcesByType);
   console.log(`[Adapter Storage] Will process ${resourceTypes.length} resource types`);
   process.stdout.write(`[Adapter Storage] Will process ${resourceTypes.length} resource types\n`);
   await new Promise(resolve => setImmediate(resolve));
