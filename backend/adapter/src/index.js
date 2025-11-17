@@ -482,28 +482,33 @@ async function main() {
         // Test backend connectivity before attempting storage
         const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:3002';
         console.log(`[Index] Testing backend connectivity to: ${backendUrl}`);
+        console.log(`[Index] BACKEND_API_URL env var: ${process.env.BACKEND_API_URL || 'NOT SET (using default http://localhost:3002)'}`);
         try {
-          const http = await import('http');
-          await new Promise((resolve, reject) => {
+          const httpModule = await import('http');
+          const http = httpModule.default || httpModule;
+          await new Promise((resolve) => {
             const req = http.get(`${backendUrl}/health`, (res) => {
-              console.log(`[Index] Backend health check status: ${res.statusCode}`);
+              console.log(`[Index] ✅ Backend health check SUCCESS: status ${res.statusCode}`);
               res.on('data', () => {}); // Consume response
               res.on('end', resolve);
             });
             req.on('error', (err) => {
-              console.error(`[Index] Backend health check failed: ${err.message}`);
-              console.error(`[Index] This might indicate BACKEND_API_URL is incorrect. Current: ${backendUrl}`);
+              console.error(`[Index] ❌ Backend health check FAILED: ${err.message}`);
+              console.error(`[Index] ❌ This might indicate BACKEND_API_URL is incorrect. Current: ${backendUrl}`);
+              console.error(`[Index] ❌ Error code: ${err.code}, message: ${err.message}`);
               // Don't reject - continue anyway, might be a health endpoint issue
               resolve();
             });
             req.setTimeout(5000, () => {
               req.destroy();
-              console.error(`[Index] Backend health check timed out after 5s`);
+              console.error(`[Index] ❌ Backend health check TIMED OUT after 5s`);
+              console.error(`[Index] ❌ URL was: ${backendUrl}/health`);
               resolve(); // Continue anyway
             });
           });
         } catch (healthError) {
           console.error(`[Index] Health check error: ${healthError.message}`);
+          console.error(`[Index] Health check stack: ${healthError.stack}`);
           // Continue anyway - might just be missing health endpoint
         }
         
