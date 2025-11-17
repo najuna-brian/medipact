@@ -286,6 +286,7 @@ export async function getConsentStatistics(hospitalId) {
     // Handle missing tables gracefully (FHIR tables may not exist if migration hasn't run)
     let totalRecordsResult;
     try {
+      console.log(`[Consent Stats] Counting total records for hospital ${hospitalId}`);
       // Check which FHIR tables exist
       const { all } = await import('./database.js');
       const tableCheck = await all(
@@ -302,6 +303,8 @@ export async function getConsentStatistics(hospitalId) {
       const existingTables = Array.isArray(tableCheck) 
         ? tableCheck.map(t => t.table_name)
         : [];
+      
+      console.log(`[Consent Stats] Found ${existingTables.length} FHIR tables: ${existingTables.join(', ')}`);
       
       // Build query with only existing tables
       const countQueries = [];
@@ -334,15 +337,18 @@ export async function getConsentStatistics(hospitalId) {
       }
       
       if (countQueries.length === 0) {
+        console.warn(`[Consent Stats] No FHIR tables found for hospital ${hospitalId}`);
         totalRecordsResult = { count: 0 };
       } else {
-        totalRecordsResult = await get(
-          `SELECT ${countQueries.join(' + ')} as count`,
-          [hospitalId]
-        );
+        const query = `SELECT ${countQueries.join(' + ')} as count`;
+        console.log(`[Consent Stats] Executing query: ${query.substring(0, 200)}...`);
+        totalRecordsResult = await get(query, [hospitalId]);
+        console.log(`[Consent Stats] Total records result:`, totalRecordsResult);
       }
     } catch (error) {
       // If query fails (tables don't exist), return 0
+      console.error(`[Consent Stats] Error counting total records for hospital ${hospitalId}:`, error.message);
+      console.error(`[Consent Stats] Error stack:`, error.stack);
       if (error.message.includes('does not exist') || error.code === '42P01') {
         console.warn('FHIR tables not found, returning 0 for total records:', error.message);
         totalRecordsResult = { count: 0 };

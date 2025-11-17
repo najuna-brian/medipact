@@ -125,6 +125,7 @@ router.get('/:hospitalId/patients', authenticateHospital, async (req, res) => {
     // Handle missing tables gracefully (FHIR tables may not exist if migration hasn't run)
     let fhirPatients = [];
     try {
+      console.log(`[Hospital Patients] Fetching FHIR patients for hospital ${hospitalId}`);
       if (dbType === 'postgresql') {
         // Check if fhir_encounters table exists
         const { get } = await import('../db/database.js');
@@ -197,6 +198,12 @@ router.get('/:hospitalId/patients', authenticateHospital, async (req, res) => {
       }
     } catch (error) {
       // If fhir_patients table doesn't exist, just return empty array
+      console.error(`[Hospital Patients] Error fetching FHIR patients for hospital ${hospitalId}:`, error.message);
+      console.error(`[Hospital Patients] Error details:`, {
+        message: error.message,
+        code: error.code,
+        tableExists: !error.message.includes('does not exist') && !error.message.includes('no such table')
+      });
       if (error.message.includes('does not exist') || error.message.includes('no such table')) {
         console.warn('FHIR tables not found, returning empty patient list:', error.message);
         fhirPatients = [];
@@ -204,6 +211,8 @@ router.get('/:hospitalId/patients', authenticateHospital, async (req, res) => {
         throw error;
       }
     }
+    
+    console.log(`[Hospital Patients] Found ${fhirPatients.length} FHIR patients for hospital ${hospitalId}`);
     
     // Combine both sources, using UPI as the unique key
     // If same UPI exists in both, prefer the registered one (has verification info)
@@ -260,6 +269,14 @@ router.get('/:hospitalId/patients', authenticateHospital, async (req, res) => {
     const totalRecords = allPatients.reduce((sum, p) => 
       sum + (p.encounterCount || 0) + (p.conditionCount || 0) + (p.observationCount || 0), 0
     );
+    
+    console.log(`[Hospital Patients] Hospital ${hospitalId} stats:`, {
+      totalPatients: allPatients.length,
+      registeredPatients: linkages.length,
+      csvUploadPatients: fhirPatients.length,
+      totalRecords,
+      fhirPatientsCount: fhirPatients.length
+    });
     
     res.json({
       hospitalId,
