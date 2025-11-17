@@ -16,7 +16,14 @@ const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:3002';
  * @returns {Promise<Object>} Storage results
  */
 export async function storeFHIRResources(processedResources, hospitalId, apiKey) {
+  // Force flush stdout immediately
   process.stdout.write(`[Adapter Storage] storeFHIRResources called: ${processedResources.length} resources, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}\n`);
+  await new Promise(resolve => setImmediate(resolve)); // Force event loop tick
+  
+  if (!processedResources || !Array.isArray(processedResources)) {
+    process.stderr.write(`[Adapter Storage] ERROR: processedResources is not an array!\n`);
+    return { successful: 0, failed: 0, errors: [{ error: 'Invalid processedResources' }] };
+  }
   
   const results = {
     successful: 0,
@@ -27,22 +34,43 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
   // Group resources by type for batch storage
   const resourcesByType = {};
   
-  processedResources.forEach(resource => {
-    const type = resource.resourceType;
-    if (!resourcesByType[type]) {
-      resourcesByType[type] = [];
-    }
-    resourcesByType[type].push(resource.processed);
-  });
+  try {
+    processedResources.forEach(resource => {
+      if (!resource || !resource.resourceType) {
+        process.stderr.write(`[Adapter Storage] WARNING: Invalid resource: ${JSON.stringify(resource).substring(0, 100)}\n`);
+        return;
+      }
+      const type = resource.resourceType;
+      if (!resourcesByType[type]) {
+        resourcesByType[type] = [];
+      }
+      if (resource.processed) {
+        resourcesByType[type].push(resource.processed);
+      } else {
+        process.stderr.write(`[Adapter Storage] WARNING: Resource ${type} missing processed field\n`);
+      }
+    });
+  } catch (error) {
+    process.stderr.write(`[Adapter Storage] ERROR grouping resources: ${error.message}\n`);
+    return { successful: 0, failed: processedResources.length, errors: [{ error: error.message }] };
+  }
 
   process.stdout.write(`[Adapter Storage] Grouped into ${Object.keys(resourcesByType).length} resource types: ${Object.keys(resourcesByType).join(', ')}\n`);
+  await new Promise(resolve => setImmediate(resolve)); // Force event loop tick
 
   // Store each resource type
-  for (const [resourceType, resources] of Object.entries(resourcesByType)) {
-    process.stdout.write(`[Adapter Storage] Processing resource type: ${resourceType} (${resources.length} resources)\n`);
+  const resourceTypes = Object.keys(resourcesByType);
+  process.stdout.write(`[Adapter Storage] Will process ${resourceTypes.length} resource types\n`);
+  
+  for (let i = 0; i < resourceTypes.length; i++) {
+    const resourceType = resourceTypes[i];
+    const resources = resourcesByType[resourceType];
+    process.stdout.write(`[Adapter Storage] [${i+1}/${resourceTypes.length}] Processing ${resourceType}: ${resources.length} resources\n`);
+    await new Promise(resolve => setImmediate(resolve)); // Force event loop tick
+    
     try {
       const response = await storeResourceType(resourceType, resources, hospitalId, apiKey);
-      process.stdout.write(`[Adapter Storage] Got response for ${resourceType}: success=${response?.success}, created=${response?.results?.created || 0}\n`);
+      process.stdout.write(`[Adapter Storage] [${i+1}/${resourceTypes.length}] Got response for ${resourceType}: success=${response?.success}, created=${response?.results?.created || 0}\n`);
       
       // Check if storage actually succeeded (response might indicate partial failure)
       if (response && response.success !== false && response.results) {
