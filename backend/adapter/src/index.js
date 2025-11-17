@@ -489,7 +489,11 @@ async function main() {
         console.log(`[Index] Testing backend connectivity to: ${backendUrl}`);
         console.log(`[Index] BACKEND_API_URL env var: ${process.env.BACKEND_API_URL || 'NOT SET (using default http://localhost:3002)'}`);
         try {
-          const httpModule = await import('http');
+          // Use https for HTTPS URLs, http for HTTP URLs
+          const url = new URL(backendUrl);
+          const httpModule = url.protocol === 'https:' 
+            ? await import('https')
+            : await import('http');
           const http = httpModule.default || httpModule;
           await new Promise((resolve) => {
             const req = http.get(`${backendUrl}/health`, (res) => {

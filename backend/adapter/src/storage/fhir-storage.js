@@ -121,6 +121,7 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
     try {
       const response = await storeResourceType(resourceType, resources, hospitalId, apiKey);
       process.stdout.write(`[Adapter Storage] [${i+1}/${resourceTypes.length}] Got response for ${resourceType}: success=${response?.success}, created=${response?.results?.created || 0}\n`);
+      console.log(`[Adapter Storage] Full response for ${resourceType}:`, JSON.stringify(response, null, 2));
       
       // Check if storage actually succeeded (response might indicate partial failure)
       if (response && response.success !== false && response.results) {
@@ -130,6 +131,7 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
         results.failed += (resources.length - created);
         process.stdout.write(`[Adapter Storage] ${resourceType} result: ${created} created, ${errors.length} errors\n`);
         if (errors.length > 0) {
+          console.error(`[Adapter Storage] Errors for ${resourceType}:`, errors);
           results.errors.push({
             resourceType,
             error: `Partial failure: ${created} created, ${errors.length} errors`,
@@ -139,7 +141,9 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
         }
       } else {
         // Storage returned failure
+        console.error(`[Adapter Storage] ${resourceType} returned failure:`, response);
         process.stderr.write(`[Adapter Storage] ${resourceType} returned failure: ${response?.error || 'unknown error'}\n`);
+        process.stderr.write(`[Adapter Storage] Full failure response: ${JSON.stringify(response)}\n`);
         results.failed += resources.length;
         results.errors.push({
           resourceType,
@@ -162,8 +166,15 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
         count: resources.length,
         endpoint: getStorageEndpoint(resourceType),
         isTableMissing,
-        hint: isTableMissing ? 'Run POST /api/admin/migrate/fhir to create required tables' : undefined
+        hint: isTableMissing ? 'Run POST /api/admin/migrate/fhir to create required tables' : undefined,
+        fullError: error
       });
+      process.stderr.write(`[Adapter Storage] Full error details: ${JSON.stringify({
+        message: error.message,
+        code: error.code,
+        response: errorData,
+        status: error.response?.status
+      })}\n`);
       
       results.failed += resources.length;
       results.errors.push({
