@@ -78,32 +78,32 @@ export default function ResearcherRegisterPage() {
               </div>
             </div>
 
-            {researcher.verificationPrompt && (
-              <div className="rounded-lg border-yellow-200 bg-yellow-50 p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="mt-0.5 h-5 w-5 text-yellow-600" />
-                  <div className="flex-1">
-                    <p className="font-medium text-yellow-900">Verification Required</p>
-                    <p className="mt-1 text-sm text-yellow-800">
-                      {researcher.verificationMessage ||
-                        'Please verify your account to access full features and better pricing.'}
-                    </p>
-                    <Button
-                      onClick={() => router.push(`/researcher/${researcher.researcherId}/verify`)}
-                      className="mt-3 bg-yellow-600 text-white hover:bg-yellow-700"
-                      size="sm"
-                    >
-                      Proceed to Verification
-                    </Button>
-                  </div>
-                </div>
+            <div className="border-t pt-4">
+              <p className="mb-2 text-sm font-semibold">Next Steps:</p>
+              <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
+                <li>Save your Researcher ID securely</li>
+                <li>Complete researcher verification to activate your account</li>
+                <li>Access datasets and purchase anonymized medical data</li>
+              </ul>
+              <div className="mt-4 space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Next, you&apos;ll need to submit verification documents (organization documents,
+                  research license, etc.) for admin approval.
+                </p>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    // Small delay to ensure sessionStorage is saved
+                    setTimeout(() => {
+                      router.push(`/researcher/${researcher.researcherId}/verify`);
+                    }, 100);
+                  }}
+                >
+                  Proceed to Verification
+                </Button>
               </div>
-            )}
-
-            <div className="flex gap-3 pt-4">
-              <Button onClick={() => router.push('/researcher/dashboard')} className="flex-1">
-                Go to Dashboard
-              </Button>
             </div>
           </CardContent>
         </Card>
