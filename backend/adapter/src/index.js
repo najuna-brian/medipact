@@ -476,8 +476,16 @@ async function main() {
           apiKey
         );
         console.log(`   ✓ Stored: ${storageResult.successful} successful, ${storageResult.failed} failed\n`);
+        if (storageResult.errors && storageResult.errors.length > 0) {
+          console.error(`   ⚠️  Storage errors:`, storageResult.errors);
+        }
       } catch (error) {
-        console.error(`   ✗ Storage failed: ${error.message}\n`);
+        console.error(`   ✗ Storage failed:`, {
+          message: error.message,
+          stack: error.stack?.substring(0, 500),
+          name: error.name,
+          code: error.code
+        });
       }
     } else {
       console.log('7. Skipping backend storage (no API key, backend URL, or hospital ID)\n');

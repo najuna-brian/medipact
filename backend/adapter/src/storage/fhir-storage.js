@@ -114,7 +114,10 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
   
   try {
     const requestStart = Date.now();
-    const response = await axios.post(
+    console.log(`[Adapter Storage] Making request to ${url}...`);
+    
+    // Use Promise.race to detect timeouts more reliably
+    const requestPromise = axios.post(
       url,
       {
         hospitalId,
@@ -126,10 +129,20 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
           'X-Hospital-ID': hospitalId,
           'X-API-Key': apiKey
         },
-        timeout: 30000, // 30 second timeout
-        validateStatus: (status) => status < 600 // Accept all status codes to handle errors properly
+        timeout: 10000, // 10 second timeout (reduced from 30s)
+        validateStatus: (status) => status < 600, // Accept all status codes to handle errors properly
+        // Add connection timeout
+        httpAgent: new (await import('http')).Agent({ timeout: 10000 }),
+        httpsAgent: new (await import('https')).Agent({ timeout: 10000 })
       }
     );
+    
+    // Add explicit timeout wrapper
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout after 10 seconds')), 10000);
+    });
+    
+    const response = await Promise.race([requestPromise, timeoutPromise]);
 
     const requestDuration = Date.now() - requestStart;
     console.log(`[Adapter Storage] Successfully stored ${resourceType} (${requestDuration}ms):`, {
