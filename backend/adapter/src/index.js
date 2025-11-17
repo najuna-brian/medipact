@@ -472,17 +472,21 @@ async function main() {
         }
         
         process.stdout.write('   Starting storage...\n');
+        console.error('[Index] ===== ABOUT TO CALL storeFHIRResources =====');
         console.log('[Index] About to call storeFHIRResources');
         console.log(`[Index] processedResources length: ${processedResources?.length || 'undefined'}`);
         console.log(`[Index] storageHospitalId: ${storageHospitalId}`);
         console.log(`[Index] apiKey present: ${!!apiKey}`);
+        process.stderr.write(`[Index] About to call storeFHIRResources: length=${processedResources?.length || 'undefined'}, hospitalId=${storageHospitalId}\n`);
         
         try {
+          process.stderr.write(`[Index] Calling storeFHIRResources NOW...\n`);
           storageResult = await storeFHIRResources(
             processedResources,
             storageHospitalId,
             apiKey
           );
+          process.stderr.write(`[Index] storeFHIRResources returned\n`);
           console.log('[Index] storeFHIRResources completed successfully');
           console.log(`[Index] storageResult: ${JSON.stringify({ successful: storageResult.successful, failed: storageResult.failed, errors: storageResult.errors.length })}`);
         } catch (error) {

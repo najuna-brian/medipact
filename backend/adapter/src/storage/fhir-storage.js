@@ -16,18 +16,26 @@ const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:3002';
  * @returns {Promise<Object>} Storage results
  */
 export async function storeFHIRResources(processedResources, hospitalId, apiKey) {
-  // Use both console.log and process.stdout.write for maximum visibility
+  // CRITICAL: Log immediately, synchronously, before any async operations
+  console.error(`[Adapter Storage] ===== FUNCTION ENTRY =====`);
+  console.error(`[Adapter Storage] storeFHIRResources CALLED`);
+  console.error(`[Adapter Storage] resources=${processedResources?.length || 'undefined'}, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}`);
+  process.stderr.write(`[Adapter Storage] FUNCTION ENTRY: storeFHIRResources called\n`);
+  process.stderr.write(`[Adapter Storage] Parameters: resources=${processedResources?.length || 0}, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}\n`);
   console.log(`[Adapter Storage] FUNCTION ENTRY: storeFHIRResources called`);
   console.log(`[Adapter Storage] Parameters: resources=${processedResources?.length || 'undefined'}, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}`);
   process.stdout.write(`[Adapter Storage] storeFHIRResources called: ${processedResources?.length || 0} resources, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}\n`);
   
   // Force flush
+  process.stderr.write(`[Adapter Storage] About to await first setImmediate\n`);
   await new Promise(resolve => {
     setImmediate(() => {
+      process.stderr.write(`[Adapter Storage] After first setImmediate - callback executed\n`);
       process.stdout.write(`[Adapter Storage] After first setImmediate\n`);
       resolve();
     });
   });
+  process.stderr.write(`[Adapter Storage] Past first setImmediate\n`);
   
   if (!processedResources || !Array.isArray(processedResources)) {
     process.stderr.write(`[Adapter Storage] ERROR: processedResources is not an array!\n`);
