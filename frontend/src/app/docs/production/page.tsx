@@ -34,7 +34,7 @@ PLATFORM_HEDERA_ACCOUNT_ID="0.0.xxxxx"    # Platform account for payments
 # Production Settings
 NODE_ENV="production"
 LOG_LEVEL="INFO"                           # ERROR, WARN, INFO, DEBUG
-PORT=3002
+PORT=8080
 
 # Security
 JWT_SECRET="your-secret-min-32-chars"      # At least 32 characters
@@ -118,7 +118,7 @@ CONSENT_MANAGER_ADDRESS="0x..."`}
   "timestamp": "2024-01-15T10:30:00.000Z",
   "level": "INFO",
   "message": "MediPact Backend Server started",
-  "port": 3002,
+  "port": 8080,
   "nodeEnv": "production",
   "hederaNetwork": "testnet"
 }`}

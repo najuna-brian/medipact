@@ -2,12 +2,12 @@
  * Patient Identity API Client
  * 
  * Client for interacting with the MediPact Patient Identity Management Backend API.
- * Base URL: http://localhost:3002 (configurable via NEXT_PUBLIC_BACKEND_API_URL)
+ * Base URL: configurable via NEXT_PUBLIC_BACKEND_API_URL (defaults to http://localhost:8080)
  */
 
 import axios from 'axios';
 
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3002';
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
 
 const patientIdentityClient = axios.create({
   baseURL: `${BACKEND_API_URL}/api`,

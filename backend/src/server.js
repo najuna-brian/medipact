@@ -32,7 +32,7 @@ import { validateEnvironment } from './config/env-validation.js';
 import { logInfo, logError, logWarn, logSecurityEvent } from './utils/logger.js';
 
 const app = express();
-const PORT = process.env.PORT || 3002; // Default to 3002 to avoid conflicts
+const PORT = process.env.PORT || 8080; // Default to 8080
 
 // Trust proxy for Railway/reverse proxy environments (required for rate limiting)
 // Trust only the first proxy (Railway) to avoid security warnings

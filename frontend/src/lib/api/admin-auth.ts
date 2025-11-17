@@ -6,7 +6,7 @@
 
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3002';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
 
 const adminAuthClient = axios.create({
   baseURL: `${API_BASE_URL}/api/admin/auth`,

@@ -8,7 +8,7 @@ import axios from 'axios';
 import http from 'http';
 import https from 'https';
 
-const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:3002';
+const BACKEND_API_URL = process.env.BACKEND_API_URL || `http://localhost:${process.env.PORT || 8080}`;
 
 /**
  * Store processed FHIR resources to backend

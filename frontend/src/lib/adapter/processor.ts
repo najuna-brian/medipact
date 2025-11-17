@@ -102,7 +102,7 @@ export async function processFile(
       HOSPITAL_LOCATION: options?.hospitalLocation || process.env.HOSPITAL_LOCATION,
       HOSPITAL_ID: options?.hospitalId || process.env.HOSPITAL_ID,
       HOSPITAL_API_KEY: options?.apiKey || process.env.HOSPITAL_API_KEY,
-      BACKEND_API_URL: process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_API_URL || 'http://localhost:3002',
+      BACKEND_API_URL: process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`,
     };
 
     // Validate required environment variables

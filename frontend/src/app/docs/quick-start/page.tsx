@@ -76,7 +76,7 @@ cd ../contracts && npm install`}
             <h3 className="text-lg font-semibold text-gray-900">Frontend Configuration</h3>
             <CodeBlock
               code={`# frontend/.env.local
-NEXT_PUBLIC_API_URL="http://localhost:3002"
+NEXT_PUBLIC_API_URL="http://localhost:8080"
 NEXT_PUBLIC_HEDERA_NETWORK="testnet"`}
               language="env"
             />
@@ -110,7 +110,7 @@ npm start`}
               language="bash"
             />
             <p className="mt-2 text-sm text-gray-600">
-              Backend runs on <code>http://localhost:3002</code>
+              Backend runs on <code>http://localhost:8080</code>
             </p>
           </div>
 
@@ -180,7 +180,7 @@ cd adapter && npm run validate`}
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <h3 className="font-semibold text-gray-900">API Documentation</h3>
-            <CodeBlock code="http://localhost:3002/api-docs" language="text" />
+            <CodeBlock code="http://localhost:8080/api-docs" language="text" />
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <h3 className="font-semibold text-gray-900">Documentation Site</h3>
@@ -221,7 +221,7 @@ cd adapter && npm run validate`}
               <div>
                 <h4 className="font-semibold text-gray-900">Port Already in Use</h4>
                 <p className="mt-1 text-sm text-gray-600">
-                  If port 3000 or 3002 is already in use, change the port in your configuration or stop the conflicting service.
+                  If port 3000 or 8080 is already in use, change the port in your configuration or stop the conflicting service.
                 </p>
               </div>
               <div>

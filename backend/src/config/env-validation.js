@@ -53,7 +53,7 @@ const REQUIRED_ENV_VARS = {
   PORT: {
     required: false,
     description: 'Server port',
-    default: '3002',
+    default: '8080',
     validate: (value) => {
       const port = parseInt(value);
       return port > 0 && port < 65536;

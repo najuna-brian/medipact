@@ -6,7 +6,7 @@
 
 import axios from 'axios';
 
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'http://localhost:3002';
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
 
 const hospitalClient = axios.create({
   baseURL: `${BACKEND_API_URL}/api/hospital`,

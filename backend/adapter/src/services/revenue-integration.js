@@ -7,7 +7,7 @@
 
 import axios from 'axios';
 
-const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:3002';
+const BACKEND_API_URL = process.env.BACKEND_API_URL || `http://localhost:${process.env.PORT || 8080}`;
 
 /**
  * Distribute revenue for a single patient
@@ -133,7 +133,7 @@ export async function distributeRevenueAfterProcessing({
     return { skipped: true, reason: 'Hospital ID not provided' };
   }
 
-  if (!BACKEND_API_URL || BACKEND_API_URL === 'http://localhost:3002') {
+  if (!BACKEND_API_URL || BACKEND_API_URL.includes('localhost')) {
     console.warn('⚠️  Backend API URL not configured. Set BACKEND_API_URL in .env');
     return { skipped: true, reason: 'Backend API URL not configured' };
   }

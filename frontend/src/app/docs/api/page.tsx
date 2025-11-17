@@ -14,7 +14,7 @@ export default function APIPage() {
       <section>
         <h2 className="text-2xl font-bold text-gray-900">Base URL</h2>
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
-          <CodeBlock code="http://localhost:3002" language="text" />
+          <CodeBlock code={`http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`} language="text" />
           <p className="mt-4 text-gray-700">
             All API endpoints are prefixed with the base URL. For production, replace with your
             production API URL.
@@ -29,7 +29,7 @@ export default function APIPage() {
           <p className="mt-2 text-gray-700">
             For interactive API documentation with request/response examples, visit:
           </p>
-          <CodeBlock code="http://localhost:3002/api-docs" language="text" />
+          <CodeBlock code={`http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}/api-docs`} language="text" />
           <p className="mt-4 text-sm text-gray-600">
             The Swagger UI provides a complete interface to explore all endpoints, test requests,
             and view response schemas.

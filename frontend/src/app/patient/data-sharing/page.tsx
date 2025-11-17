@@ -23,7 +23,7 @@ import { PatientProtectedRoute } from '@/components/PatientProtectedRoute/Patien
 import { PatientSidebar } from '@/components/Sidebar/PatientSidebar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
 
 interface PatientPreferences {
   upi: string;

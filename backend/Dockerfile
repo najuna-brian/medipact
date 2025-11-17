@@ -12,7 +12,7 @@ RUN npm ci --only=production
 COPY . .
 
 # Expose port (Railway will set PORT env var)
-EXPOSE 3002
+EXPOSE 8080
 
 # Start the application
 CMD ["npm", "start"]

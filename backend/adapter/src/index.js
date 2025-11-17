@@ -483,11 +483,11 @@ async function main() {
         process.stderr.write(`[Index] About to call storeFHIRResources: length=${processedResources?.length || 'undefined'}, hospitalId=${storageHospitalId}\n`);
         
         // Test backend connectivity before attempting storage
-        const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:3002';
+        const backendUrl = process.env.BACKEND_API_URL || `http://localhost:${process.env.PORT || 8080}`;
         console.error(`[Index] ===== TESTING BACKEND CONNECTIVITY =====`);
         console.error(`[Index] BACKEND_API_URL: ${backendUrl}`);
         console.log(`[Index] Testing backend connectivity to: ${backendUrl}`);
-        console.log(`[Index] BACKEND_API_URL env var: ${process.env.BACKEND_API_URL || 'NOT SET (using default http://localhost:3002)'}`);
+        console.log(`[Index] BACKEND_API_URL env var: ${process.env.BACKEND_API_URL || `NOT SET (using default http://localhost:${process.env.PORT || 8080})`}`);
         try {
           // Use https for HTTPS URLs, http for HTTP URLs
           const url = new URL(backendUrl);
@@ -797,7 +797,7 @@ async function main() {
     // Step 12: Execute real revenue distribution using backend API
     // This uses Hedera Account IDs for direct HBAR transfers
     const hospitalId = process.env.HOSPITAL_ID;
-    const revenueBackendApiUrl = process.env.BACKEND_API_URL || 'http://localhost:3002';
+    const revenueBackendApiUrl = process.env.BACKEND_API_URL || `http://localhost:${process.env.PORT || 8080}`;
     
     if (hospitalId && revenueBackendApiUrl) {
       console.log('=== 7. EXECUTE REVENUE DISTRIBUTION ===');
