@@ -337,11 +337,12 @@ router.get('/researchers', async (req, res) => {
             : r.verificationDocuments;
           
           // Check if it has actual content (not just empty object '{}')
+          // Researchers submit: organizationDocuments, researchLicense, additionalDocuments
           hasDocuments = verificationDocuments && 
             typeof verificationDocuments === 'object' &&
             Object.keys(verificationDocuments).length > 0 &&
-            (verificationDocuments.licenseNumber || 
-             verificationDocuments.registrationCertificate || 
+            (verificationDocuments.organizationDocuments || 
+             verificationDocuments.researchLicense || 
              verificationDocuments.additionalDocuments ||
              verificationDocuments.rejectionReason);
         } catch (e) {
@@ -422,11 +423,12 @@ router.get('/researchers/:researcherId', async (req, res) => {
           : researcher.verificationDocuments;
         
         // Check if it has actual content
+        // Researchers submit: organizationDocuments, researchLicense, additionalDocuments
         hasDocuments = verificationDocuments && 
           typeof verificationDocuments === 'object' &&
           Object.keys(verificationDocuments).length > 0 &&
-          (verificationDocuments.licenseNumber || 
-           verificationDocuments.registrationCertificate || 
+          (verificationDocuments.organizationDocuments || 
+           verificationDocuments.researchLicense || 
            verificationDocuments.additionalDocuments ||
            verificationDocuments.rejectionReason);
       } catch (e) {
