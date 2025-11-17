@@ -419,24 +419,39 @@ function AdminHospitalsPageContent() {
                                   <CardTitle>{hospital.name}</CardTitle>
                                   <Badge variant="warning">Awaiting Document Submission</Badge>
                                 </div>
-                                <CardDescription>
-                                  <div className="space-y-1 mt-2">
-                                    <p><span className="font-medium">Hospital ID:</span> {hospital.hospitalId}</p>
-                                    <p><span className="font-medium">Country:</span> {hospital.country}</p>
-                                    {hospital.location && (
-                                      <p><span className="font-medium">Location:</span> {hospital.location}</p>
-                                    )}
-                                    {hospital.contactEmail && (
-                                      <p><span className="font-medium">Email:</span> {hospital.contactEmail}</p>
-                                    )}
-                                    {hospital.fhirEndpoint && (
-                                      <p><span className="font-medium">FHIR Endpoint:</span> {hospital.fhirEndpoint}</p>
-                                    )}
-                                    {hospital.registeredAt && (
-                                      <p><span className="font-medium">Registered:</span> {new Date(hospital.registeredAt).toLocaleDateString()}</p>
-                                    )}
-                                  </div>
-                                </CardDescription>
+                                <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                                  <p>
+                                    <span className="font-medium">Hospital ID:</span>{' '}
+                                    {hospital.hospitalId}
+                                  </p>
+                                  <p>
+                                    <span className="font-medium">Country:</span> {hospital.country}
+                                  </p>
+                                  {hospital.location && (
+                                    <p>
+                                      <span className="font-medium">Location:</span>{' '}
+                                      {hospital.location}
+                                    </p>
+                                  )}
+                                  {hospital.contactEmail && (
+                                    <p>
+                                      <span className="font-medium">Email:</span>{' '}
+                                      {hospital.contactEmail}
+                                    </p>
+                                  )}
+                                  {hospital.fhirEndpoint && (
+                                    <p>
+                                      <span className="font-medium">FHIR Endpoint:</span>{' '}
+                                      {hospital.fhirEndpoint}
+                                    </p>
+                                  )}
+                                  {hospital.registeredAt && (
+                                    <p>
+                                      <span className="font-medium">Registered:</span>{' '}
+                                      {new Date(hospital.registeredAt).toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                               <div className="flex gap-2">
                                 <Button

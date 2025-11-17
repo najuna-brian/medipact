@@ -2,10 +2,12 @@
  * Patient Lookup Service
  * 
  * Enables patients to find their UPI using email, phone, or national ID.
- * Uses lazy account creation - Hedera accounts are created only when patients receive payments.
+ * Hedera accounts are created immediately during registration (same as hospitals and researchers).
  */
 
 import { generateUPI } from './patient-identity-service.js';
+import { createHederaAccount } from './hedera-account-service.js';
+import { encrypt } from './encryption-service.js';
 
 /**
  * Lookup patient UPI by contact information
@@ -85,18 +87,38 @@ export async function registerPatientWithContact(
   }
   
   // Only create patient if it doesn't exist (contact lookup may have found existing UPI)
+  let hederaAccountId = null;
+  let encryptedPrivateKey = null;
+  let evmAddress = null;
+  
   if (!patient) {
-    // Lazy account creation: Hedera accounts are created only when patients receive payments
-    // This saves costs - operator only pays for accounts that will actually receive revenue
-    // Create patient identity without Hedera account (will be created on first payment)
+    // Create Hedera account for patient immediately (same as hospitals and researchers)
+    try {
+      console.log(`Creating Hedera account for patient: ${upi}`);
+      const hederaAccount = await createHederaAccount(0); // Platform pays for account creation
+      encryptedPrivateKey = encrypt(hederaAccount.privateKey);
+      hederaAccountId = hederaAccount.accountId;
+      evmAddress = hederaAccount.evmAddress;
+      console.log(`✅ Hedera account created: ${hederaAccount.accountId}`);
+    } catch (error) {
+      console.error('Failed to create Hedera account for patient:', error);
+      // Continue registration even if Hedera account creation fails
+      // Account can be created later if needed
+    }
+    
+    // Create patient identity with Hedera account
     await createPatient(upi, {
-      hederaAccountId: null, // Account created lazily when revenue is distributed
-      encryptedPrivateKey: null,
+      hederaAccountId: hederaAccountId || null,
+      evmAddress: evmAddress || null,
+      encryptedPrivateKey: encryptedPrivateKey || null,
       name: patientInfo.name,
       dateOfBirth: patientInfo.dateOfBirth,
       phone: patientInfo.phone,
       nationalId: patientInfo.nationalId
     });
+  } else {
+    // Patient already exists, use their existing account
+    hederaAccountId = patient.hederaAccountId;
   }
   
   // Create/update contact information with latest entry (merge to latest)
@@ -111,8 +133,8 @@ export async function registerPatientWithContact(
   
   return {
     upi,
-    hederaAccountId: patient?.hederaAccountId || null, // Account will be created lazily when patient receives payment
-    message: patient ? 'Patient linked to existing account' : 'Patient registered successfully. Hedera account will be created when you receive your first payment.',
+    hederaAccountId: hederaAccountId || null,
+    message: patient ? 'Patient linked to existing account' : 'Patient registered successfully with Hedera account.',
     createdAt: new Date().toISOString()
   };
 }

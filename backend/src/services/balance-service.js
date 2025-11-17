@@ -25,7 +25,8 @@ export async function getPatientBalance(upi) {
   }
   
   if (!patient.hederaAccountId) {
-    // No account created yet (lazy creation on first payment)
+    // Account should exist (created during registration)
+    // Return zero balance if account doesn't exist
     return {
       balanceHBAR: 0,
       balanceUSD: 0,

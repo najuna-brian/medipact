@@ -3,7 +3,7 @@
  * 
  * Handles bulk registration of patients from CSV/JSON files.
  * Supports batch processing with progress tracking.
- * Uses lazy account creation - Hedera accounts are created only when patients receive payments.
+ * Hedera accounts are created immediately during registration (same as hospitals and researchers).
  */
 
 import { generateUPI, getOrCreateUPI } from './patient-identity-service.js';
@@ -184,20 +184,39 @@ export async function processBulkRegistration(
       
       // Generate or get UPI with contact lookup (email/phone priority)
       // This allows patients to use email/phone without knowing their UPI
-      // Lazy account creation: Hedera accounts are created only when patients receive payments
       const upi = await getOrCreateUPI(
         normalized,
         patientExists,
         async (upi, patientData) => {
-          // Create patient without Hedera account (will be created lazily on first payment)
+          // Create Hedera account for patient immediately (same as hospitals and researchers)
+          let hederaAccountId = null;
+          let encryptedPrivateKey = null;
+          let evmAddress = null;
+          
+          try {
+            const { createHederaAccount } = await import('./hedera-account-service.js');
+            const { encrypt } = await import('./encryption-service.js');
+            console.log(`Creating Hedera account for patient: ${upi}`);
+            const hederaAccount = await createHederaAccount(0); // Platform pays for account creation
+            encryptedPrivateKey = encrypt(hederaAccount.privateKey);
+            hederaAccountId = hederaAccount.accountId;
+            evmAddress = hederaAccount.evmAddress;
+            console.log(`✅ Hedera account created: ${hederaAccount.accountId}`);
+          } catch (error) {
+            console.error(`Failed to create Hedera account for patient ${upi}:`, error);
+            // Continue registration even if Hedera account creation fails
+            // Account can be created later if needed
+          }
+          
           // Include all normalized data (including email/phone/nationalId) for contact creation
           // For bulk uploads, use phone as the default payment method when available.
           const paymentDefaults = derivePaymentFromPhone(normalized.phone);
           await createPatient(upi, {
             ...normalized,
             ...paymentDefaults,
-            hederaAccountId: null, // Account created lazily when revenue is distributed
-            encryptedPrivateKey: null
+            hederaAccountId: hederaAccountId || null,
+            evmAddress: evmAddress || null,
+            encryptedPrivateKey: encryptedPrivateKey || null
           });
         },
         // Provide contact lookup functions - enables automatic linking by email/phone

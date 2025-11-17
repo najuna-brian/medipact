@@ -317,18 +317,37 @@ router.post('/:hospitalId/patients', authenticateHospital, async (req, res) => {
     
     // Generate or get UPI with contact lookup (email/phone priority)
     // This allows patients to use email/phone without knowing their UPI
-    // Lazy account creation: Hedera accounts are created only when patients receive payments
     const upi = await getOrCreateUPI(
       { name, dateOfBirth, phone, nationalId, email },
       async (upi) => {
         return await patientExists(upi);
       },
       async (upi, patientData) => {
-        // Create patient without Hedera account (will be created lazily on first payment)
+        // Create Hedera account for patient immediately (same as hospitals and researchers)
+        let hederaAccountId = null;
+        let encryptedPrivateKey = null;
+        let evmAddress = null;
+        
+        try {
+          const { createHederaAccount } = await import('../services/hedera-account-service.js');
+          const { encrypt } = await import('../services/encryption-service.js');
+          console.log(`Creating Hedera account for patient: ${upi}`);
+          const hederaAccount = await createHederaAccount(0); // Platform pays for account creation
+          encryptedPrivateKey = encrypt(hederaAccount.privateKey);
+          hederaAccountId = hederaAccount.accountId;
+          evmAddress = hederaAccount.evmAddress;
+          console.log(`✅ Hedera account created: ${hederaAccount.accountId}`);
+        } catch (error) {
+          console.error(`Failed to create Hedera account for patient ${upi}:`, error);
+          // Continue registration even if Hedera account creation fails
+          // Account can be created later if needed
+        }
+        
         await createPatient(upi, {
           ...patientData,
-          hederaAccountId: null, // Account created lazily when revenue is distributed
-          encryptedPrivateKey: null
+          hederaAccountId: hederaAccountId || null,
+          evmAddress: evmAddress || null,
+          encryptedPrivateKey: encryptedPrivateKey || null
         });
       },
       {
@@ -339,7 +358,7 @@ router.post('/:hospitalId/patients', authenticateHospital, async (req, res) => {
       }
     );
     
-    // Get patient to check if they already have an account (from previous payment)
+    // Get patient to retrieve Hedera account (created during registration)
     const patient = await getPatient(upi);
     const hederaAccountId = patient?.hederaAccountId || null;
     

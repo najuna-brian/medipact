@@ -44,36 +44,11 @@ export async function distributeRevenueFromSale({
       throw new Error(`Hospital ${hospitalId} not found`);
     }
     
-    // Lazy account creation: Create account only when revenue needs to be distributed
-    // This ensures operator (mainnet account) only pays for accounts that will receive payments
+    // Patient accounts are now created immediately during registration
+    // If account doesn't exist, it's an error (should have been created during registration)
     if (!patient.hederaAccountId) {
-      console.log(`Creating Hedera account for patient ${patientUPI} (lazy creation - just before payment)`);
-      
-      try {
-        const { createHederaAccount } = await import('./hedera-account-service.js');
-        const { encrypt } = await import('./encryption-service.js');
-        const { updatePatientAccount } = await import('../db/patient-db.js');
-        
-        // Create account (operator/mainnet account pays ~$0.05)
-        const hederaAccount = await createHederaAccount(0);
-        const encryptedPrivateKey = encrypt(hederaAccount.privateKey);
-        
-        // Save to database
-        await updatePatientAccount(patientUPI, {
-          hederaAccountId: hederaAccount.accountId,
-          evmAddress: hederaAccount.evmAddress,
-          encryptedPrivateKey: encryptedPrivateKey
-        });
-        
-        // Update patient object for this transaction
-        patient.hederaAccountId = hederaAccount.accountId;
-        patient.evmAddress = hederaAccount.evmAddress;
-        
-        console.log(`✅ Hedera account created for patient ${patientUPI}: ${hederaAccount.accountId}`);
-      } catch (error) {
-        console.error(`Failed to create Hedera account for patient ${patientUPI}:`, error);
-        throw new Error(`Cannot distribute revenue: Failed to create Hedera account for patient`);
-      }
+      console.error(`Patient ${patientUPI} does not have a Hedera account. This should not happen - accounts are created during registration.`);
+      throw new Error(`Cannot distribute revenue: Patient ${patientUPI} does not have a Hedera account. Please contact support.`);
     }
     
     if (!hospital.hederaAccountId) {

@@ -248,19 +248,47 @@ async function main() {
         const originalId = patient.id;
         if (!originalId) continue;
         
-        // Extract email, phone, and national ID from Patient resource or raw records
-        const email = patient.telecom?.find(t => t.system === 'email')?.value;
-        const phone = patient.telecom?.find(t => t.system === 'phone')?.value;
+        // Extract data from Patient resource or raw records
         const originalRecord = rawRecords.find(r => 
           (r['Patient ID'] || r['Patient Name']) === originalId
         );
+        
+        // Extract email, phone, nationalId from both FHIR resource and raw CSV
+        const email = patient.telecom?.find(t => t.system === 'email')?.value || 
+                      originalRecord?.['Email'] || originalRecord?.['email'] || null;
+        const phone = patient.telecom?.find(t => t.system === 'phone')?.value || 
+                      originalRecord?.['Phone Number'] || originalRecord?.['phone'] || null;
         const nationalId = originalRecord?.['National ID'] || originalRecord?.['nationalId'] || null;
         const name = patient.name?.[0]?.text || originalRecord?.['Patient Name'];
         const dateOfBirth = patient.birthDate || originalRecord?.['Date of Birth'];
         
-        // Try to lookup UPI by email/phone/nationalId (ANY of these will link to existing UPI)
-        let upi = null;
-        if (email || phone || nationalId) {
+        // PRIORITY 1: Check if UPI is directly in uploaded data
+        let upi = originalRecord?.['UPI'] || originalRecord?.['upi'] || null;
+        
+        if (upi) {
+          // Verify UPI exists in system
+          try {
+            const existsResponse = await axios.get(`${backendApiUrl}/api/patient/${upi}/exists`, {
+              timeout: 5000,
+              validateStatus: (status) => status < 500
+            });
+            if (existsResponse.data && existsResponse.data.exists) {
+              console.log(`     ✓ Found UPI in uploaded data and verified: ${upi}`);
+              upiMapping.set(originalId, upi);
+              continue; // Skip to next patient
+            } else {
+              // UPI in data but doesn't exist - treat as entry error, proceed to 3-parameter check
+              console.warn(`     ⚠️  UPI ${upi} in uploaded data doesn't exist in system, treating as entry error`);
+              upi = null; // Reset to proceed with 3-parameter check
+            }
+          } catch (error) {
+            console.warn(`     ⚠️  Failed to verify UPI ${upi}: ${error.message}, proceeding to 3-parameter check`);
+            upi = null; // Reset to proceed with 3-parameter check
+          }
+        }
+        
+        // PRIORITY 2: If no UPI in data (or UPI invalid), check email/phone/nationalId
+        if (!upi && (email || phone || nationalId)) {
           try {
             const lookupResponse = await axios.post(`${backendApiUrl}/api/patient/lookup`, {
               email: email || null,
@@ -284,7 +312,7 @@ async function main() {
           }
         }
         
-        // If no UPI found by contact, generate deterministically
+        // PRIORITY 3: If still no UPI, generate deterministically (or create new)
         if (!upi && name && dateOfBirth) {
           const { generateUPI } = await import('../../src/services/patient-identity-service.js');
           try {
@@ -294,7 +322,8 @@ async function main() {
               phone: phone || null,
               nationalId: nationalId || null
             });
-            // Check if this UPI exists (deterministic match)
+            
+            // Check if this deterministic UPI exists
             try {
               const existsResponse = await axios.get(`${backendApiUrl}/api/patient/${upi}/exists`, {
                 timeout: 5000,
@@ -303,14 +332,52 @@ async function main() {
               if (existsResponse.data && existsResponse.data.exists) {
                 console.log(`     ✓ Found existing UPI for ${originalId} by deterministic match: ${upi}`);
               } else {
-                console.log(`     → Generated new UPI for ${originalId}: ${upi}`);
+                // New patient - register them
+                console.log(`     → Creating new patient and UPI for ${originalId}: ${upi}`);
+                // Register the patient via backend API
+                try {
+                  await axios.post(`${backendApiUrl}/api/patient/register`, {
+                    name,
+                    dateOfBirth,
+                    email: email || null,
+                    phone: phone || null,
+                    nationalId: nationalId || null
+                  }, {
+                    timeout: 10000,
+                    validateStatus: (status) => status < 500
+                  });
+                  console.log(`     ✓ Registered new patient with UPI: ${upi}`);
+                } catch (regError) {
+                  console.warn(`     ⚠️  Failed to register new patient: ${regError.message}`);
+                  // Continue anyway - UPI is generated, patient will be created on first linkage
+                }
               }
             } catch (error) {
               // Assume new UPI if check fails
               console.log(`     → Generated new UPI for ${originalId}: ${upi}`);
             }
           } catch (error) {
-            console.warn(`     ⚠️  Failed to generate UPI for ${originalId}: ${error.message}`);
+            console.error(`     ✗ Failed to generate UPI for ${originalId}: ${error.message}`);
+            // CRITICAL: This patient will fail to store - we need to handle this
+          }
+        }
+        
+        // CRITICAL: Ensure every patient has a UPI
+        if (!upi) {
+          console.error(`     ✗ ERROR: No UPI could be determined for patient ${originalId}. Missing required fields: name=${!!name}, dateOfBirth=${!!dateOfBirth}`);
+          // Generate a fallback UPI even without name/DOB (using originalId as fallback)
+          const { generateUPI } = await import('../../src/services/patient-identity-service.js');
+          try {
+            upi = generateUPI({
+              name: name || `Patient-${originalId}`,
+              dateOfBirth: dateOfBirth || '1900-01-01', // Fallback DOB
+              phone: phone || null,
+              nationalId: nationalId || null
+            });
+            console.warn(`     ⚠️  Generated fallback UPI for ${originalId}: ${upi}`);
+          } catch (error) {
+            console.error(`     ✗✗ CRITICAL: Failed to generate fallback UPI for ${originalId}: ${error.message}`);
+            // This patient will be skipped - cannot store without UPI
           }
         }
         

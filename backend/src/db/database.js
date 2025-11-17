@@ -1675,21 +1675,21 @@ async function createSQLiteTables() {
     )
   `);
 
-  // Create indexes for FHIR tables
-  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_anonymous_id ON fhir_patients(anonymous_patient_id)`);
+  // Create indexes for FHIR tables (using camelCase column names)
+  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_anonymous_id ON fhir_patients(anonymousPatientId)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_upi ON fhir_patients(upi)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_country ON fhir_patients(country)`);
-  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_hospital ON fhir_patients(hospital_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_hospital ON fhir_patients(hospitalId)`);
   
-  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_anonymous_id ON fhir_conditions(anonymous_patient_id)`);
-  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_code ON fhir_conditions(condition_code)`);
-  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_name ON fhir_conditions(condition_name)`);
-  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_date ON fhir_conditions(diagnosis_date)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_anonymous_id ON fhir_conditions(anonymousPatientId)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_code ON fhir_conditions(conditionCode)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_name ON fhir_conditions(conditionName)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_date ON fhir_conditions(diagnosisDate)`);
   
-  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_anonymous_id ON fhir_observations(anonymous_patient_id)`);
-  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_code ON fhir_observations(observation_code)`);
-  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_name ON fhir_observations(observation_name)`);
-  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_date ON fhir_observations(effective_date)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_anonymous_id ON fhir_observations(anonymousPatientId)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_code ON fhir_observations(observationCode)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_name ON fhir_observations(observationName)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_date ON fhir_observations(effectiveDate)`);
   
   await run(`CREATE INDEX IF NOT EXISTS idx_datasets_hospital ON datasets(hospital_id)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_datasets_country ON datasets(country)`);
@@ -1702,6 +1702,7 @@ async function createSQLiteTables() {
   await run(`CREATE INDEX IF NOT EXISTS idx_purchases_dataset ON purchases(dataset_id)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_purchases_status ON purchases(status)`);
   
+  // Note: patient_consents table uses snake_case (anonymous_patient_id) - this is correct
   await run(`CREATE INDEX IF NOT EXISTS idx_consents_anonymous_id ON patient_consents(anonymous_patient_id)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_consents_upi ON patient_consents(upi)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_consents_status ON patient_consents(status)`);

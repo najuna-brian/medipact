@@ -165,11 +165,9 @@ router.post('/register', async (req, res) => {
           async (upi) => await patientExists(upi),
           async (upi, data) => {
             // This will be called only if patient doesn't exist
-            await createPatient(upi, {
-              ...data,
-              hederaAccountId: null,
-              encryptedPrivateKey: null
-            });
+            // Note: Hedera account will be created in registerPatientWithContact
+            // This callback is just for UPI creation, not patient creation
+            // Patient creation happens in registerPatientWithContact with account creation
           },
           {
             // Provide contact lookup functions - enables automatic linking by email/phone

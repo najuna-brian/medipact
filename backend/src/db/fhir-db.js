@@ -178,6 +178,13 @@ export async function queryFHIRResources(filters) {
     ? (idx) => `$${idx}`
     : () => '?';
   
+  // Helper to get column reference with proper quoting for camelCase
+  // PostgreSQL: quoted identifiers (case-sensitive)
+  // SQLite: unquoted identifiers (case-insensitive, but use camelCase for consistency)
+  const col = (columnName) => dbType === 'postgresql' 
+    ? `"${columnName}"` 
+    : columnName;
+  
   // Country filter
   if (filters.country) {
     conditions.push(`p.country = ${placeholder(paramIndex)}`);
@@ -200,12 +207,12 @@ export async function queryFHIRResources(filters) {
   if (filters.conditionCode || filters.conditionName) {
     needsConditionJoin = true;
     if (filters.conditionCode) {
-      conditions.push(`c.condition_code = ${placeholder(paramIndex)}`);
+      conditions.push(`c.${col('conditionCode')} = ${placeholder(paramIndex)}`);
       params.push(filters.conditionCode);
       paramIndex++;
     }
     if (filters.conditionName) {
-      conditions.push(`c.condition_name LIKE ${placeholder(paramIndex)}`);
+      conditions.push(`c.${col('conditionName')} LIKE ${placeholder(paramIndex)}`);
       params.push(`%${filters.conditionName}%`);
       paramIndex++;
     }
@@ -215,12 +222,12 @@ export async function queryFHIRResources(filters) {
   if (filters.observationCode || filters.observationName) {
     needsObservationJoin = true;
     if (filters.observationCode) {
-      conditions.push(`o.observation_code = ${placeholder(paramIndex)}`);
+      conditions.push(`o.${col('observationCode')} = ${placeholder(paramIndex)}`);
       params.push(filters.observationCode);
       paramIndex++;
     }
     if (filters.observationName) {
-      conditions.push(`o.observation_name LIKE ${placeholder(paramIndex)}`);
+      conditions.push(`o.${col('observationName')} LIKE ${placeholder(paramIndex)}`);
       params.push(`%${filters.observationName}%`);
       paramIndex++;
     }
@@ -230,12 +237,12 @@ export async function queryFHIRResources(filters) {
   if (filters.medicationCode || filters.medicationName) {
     needsMedicationJoin = true;
     if (filters.medicationCode) {
-      conditions.push(`mr.medication_code = ${placeholder(paramIndex)}`);
+      conditions.push(`mr.${col('medicationCode')} = ${placeholder(paramIndex)}`);
       params.push(filters.medicationCode);
       paramIndex++;
     }
     if (filters.medicationName) {
-      conditions.push(`mr.medication_name LIKE ${placeholder(paramIndex)}`);
+      conditions.push(`mr.${col('medicationName')} LIKE ${placeholder(paramIndex)}`);
       params.push(`%${filters.medicationName}%`);
       paramIndex++;
     }
@@ -245,12 +252,12 @@ export async function queryFHIRResources(filters) {
   if (filters.procedureCode || filters.procedureName) {
     needsProcedureJoin = true;
     if (filters.procedureCode) {
-      conditions.push(`pr.procedure_code = ${placeholder(paramIndex)}`);
+      conditions.push(`pr.${col('procedureCode')} = ${placeholder(paramIndex)}`);
       params.push(filters.procedureCode);
       paramIndex++;
     }
     if (filters.procedureName) {
-      conditions.push(`pr.procedure_name LIKE ${placeholder(paramIndex)}`);
+      conditions.push(`pr.${col('procedureName')} LIKE ${placeholder(paramIndex)}`);
       params.push(`%${filters.procedureName}%`);
       paramIndex++;
     }
@@ -260,12 +267,12 @@ export async function queryFHIRResources(filters) {
   if (filters.encounterType || filters.encounterClass) {
     needsEncounterJoin = true;
     if (filters.encounterType) {
-      conditions.push(`e.encounter_type LIKE ${placeholder(paramIndex)}`);
+      conditions.push(`e.${col('encounterType')} LIKE ${placeholder(paramIndex)}`);
       params.push(`%${filters.encounterType}%`);
       paramIndex++;
     }
     if (filters.encounterClass) {
-      conditions.push(`e.encounter_class = ${placeholder(paramIndex)}`);
+      conditions.push(`e.${col('encounterClass')} = ${placeholder(paramIndex)}`);
       params.push(filters.encounterClass);
       paramIndex++;
     }
@@ -291,11 +298,11 @@ export async function queryFHIRResources(filters) {
   // Date range filter - check all resource types
   if (filters.startDate) {
     const dateConditions = [];
-    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date >= ${placeholder(paramIndex)}`);
-    if (needsObservationJoin) dateConditions.push(`o.effective_date >= ${placeholder(paramIndex)}`);
-    if (needsMedicationJoin) dateConditions.push(`mr.authored_on >= ${placeholder(paramIndex)}`);
-    if (needsProcedureJoin) dateConditions.push(`pr.performed_date >= ${placeholder(paramIndex)}`);
-    if (needsEncounterJoin) dateConditions.push(`e.period_start >= ${placeholder(paramIndex)}`);
+    if (needsConditionJoin) dateConditions.push(`c.${col('diagnosisDate')} >= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.${col('effectiveDate')} >= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.${col('authoredOn')} >= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.${col('performedDate')} >= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.${col('periodStart')} >= ${placeholder(paramIndex)}`);
     
     if (dateConditions.length > 0) {
       conditions.push(`(${dateConditions.join(' OR ')})`);
@@ -303,8 +310,8 @@ export async function queryFHIRResources(filters) {
       dateConditions.forEach(() => params.push(filters.startDate));
       paramIndex += dateConditions.length;
     } else {
-      // If no specific joins, check patient created_at as fallback
-      conditions.push(`p.created_at >= ${placeholder(paramIndex)}`);
+      // If no specific joins, check patient createdAt as fallback
+      conditions.push(`p.${col('createdAt')} >= ${placeholder(paramIndex)}`);
       params.push(filters.startDate);
       paramIndex++;
     }
@@ -312,18 +319,18 @@ export async function queryFHIRResources(filters) {
   
   if (filters.endDate) {
     const dateConditions = [];
-    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date <= ${placeholder(paramIndex)}`);
-    if (needsObservationJoin) dateConditions.push(`o.effective_date <= ${placeholder(paramIndex)}`);
-    if (needsMedicationJoin) dateConditions.push(`mr.authored_on <= ${placeholder(paramIndex)}`);
-    if (needsProcedureJoin) dateConditions.push(`pr.performed_date <= ${placeholder(paramIndex)}`);
-    if (needsEncounterJoin) dateConditions.push(`e.period_end <= ${placeholder(paramIndex)}`);
+    if (needsConditionJoin) dateConditions.push(`c.${col('diagnosisDate')} <= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.${col('effectiveDate')} <= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.${col('authoredOn')} <= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.${col('performedDate')} <= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.${col('periodEnd')} <= ${placeholder(paramIndex)}`);
     
     if (dateConditions.length > 0) {
       conditions.push(`(${dateConditions.join(' OR ')})`);
       dateConditions.forEach(() => params.push(filters.endDate));
       paramIndex += dateConditions.length;
     } else {
-      conditions.push(`p.created_at <= ${placeholder(paramIndex)}`);
+      conditions.push(`p.${col('createdAt')} <= ${placeholder(paramIndex)}`);
       params.push(filters.endDate);
       paramIndex++;
     }
@@ -332,9 +339,9 @@ export async function queryFHIRResources(filters) {
   // Age range filter
   if (filters.ageMin || filters.ageMax) {
     // This would need age calculation logic
-    // For now, we'll filter by age_range if available
+    // For now, we'll filter by ageRange if available
     if (filters.ageRange) {
-      conditions.push(`p.age_range = ${placeholder(paramIndex)}`);
+      conditions.push(`p.${col('ageRange')} = ${placeholder(paramIndex)}`);
       params.push(filters.ageRange);
       paramIndex++;
     }
@@ -349,29 +356,41 @@ export async function queryFHIRResources(filters) {
   
   // Hospital filter
   if (filters.hospitalId) {
-    conditions.push(`p.hospital_id = ${placeholder(paramIndex)}`);
+    conditions.push(`p.${col('hospitalId')} = ${placeholder(paramIndex)}`);
     params.push(filters.hospitalId);
     paramIndex++;
   }
   
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   
-  // Add consent filter if validateConsent is true
-  const consentJoin = filters.validateConsent !== false 
-    ? `INNER JOIN patient_consents pc ON p.anonymous_patient_id = pc.anonymous_patient_id 
-       AND pc.status = 'active' 
-       AND (pc.expires_at IS NULL OR pc.expires_at > CURRENT_TIMESTAMP)`
+  // Add consent filter if validateConsent is explicitly true
+  // Note: patient_consents table uses snake_case (anonymous_patient_id)
+  // while fhir_patients uses camelCase (anonymousPatientId)
+  // When validateConsent is false/undefined, uploaded patients are considered to have implicit consent
+  // (no consent record needed - they consented by allowing their data to be uploaded)
+  const patientIdCol = col('anonymousPatientId');
+  const consentJoin = filters.validateConsent === true
+    ? (() => {
+        // For SQLite, use unquoted identifiers (case-insensitive matching)
+        // For PostgreSQL, use quoted identifiers
+        const consentPatientIdCol = dbType === 'postgresql' 
+          ? 'pc."anonymous_patient_id"' 
+          : 'pc.anonymous_patient_id';
+        return `INNER JOIN patient_consents pc ON p.${patientIdCol} = ${consentPatientIdCol}
+         AND pc.status = 'active' 
+         AND (pc.expires_at IS NULL OR pc.expires_at > CURRENT_TIMESTAMP)`;
+      })()
     : '';
   
-  // Build dynamic joins
-  if (needsConditionJoin) joins.push('LEFT JOIN fhir_conditions c ON p.anonymous_patient_id = c.anonymous_patient_id');
-  if (needsObservationJoin) joins.push('LEFT JOIN fhir_observations o ON p.anonymous_patient_id = o.anonymous_patient_id');
-  if (needsMedicationJoin) joins.push('LEFT JOIN fhir_medication_requests mr ON p.anonymous_patient_id = mr.anonymous_patient_id');
-  if (needsProcedureJoin) joins.push('LEFT JOIN fhir_procedures pr ON p.anonymous_patient_id = pr.anonymous_patient_id');
-  if (needsEncounterJoin) joins.push('LEFT JOIN fhir_encounters e ON p.anonymous_patient_id = e.anonymous_patient_id');
-  if (needsImagingJoin) joins.push('LEFT JOIN fhir_imaging_studies img ON p.anonymous_patient_id = img.anonymous_patient_id');
-  if (needsAllergyJoin) joins.push('LEFT JOIN fhir_allergies al ON p.anonymous_patient_id = al.anonymous_patient_id');
-  if (needsCoverageJoin) joins.push('LEFT JOIN fhir_coverage cov ON p.anonymous_patient_id = cov.anonymous_patient_id');
+  // Build dynamic joins using camelCase
+  if (needsConditionJoin) joins.push(`LEFT JOIN fhir_conditions c ON p.${patientIdCol} = c.${patientIdCol}`);
+  if (needsObservationJoin) joins.push(`LEFT JOIN fhir_observations o ON p.${patientIdCol} = o.${patientIdCol}`);
+  if (needsMedicationJoin) joins.push(`LEFT JOIN fhir_medication_requests mr ON p.${patientIdCol} = mr.${patientIdCol}`);
+  if (needsProcedureJoin) joins.push(`LEFT JOIN fhir_procedures pr ON p.${patientIdCol} = pr.${patientIdCol}`);
+  if (needsEncounterJoin) joins.push(`LEFT JOIN fhir_encounters e ON p.${patientIdCol} = e.${patientIdCol}`);
+  if (needsImagingJoin) joins.push(`LEFT JOIN fhir_imaging_studies img ON p.${patientIdCol} = img.${patientIdCol}`);
+  if (needsAllergyJoin) joins.push(`LEFT JOIN fhir_allergies al ON p.${patientIdCol} = al.${patientIdCol}`);
+  if (needsCoverageJoin) joins.push(`LEFT JOIN fhir_coverage cov ON p.${patientIdCol} = cov.${patientIdCol}`);
   
   // Query to get distinct patients matching filters
   const query = `
@@ -383,13 +402,27 @@ export async function queryFHIRResources(filters) {
     LIMIT ${filters.limit || 1000}
   `;
   
+  // Debug: Log query for troubleshooting
+  if (process.env.DEBUG_QUERIES === 'true') {
+    console.log('[queryFHIRResources] Generated query:', query);
+    console.log('[queryFHIRResources] Params:', params);
+  }
+  
   if (dbType === 'postgresql') {
     const result = await db.query(query, params);
     return result.rows.map(mapPatientRow);
   } else {
     const all = promisify(db.all.bind(db));
-    const rows = await all(query, params);
-    return rows.map(mapPatientRow);
+    try {
+      const rows = await all(query, params);
+      return rows.map(mapPatientRow);
+    } catch (error) {
+      // Log the actual query that failed for debugging
+      console.error('[queryFHIRResources] Query failed:', error.message);
+      console.error('[queryFHIRResources] Query was:', query);
+      console.error('[queryFHIRResources] Params:', params);
+      throw error;
+    }
   }
 }
 
@@ -409,6 +442,11 @@ export async function countFHIRPatients(filters) {
     ? (idx) => `$${idx}`
     : () => '?';
   
+  // Helper to get column reference with proper quoting for camelCase
+  const col = (columnName) => dbType === 'postgresql' 
+    ? `"${columnName}"` 
+    : columnName;
+  
   // Build dynamic joins based on filters (same logic as queryFHIRResources)
   const joins = [];
   let needsConditionJoin = false;
@@ -426,8 +464,13 @@ export async function countFHIRPatients(filters) {
   if (filters.conditionCode || filters.conditionName) {
     needsConditionJoin = true;
     if (filters.conditionCode) {
-      conditions.push(`c.condition_code = ${placeholder(paramIndex)}`);
+      conditions.push(`c.${col('conditionCode')} = ${placeholder(paramIndex)}`);
       params.push(filters.conditionCode);
+      paramIndex++;
+    }
+    if (filters.conditionName) {
+      conditions.push(`c.${col('conditionName')} LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.conditionName}%`);
       paramIndex++;
     }
   }
@@ -435,8 +478,13 @@ export async function countFHIRPatients(filters) {
   if (filters.observationCode || filters.observationName) {
     needsObservationJoin = true;
     if (filters.observationCode) {
-      conditions.push(`o.observation_code = ${placeholder(paramIndex)}`);
+      conditions.push(`o.${col('observationCode')} = ${placeholder(paramIndex)}`);
       params.push(filters.observationCode);
+      paramIndex++;
+    }
+    if (filters.observationName) {
+      conditions.push(`o.${col('observationName')} LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.observationName}%`);
       paramIndex++;
     }
   }
@@ -444,8 +492,13 @@ export async function countFHIRPatients(filters) {
   if (filters.medicationCode || filters.medicationName) {
     needsMedicationJoin = true;
     if (filters.medicationCode) {
-      conditions.push(`mr.medication_code = ${placeholder(paramIndex)}`);
+      conditions.push(`mr.${col('medicationCode')} = ${placeholder(paramIndex)}`);
       params.push(filters.medicationCode);
+      paramIndex++;
+    }
+    if (filters.medicationName) {
+      conditions.push(`mr.${col('medicationName')} LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.medicationName}%`);
       paramIndex++;
     }
   }
@@ -453,14 +506,29 @@ export async function countFHIRPatients(filters) {
   if (filters.procedureCode || filters.procedureName) {
     needsProcedureJoin = true;
     if (filters.procedureCode) {
-      conditions.push(`pr.procedure_code = ${placeholder(paramIndex)}`);
+      conditions.push(`pr.${col('procedureCode')} = ${placeholder(paramIndex)}`);
       params.push(filters.procedureCode);
+      paramIndex++;
+    }
+    if (filters.procedureName) {
+      conditions.push(`pr.${col('procedureName')} LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.procedureName}%`);
       paramIndex++;
     }
   }
   
   if (filters.encounterType || filters.encounterClass) {
     needsEncounterJoin = true;
+    if (filters.encounterType) {
+      conditions.push(`e.${col('encounterType')} LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.encounterType}%`);
+      paramIndex++;
+    }
+    if (filters.encounterClass) {
+      conditions.push(`e.${col('encounterClass')} = ${placeholder(paramIndex)}`);
+      params.push(filters.encounterClass);
+      paramIndex++;
+    }
   }
   
   if (filters.resourceType) {
@@ -479,18 +547,18 @@ export async function countFHIRPatients(filters) {
   // Date range filter - check all resource types
   if (filters.startDate) {
     const dateConditions = [];
-    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date >= ${placeholder(paramIndex)}`);
-    if (needsObservationJoin) dateConditions.push(`o.effective_date >= ${placeholder(paramIndex)}`);
-    if (needsMedicationJoin) dateConditions.push(`mr.authored_on >= ${placeholder(paramIndex)}`);
-    if (needsProcedureJoin) dateConditions.push(`pr.performed_date >= ${placeholder(paramIndex)}`);
-    if (needsEncounterJoin) dateConditions.push(`e.period_start >= ${placeholder(paramIndex)}`);
+    if (needsConditionJoin) dateConditions.push(`c.${col('diagnosisDate')} >= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.${col('effectiveDate')} >= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.${col('authoredOn')} >= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.${col('performedDate')} >= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.${col('periodStart')} >= ${placeholder(paramIndex)}`);
     
     if (dateConditions.length > 0) {
       conditions.push(`(${dateConditions.join(' OR ')})`);
       dateConditions.forEach(() => params.push(filters.startDate));
       paramIndex += dateConditions.length;
     } else {
-      conditions.push(`p.created_at >= ${placeholder(paramIndex)}`);
+      conditions.push(`p.${col('createdAt')} >= ${placeholder(paramIndex)}`);
       params.push(filters.startDate);
       paramIndex++;
     }
@@ -498,47 +566,54 @@ export async function countFHIRPatients(filters) {
   
   if (filters.endDate) {
     const dateConditions = [];
-    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date <= ${placeholder(paramIndex)}`);
-    if (needsObservationJoin) dateConditions.push(`o.effective_date <= ${placeholder(paramIndex)}`);
-    if (needsMedicationJoin) dateConditions.push(`mr.authored_on <= ${placeholder(paramIndex)}`);
-    if (needsProcedureJoin) dateConditions.push(`pr.performed_date <= ${placeholder(paramIndex)}`);
-    if (needsEncounterJoin) dateConditions.push(`e.period_end <= ${placeholder(paramIndex)}`);
+    if (needsConditionJoin) dateConditions.push(`c.${col('diagnosisDate')} <= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.${col('effectiveDate')} <= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.${col('authoredOn')} <= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.${col('performedDate')} <= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.${col('periodEnd')} <= ${placeholder(paramIndex)}`);
     
     if (dateConditions.length > 0) {
       conditions.push(`(${dateConditions.join(' OR ')})`);
       dateConditions.forEach(() => params.push(filters.endDate));
       paramIndex += dateConditions.length;
     } else {
-      conditions.push(`p.created_at <= ${placeholder(paramIndex)}`);
+      conditions.push(`p.${col('createdAt')} <= ${placeholder(paramIndex)}`);
       params.push(filters.endDate);
       paramIndex++;
     }
   }
   
   if (filters.hospitalId) {
-    conditions.push(`p.hospital_id = ${placeholder(paramIndex)}`);
+    conditions.push(`p.${col('hospitalId')} = ${placeholder(paramIndex)}`);
     params.push(filters.hospitalId);
     paramIndex++;
   }
   
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   
-  // Add consent filter if validateConsent is true
-  const consentJoin = filters.validateConsent !== false
-    ? `INNER JOIN patient_consents pc ON p.anonymous_patient_id = pc.anonymous_patient_id 
-       AND pc.status = 'active' 
-       AND (pc.expires_at IS NULL OR pc.expires_at > CURRENT_TIMESTAMP)`
+  // Add consent filter if validateConsent is explicitly true
+  // When validateConsent is false/undefined, uploaded patients are considered to have implicit consent
+  const patientIdCol = col('anonymousPatientId');
+  const consentJoin = filters.validateConsent === true
+    ? (() => {
+        const consentPatientIdCol = dbType === 'postgresql' 
+          ? 'pc."anonymous_patient_id"' 
+          : 'pc.anonymous_patient_id';
+        return `INNER JOIN patient_consents pc ON p.${patientIdCol} = ${consentPatientIdCol}
+         AND pc.status = 'active' 
+         AND (pc.expires_at IS NULL OR pc.expires_at > CURRENT_TIMESTAMP)`;
+      })()
     : '';
   
-  // Build dynamic joins
-  if (needsConditionJoin) joins.push('LEFT JOIN fhir_conditions c ON p.anonymous_patient_id = c.anonymous_patient_id');
-  if (needsObservationJoin) joins.push('LEFT JOIN fhir_observations o ON p.anonymous_patient_id = o.anonymous_patient_id');
-  if (needsMedicationJoin) joins.push('LEFT JOIN fhir_medication_requests mr ON p.anonymous_patient_id = mr.anonymous_patient_id');
-  if (needsProcedureJoin) joins.push('LEFT JOIN fhir_procedures pr ON p.anonymous_patient_id = pr.anonymous_patient_id');
-  if (needsEncounterJoin) joins.push('LEFT JOIN fhir_encounters e ON p.anonymous_patient_id = e.anonymous_patient_id');
+  // Build dynamic joins using camelCase
+  if (needsConditionJoin) joins.push(`LEFT JOIN fhir_conditions c ON p.${patientIdCol} = c.${patientIdCol}`);
+  if (needsObservationJoin) joins.push(`LEFT JOIN fhir_observations o ON p.${patientIdCol} = o.${patientIdCol}`);
+  if (needsMedicationJoin) joins.push(`LEFT JOIN fhir_medication_requests mr ON p.${patientIdCol} = mr.${patientIdCol}`);
+  if (needsProcedureJoin) joins.push(`LEFT JOIN fhir_procedures pr ON p.${patientIdCol} = pr.${patientIdCol}`);
+  if (needsEncounterJoin) joins.push(`LEFT JOIN fhir_encounters e ON p.${patientIdCol} = e.${patientIdCol}`);
   
   const query = `
-    SELECT COUNT(DISTINCT p.anonymous_patient_id) as count
+    SELECT COUNT(DISTINCT p.${patientIdCol}) as count
     FROM fhir_patients p
     ${consentJoin}
     ${joins.join('\n    ')}
@@ -574,6 +649,13 @@ export async function getPatientsWithHospitals(filters = {}) {
     ? (idx) => `$${idx}`
     : () => '?';
   
+  // Helper to get column reference with proper quoting for camelCase
+  const col = (columnName) => dbType === 'postgresql' 
+    ? `"${columnName}"` 
+    : columnName;
+  
+  const patientIdCol = col('anonymousPatientId');
+  
   if (filters.country) {
     conditions.push(`p.country = ${placeholder(paramIndex)}`);
     params.push(filters.country);
@@ -581,7 +663,7 @@ export async function getPatientsWithHospitals(filters = {}) {
   }
   
   if (filters.hospitalId) {
-    conditions.push(`p.hospital_id = ${placeholder(paramIndex)}`);
+    conditions.push(`p.${col('hospitalId')} = ${placeholder(paramIndex)}`);
     params.push(filters.hospitalId);
     paramIndex++;
   }
@@ -597,8 +679,13 @@ export async function getPatientsWithHospitals(filters = {}) {
   if (filters.conditionCode || filters.conditionName) {
     needsConditionJoin = true;
     if (filters.conditionCode) {
-      conditions.push(`c.condition_code = ${placeholder(paramIndex)}`);
+      conditions.push(`c.${col('conditionCode')} = ${placeholder(paramIndex)}`);
       params.push(filters.conditionCode);
+      paramIndex++;
+    }
+    if (filters.conditionName) {
+      conditions.push(`c.${col('conditionName')} LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.conditionName}%`);
       paramIndex++;
     }
   }
@@ -606,47 +693,82 @@ export async function getPatientsWithHospitals(filters = {}) {
   if (filters.observationCode || filters.observationName) {
     needsObservationJoin = true;
     if (filters.observationCode) {
-      conditions.push(`o.observation_code = ${placeholder(paramIndex)}`);
+      conditions.push(`o.${col('observationCode')} = ${placeholder(paramIndex)}`);
       params.push(filters.observationCode);
+      paramIndex++;
+    }
+    if (filters.observationName) {
+      conditions.push(`o.${col('observationName')} LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.observationName}%`);
       paramIndex++;
     }
   }
   
   if (filters.medicationCode || filters.medicationName) {
     needsMedicationJoin = true;
+    if (filters.medicationCode) {
+      conditions.push(`mr.${col('medicationCode')} = ${placeholder(paramIndex)}`);
+      params.push(filters.medicationCode);
+      paramIndex++;
+    }
+    if (filters.medicationName) {
+      conditions.push(`mr.${col('medicationName')} LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.medicationName}%`);
+      paramIndex++;
+    }
   }
   
   if (filters.procedureCode || filters.procedureName) {
     needsProcedureJoin = true;
+    if (filters.procedureCode) {
+      conditions.push(`pr.${col('procedureCode')} = ${placeholder(paramIndex)}`);
+      params.push(filters.procedureCode);
+      paramIndex++;
+    }
+    if (filters.procedureName) {
+      conditions.push(`pr.${col('procedureName')} LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.procedureName}%`);
+      paramIndex++;
+    }
   }
   
   if (filters.encounterType || filters.encounterClass) {
     needsEncounterJoin = true;
+    if (filters.encounterType) {
+      conditions.push(`e.${col('encounterType')} LIKE ${placeholder(paramIndex)}`);
+      params.push(`%${filters.encounterType}%`);
+      paramIndex++;
+    }
+    if (filters.encounterClass) {
+      conditions.push(`e.${col('encounterClass')} = ${placeholder(paramIndex)}`);
+      params.push(filters.encounterClass);
+      paramIndex++;
+    }
   }
   
   // Handle conditionCodes array (from dataset metadata)
   if (filters.conditionCodes && Array.isArray(filters.conditionCodes) && filters.conditionCodes.length > 0) {
     needsConditionJoin = true;
     const placeholders = filters.conditionCodes.map(() => placeholder(paramIndex++)).join(', ');
-    conditions.push(`c.condition_code IN (${placeholders})`);
+    conditions.push(`c.${col('conditionCode')} IN (${placeholders})`);
     params.push(...filters.conditionCodes);
   }
   
   // Date range filter - check all resource types
   if (filters.startDate) {
     const dateConditions = [];
-    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date >= ${placeholder(paramIndex)}`);
-    if (needsObservationJoin) dateConditions.push(`o.effective_date >= ${placeholder(paramIndex)}`);
-    if (needsMedicationJoin) dateConditions.push(`mr.authored_on >= ${placeholder(paramIndex)}`);
-    if (needsProcedureJoin) dateConditions.push(`pr.performed_date >= ${placeholder(paramIndex)}`);
-    if (needsEncounterJoin) dateConditions.push(`e.period_start >= ${placeholder(paramIndex)}`);
+    if (needsConditionJoin) dateConditions.push(`c.${col('diagnosisDate')} >= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.${col('effectiveDate')} >= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.${col('authoredOn')} >= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.${col('performedDate')} >= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.${col('periodStart')} >= ${placeholder(paramIndex)}`);
     
     if (dateConditions.length > 0) {
       conditions.push(`(${dateConditions.join(' OR ')})`);
       dateConditions.forEach(() => params.push(filters.startDate));
       paramIndex += dateConditions.length;
     } else {
-      conditions.push(`p.created_at >= ${placeholder(paramIndex)}`);
+      conditions.push(`p.${col('createdAt')} >= ${placeholder(paramIndex)}`);
       params.push(filters.startDate);
       paramIndex++;
     }
@@ -654,18 +776,18 @@ export async function getPatientsWithHospitals(filters = {}) {
   
   if (filters.endDate) {
     const dateConditions = [];
-    if (needsConditionJoin) dateConditions.push(`c.diagnosis_date <= ${placeholder(paramIndex)}`);
-    if (needsObservationJoin) dateConditions.push(`o.effective_date <= ${placeholder(paramIndex)}`);
-    if (needsMedicationJoin) dateConditions.push(`mr.authored_on <= ${placeholder(paramIndex)}`);
-    if (needsProcedureJoin) dateConditions.push(`pr.performed_date <= ${placeholder(paramIndex)}`);
-    if (needsEncounterJoin) dateConditions.push(`e.period_end <= ${placeholder(paramIndex)}`);
+    if (needsConditionJoin) dateConditions.push(`c.${col('diagnosisDate')} <= ${placeholder(paramIndex)}`);
+    if (needsObservationJoin) dateConditions.push(`o.${col('effectiveDate')} <= ${placeholder(paramIndex)}`);
+    if (needsMedicationJoin) dateConditions.push(`mr.${col('authoredOn')} <= ${placeholder(paramIndex)}`);
+    if (needsProcedureJoin) dateConditions.push(`pr.${col('performedDate')} <= ${placeholder(paramIndex)}`);
+    if (needsEncounterJoin) dateConditions.push(`e.${col('periodEnd')} <= ${placeholder(paramIndex)}`);
     
     if (dateConditions.length > 0) {
       conditions.push(`(${dateConditions.join(' OR ')})`);
       dateConditions.forEach(() => params.push(filters.endDate));
       paramIndex += dateConditions.length;
     } else {
-      conditions.push(`p.created_at <= ${placeholder(paramIndex)}`);
+      conditions.push(`p.${col('createdAt')} <= ${placeholder(paramIndex)}`);
       params.push(filters.endDate);
       paramIndex++;
     }
@@ -673,16 +795,16 @@ export async function getPatientsWithHospitals(filters = {}) {
   
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
   
-  // Build dynamic joins
-  if (needsConditionJoin) joins.push('LEFT JOIN fhir_conditions c ON p.anonymous_patient_id = c.anonymous_patient_id');
-  if (needsObservationJoin) joins.push('LEFT JOIN fhir_observations o ON p.anonymous_patient_id = o.anonymous_patient_id');
-  if (needsMedicationJoin) joins.push('LEFT JOIN fhir_medication_requests mr ON p.anonymous_patient_id = mr.anonymous_patient_id');
-  if (needsProcedureJoin) joins.push('LEFT JOIN fhir_procedures pr ON p.anonymous_patient_id = pr.anonymous_patient_id');
-  if (needsEncounterJoin) joins.push('LEFT JOIN fhir_encounters e ON p.anonymous_patient_id = e.anonymous_patient_id');
+  // Build dynamic joins using camelCase
+  if (needsConditionJoin) joins.push(`LEFT JOIN fhir_conditions c ON p.${patientIdCol} = c.${patientIdCol}`);
+  if (needsObservationJoin) joins.push(`LEFT JOIN fhir_observations o ON p.${patientIdCol} = o.${patientIdCol}`);
+  if (needsMedicationJoin) joins.push(`LEFT JOIN fhir_medication_requests mr ON p.${patientIdCol} = mr.${patientIdCol}`);
+  if (needsProcedureJoin) joins.push(`LEFT JOIN fhir_procedures pr ON p.${patientIdCol} = pr.${patientIdCol}`);
+  if (needsEncounterJoin) joins.push(`LEFT JOIN fhir_encounters e ON p.${patientIdCol} = e.${patientIdCol}`);
   
   // Get distinct patients with their hospital IDs
   const query = `
-    SELECT DISTINCT p.upi, p.hospital_id as hospitalId
+    SELECT DISTINCT p.upi, p.${col('hospitalId')} as hospitalId
     FROM fhir_patients p
     ${joins.join('\n    ')}
     ${whereClause}
