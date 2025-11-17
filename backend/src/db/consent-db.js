@@ -357,34 +357,43 @@ export async function getConsentStatistics(hospitalId) {
       
       console.log(`[Consent Stats] Found ${existingTables.length} FHIR tables: ${existingTables.join(', ')}`);
       
-      // Build query with only existing tables (using quoted camelCase column names)
+      // Build query with only existing tables (using dynamic column names)
       const countQueries = [];
       if (existingTables.includes('fhir_patients')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_patients WHERE "hospitalId" = $1)');
+        const hospitalIdCol = await getColumnName('fhir_patients', 'hospitalId', 'hospital_id');
+        countQueries.push(`(SELECT COUNT(*) FROM fhir_patients WHERE ${hospitalIdCol} = $1)`);
       }
       if (existingTables.includes('fhir_conditions')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_conditions WHERE "hospitalId" = $1)');
+        const hospitalIdCol = await getColumnName('fhir_conditions', 'hospitalId', 'hospital_id');
+        countQueries.push(`(SELECT COUNT(*) FROM fhir_conditions WHERE ${hospitalIdCol} = $1)`);
       }
       if (existingTables.includes('fhir_observations')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_observations WHERE "hospitalId" = $1)');
+        const hospitalIdCol = await getColumnName('fhir_observations', 'hospitalId', 'hospital_id');
+        countQueries.push(`(SELECT COUNT(*) FROM fhir_observations WHERE ${hospitalIdCol} = $1)`);
       }
       if (existingTables.includes('fhir_encounters')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_encounters WHERE "hospitalId" = $1)');
+        const hospitalIdCol = await getColumnName('fhir_encounters', 'hospitalId', 'hospital_id');
+        countQueries.push(`(SELECT COUNT(*) FROM fhir_encounters WHERE ${hospitalIdCol} = $1)`);
       }
       if (existingTables.includes('fhir_medication_requests')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_medication_requests WHERE "hospitalId" = $1)');
+        const hospitalIdCol = await getColumnName('fhir_medication_requests', 'hospitalId', 'hospital_id');
+        countQueries.push(`(SELECT COUNT(*) FROM fhir_medication_requests WHERE ${hospitalIdCol} = $1)`);
       }
       if (existingTables.includes('fhir_procedures')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_procedures WHERE "hospitalId" = $1)');
+        const hospitalIdCol = await getColumnName('fhir_procedures', 'hospitalId', 'hospital_id');
+        countQueries.push(`(SELECT COUNT(*) FROM fhir_procedures WHERE ${hospitalIdCol} = $1)`);
       }
       if (existingTables.includes('fhir_imaging_studies')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_imaging_studies WHERE "hospitalId" = $1)');
+        const hospitalIdCol = await getColumnName('fhir_imaging_studies', 'hospitalId', 'hospital_id');
+        countQueries.push(`(SELECT COUNT(*) FROM fhir_imaging_studies WHERE ${hospitalIdCol} = $1)`);
       }
       if (existingTables.includes('fhir_allergies')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_allergies WHERE "hospitalId" = $1)');
+        const hospitalIdCol = await getColumnName('fhir_allergies', 'hospitalId', 'hospital_id');
+        countQueries.push(`(SELECT COUNT(*) FROM fhir_allergies WHERE ${hospitalIdCol} = $1)`);
       }
       if (existingTables.includes('fhir_coverage')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_coverage WHERE "hospitalId" = $1)');
+        const hospitalIdCol = await getColumnName('fhir_coverage', 'hospitalId', 'hospital_id');
+        countQueries.push(`(SELECT COUNT(*) FROM fhir_coverage WHERE ${hospitalIdCol} = $1)`);
       }
       
       if (countQueries.length === 0) {
