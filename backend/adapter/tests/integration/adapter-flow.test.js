@@ -215,6 +215,7 @@ describe('Adapter Flow Integration', () => {
       const records = [
         {
           'Patient Name': 'John Doe',
+          'Age': '35',
           'Lab Test': 'Blood Test',
           'Result': '100'
         }

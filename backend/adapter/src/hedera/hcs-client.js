@@ -21,10 +21,11 @@ dotenv.config();
 export function createHederaClient() {
   if (
     process.env.OPERATOR_ID == null ||
-    process.env.OPERATOR_KEY == null
+    process.env.OPERATOR_KEY == null ||
+    process.env.HEDERA_NETWORK == null
   ) {
     throw new Error(
-      "Environment variables OPERATOR_ID and OPERATOR_KEY are required.",
+      "Environment variables OPERATOR_ID, HEDERA_NETWORK, and OPERATOR_KEY are required.",
     );
   }
 
@@ -118,9 +119,11 @@ export function getHashScanLink(transactionId, network = null) {
   
   // Extract transaction ID format: 0.0.123@1234567890.123456789
   // HashScan format: https://hashscan.io/{network}/transaction/{transactionId}
-  // Mainnet URLs don't have "mainnet" in the path
-  const networkPath = network === 'mainnet' ? '' : `${network}.`;
-  return `https://hashscan.io/${networkPath}transaction/${transactionId}`;
+  // For mainnet, use mainnet in path; for testnet/previewnet, use network name
+  if (network === 'mainnet') {
+    return `https://hashscan.io/mainnet/transaction/${transactionId}`;
+  }
+  return `https://hashscan.io/${network}/transaction/${transactionId}`;
 }
 
 /**
