@@ -4,7 +4,7 @@
  * CRUD operations for patient consent records.
  */
 
-import { run, get, all, getDatabaseType } from './database.js';
+import { run, get, all, getDatabaseType, getDatabase } from './database.js';
 
 /**
  * Create a consent record
