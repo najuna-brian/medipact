@@ -38,9 +38,18 @@ async function authenticateAdapter(req, res, next) {
     return res.status(401).json({ error: 'Missing hospital ID or API key' });
   }
 
-  // TODO: Verify API key matches hospital's API key
+  // CRITICAL FIX: Actually verify the API key matches the hospital's stored hash
+  const { verifyHospitalApiKey } = await import('../db/hospital-db.js');
+  const isValid = await verifyHospitalApiKey(hospitalId, apiKey);
+  
+  if (!isValid) {
+    console.error(`[FHIR Storage API] Invalid API key for hospital: ${hospitalId}`);
+    console.error(`[FHIR Storage API] API key verification failed - rejecting request`);
+    return res.status(401).json({ error: 'Invalid hospital credentials' });
+  }
+
   req.hospitalId = hospitalId;
-  console.log(`[FHIR Storage API] Authentication passed for hospital: ${hospitalId}`);
+  console.log(`[FHIR Storage API] ✅ Authentication passed for hospital: ${hospitalId}`);
   next();
 }
 

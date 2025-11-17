@@ -898,4 +898,11 @@ async function main() {
 }
 
 // Run the adapter
-main();
+// Execute main with proper error handling
+main().catch((error) => {
+  console.error('FATAL ERROR in main():', error.message);
+  console.error('Stack:', error.stack);
+  process.stderr.write(`\n[FATAL] Adapter crashed: ${error.message}\n`);
+  process.stderr.write(`[FATAL] Stack: ${error.stack}\n`);
+  process.exit(1);
+});
