@@ -124,6 +124,15 @@ export default function ResearcherVerifyPage() {
     }
   };
 
+  // Check if documents actually exist
+  const hasDocuments =
+    verificationStatus.data?.verificationDocuments &&
+    typeof verificationStatus.data.verificationDocuments === 'object' &&
+    Object.keys(verificationStatus.data.verificationDocuments).length > 0 &&
+    (verificationStatus.data.verificationDocuments.organizationDocuments ||
+      verificationStatus.data.verificationDocuments.researchLicense ||
+      verificationStatus.data.verificationDocuments.additionalDocuments);
+
   // Show success message if verified
   if (verificationStatus.data?.verificationStatus === 'verified') {
     return (
@@ -152,8 +161,8 @@ export default function ResearcherVerifyPage() {
     );
   }
 
-  // Show pending message
-  if (verificationStatus.data?.verificationStatus === 'pending') {
+  // Show pending message only if documents have been submitted
+  if (verificationStatus.data?.verificationStatus === 'pending' && hasDocuments) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-yellow-50 to-amber-100 p-4">
         <Card className="w-full max-w-2xl">
@@ -203,6 +212,19 @@ export default function ResearcherVerifyPage() {
             <Button onClick={() => router.push('/researcher/dashboard')} className="w-full">
               Go to Dashboard
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (verificationStatus.isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <Card className="w-full max-w-2xl">
+          <CardContent className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </CardContent>
         </Card>
       </div>
