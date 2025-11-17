@@ -104,8 +104,16 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
 
   const url = `${BACKEND_API_URL}${endpoint}`;
   console.log(`[Adapter Storage] Storing ${resourceType}: ${resources.length} resources to ${url}`);
+  console.log(`[Adapter Storage] Request details:`, {
+    url,
+    hospitalId,
+    apiKeyPresent: !!apiKey,
+    resourceCount: resources.length,
+    firstResourceKeys: resources[0] ? Object.keys(resources[0]).slice(0, 5) : []
+  });
   
   try {
+    const requestStart = Date.now();
     const response = await axios.post(
       url,
       {
@@ -118,21 +126,46 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
           'X-Hospital-ID': hospitalId,
           'X-API-Key': apiKey
         },
-        timeout: 30000 // 30 second timeout
+        timeout: 30000, // 30 second timeout
+        validateStatus: (status) => status < 600 // Accept all status codes to handle errors properly
       }
     );
 
-    console.log(`[Adapter Storage] Successfully stored ${resourceType}:`, response.data);
+    const requestDuration = Date.now() - requestStart;
+    console.log(`[Adapter Storage] Successfully stored ${resourceType} (${requestDuration}ms):`, {
+      status: response.status,
+      statusText: response.statusText,
+      success: response.data?.success,
+      created: response.data?.results?.created,
+      errors: response.data?.results?.errors?.length || 0,
+      message: response.data?.message
+    });
     return response.data;
   } catch (error) {
-    console.error(`[Adapter Storage] Request failed for ${resourceType}:`, {
+    const errorDetails = {
       url,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
       message: error.message,
-      code: error.code
-    });
+      code: error.code,
+      name: error.name
+    };
+    
+    if (error.response) {
+      // Request was made and server responded with error
+      errorDetails.status = error.response.status;
+      errorDetails.statusText = error.response.statusText;
+      errorDetails.data = error.response.data;
+      console.error(`[Adapter Storage] Request failed for ${resourceType} (HTTP ${error.response.status}):`, errorDetails);
+    } else if (error.request) {
+      // Request was made but no response received
+      errorDetails.requestMade = true;
+      errorDetails.noResponse = true;
+      console.error(`[Adapter Storage] Request failed for ${resourceType} (No response):`, errorDetails);
+    } else {
+      // Error setting up request
+      errorDetails.setupError = true;
+      console.error(`[Adapter Storage] Request failed for ${resourceType} (Setup error):`, errorDetails);
+    }
+    
     throw error;
   }
 }

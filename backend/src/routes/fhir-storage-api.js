@@ -16,15 +16,31 @@ const router = express.Router();
  */
 async function authenticateAdapter(req, res, next) {
   // Express normalizes headers to lowercase, but check both cases for safety
-  const hospitalId = req.headers['x-hospital-id'] || req.headers['x-hospital-id'] || req.headers['X-Hospital-ID'];
+  const hospitalId = req.headers['x-hospital-id'] || req.headers['X-Hospital-ID'];
   const apiKey = req.headers['x-api-key'] || req.headers['X-API-Key'];
 
+  console.log(`[FHIR Storage API] Authentication check:`, {
+    path: req.path,
+    method: req.method,
+    hasHospitalId: !!hospitalId,
+    hasApiKey: !!apiKey,
+    hospitalId: hospitalId || 'MISSING',
+    headers: Object.keys(req.headers).filter(h => h.toLowerCase().includes('hospital') || h.toLowerCase().includes('api'))
+  });
+
   if (!hospitalId || !apiKey) {
+    console.error(`[FHIR Storage API] Authentication failed:`, {
+      path: req.path,
+      hospitalId: hospitalId || 'MISSING',
+      apiKey: apiKey ? 'PRESENT' : 'MISSING',
+      allHeaders: Object.keys(req.headers)
+    });
     return res.status(401).json({ error: 'Missing hospital ID or API key' });
   }
 
   // TODO: Verify API key matches hospital's API key
   req.hospitalId = hospitalId;
+  console.log(`[FHIR Storage API] Authentication passed for hospital: ${hospitalId}`);
   next();
 }
 
