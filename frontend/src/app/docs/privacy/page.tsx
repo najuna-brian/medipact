@@ -6,9 +6,74 @@ export default function PrivacyPage() {
       <div className="border-b border-gray-200 pb-8">
         <h1 className="text-4xl font-bold text-gray-900">Privacy & Security</h1>
         <p className="mt-4 text-lg text-gray-600">
-          Comprehensive privacy guarantees and anonymization techniques protecting patient data.
+          Multi-layered security architecture protecting patient data through advanced
+          anonymization, blockchain verification, and patient-controlled access.
         </p>
       </div>
+
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900">Multi-Layered Security Architecture</h2>
+        <MermaidDiagram
+          chart={`flowchart TD
+    A[Raw Patient Data] --> B[Layer 1: Double Anonymization]
+    B --> C[Stage 1: Storage Anonymization<br/>Remove PII, 5-year ranges]
+    C --> D[Stage 2: Chain Anonymization<br/>10-year ranges, month/year]
+    D --> E[Layer 2: K-Anonymity Enforcement<br/>Minimum 5 records per group]
+    E --> F[Layer 3: Patient Consent Control<br/>Opt-in/Opt-out, Researcher Approvals]
+    F --> G[Layer 4: Hedera Blockchain Verification<br/>Immutable Consent Records]
+    G --> H[Layer 5: Encrypted Storage<br/>FHIR Database]
+    H --> I[Layer 6: Access Control<br/>API Keys, Rate Limiting]
+    I --> J[Secure Data Access]
+    
+    style A fill:#FFCDD2,stroke:#D32F2F,stroke-width:2px
+    style B fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
+    style E fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
+    style F fill:#E1BEE7,stroke:#7B1FA2,stroke-width:2px
+    style G fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style H fill:#BBDEFB,stroke:#1976D2,stroke-width:2px
+    style I fill:#FFE0B2,stroke:#F57C00,stroke-width:2px
+    style J fill:#C8E6C9,stroke:#388E3C,stroke-width:2px`}
+        />
+        <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-lg border-2 border-yellow-500 bg-yellow-50 p-4">
+            <h3 className="font-semibold text-yellow-900">Layer 1: Double Anonymization</h3>
+            <p className="mt-1 text-sm text-yellow-700">
+              Two-stage anonymization process removes all PII and generalizes data at multiple
+              levels.
+            </p>
+          </div>
+          <div className="rounded-lg border-2 border-green-500 bg-green-50 p-4">
+            <h3 className="font-semibold text-green-900">Layer 2: K-Anonymity</h3>
+            <p className="mt-1 text-sm text-green-700">
+              Ensures minimum 5 records per demographic group, preventing re-identification.
+            </p>
+          </div>
+          <div className="rounded-lg border-2 border-purple-500 bg-purple-50 p-4">
+            <h3 className="font-semibold text-purple-900">Layer 3: Patient Control</h3>
+            <p className="mt-1 text-sm text-purple-700">
+              Patients control all data sharing through opt-in/opt-out and researcher approvals.
+            </p>
+          </div>
+          <div className="rounded-lg border-2 border-[#00A9CE] bg-[#E3F2FD] p-4">
+            <h3 className="font-semibold text-[#00A9CE]">Layer 4: Hedera Blockchain</h3>
+            <p className="mt-1 text-sm text-gray-700">
+              Immutable consent records and data provenance hashes on Hedera Consensus Service.
+            </p>
+          </div>
+          <div className="rounded-lg border-2 border-blue-500 bg-blue-50 p-4">
+            <h3 className="font-semibold text-blue-900">Layer 5: Encrypted Storage</h3>
+            <p className="mt-1 text-sm text-blue-700">
+              All data stored in encrypted FHIR format with secure database access controls.
+            </p>
+          </div>
+          <div className="rounded-lg border-2 border-orange-500 bg-orange-50 p-4">
+            <h3 className="font-semibold text-orange-900">Layer 6: Access Control</h3>
+            <p className="mt-1 text-sm text-orange-700">
+              API key authentication, rate limiting, and role-based access controls.
+            </p>
+          </div>
+        </div>
+      </section>
 
       <section>
         <h2 className="text-2xl font-bold text-gray-900">Before vs. After Anonymization</h2>
