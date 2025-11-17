@@ -473,6 +473,9 @@ async function main() {
         
         process.stdout.write('   Starting storage...\n');
         console.error('[Index] ===== ABOUT TO CALL storeFHIRResources =====');
+        console.error(`[Index] processedResources length: ${processedResources?.length || 'undefined'}`);
+        console.error(`[Index] storageHospitalId: ${storageHospitalId}`);
+        console.error(`[Index] apiKey present: ${!!apiKey}`);
         console.log('[Index] About to call storeFHIRResources');
         console.log(`[Index] processedResources length: ${processedResources?.length || 'undefined'}`);
         console.log(`[Index] storageHospitalId: ${storageHospitalId}`);
@@ -481,6 +484,8 @@ async function main() {
         
         // Test backend connectivity before attempting storage
         const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:3002';
+        console.error(`[Index] ===== TESTING BACKEND CONNECTIVITY =====`);
+        console.error(`[Index] BACKEND_API_URL: ${backendUrl}`);
         console.log(`[Index] Testing backend connectivity to: ${backendUrl}`);
         console.log(`[Index] BACKEND_API_URL env var: ${process.env.BACKEND_API_URL || 'NOT SET (using default http://localhost:3002)'}`);
         try {
@@ -488,21 +493,28 @@ async function main() {
           const http = httpModule.default || httpModule;
           await new Promise((resolve) => {
             const req = http.get(`${backendUrl}/health`, (res) => {
+              console.error(`[Index] ✅✅✅ BACKEND HEALTH CHECK SUCCESS: status ${res.statusCode} ✅✅✅`);
               console.log(`[Index] ✅ Backend health check SUCCESS: status ${res.statusCode}`);
               res.on('data', () => {}); // Consume response
               res.on('end', resolve);
             });
             req.on('error', (err) => {
-              console.error(`[Index] ❌ Backend health check FAILED: ${err.message}`);
-              console.error(`[Index] ❌ This might indicate BACKEND_API_URL is incorrect. Current: ${backendUrl}`);
-              console.error(`[Index] ❌ Error code: ${err.code}, message: ${err.message}`);
+              console.error(`[Index] ❌❌❌ BACKEND HEALTH CHECK FAILED ❌❌❌`);
+              console.error(`[Index] ❌ Error: ${err.message}`);
+              console.error(`[Index] ❌ Code: ${err.code}`);
+              console.error(`[Index] ❌ URL: ${backendUrl}/health`);
+              console.log(`[Index] ❌ Backend health check FAILED: ${err.message}`);
+              console.log(`[Index] ❌ This might indicate BACKEND_API_URL is incorrect. Current: ${backendUrl}`);
+              console.log(`[Index] ❌ Error code: ${err.code}, message: ${err.message}`);
               // Don't reject - continue anyway, might be a health endpoint issue
               resolve();
             });
             req.setTimeout(5000, () => {
               req.destroy();
-              console.error(`[Index] ❌ Backend health check TIMED OUT after 5s`);
-              console.error(`[Index] ❌ URL was: ${backendUrl}/health`);
+              console.error(`[Index] ❌❌❌ BACKEND HEALTH CHECK TIMED OUT ❌❌❌`);
+              console.error(`[Index] ❌ URL: ${backendUrl}/health`);
+              console.log(`[Index] ❌ Backend health check TIMED OUT after 5s`);
+              console.log(`[Index] ❌ URL was: ${backendUrl}/health`);
               resolve(); // Continue anyway
             });
           });
@@ -513,12 +525,14 @@ async function main() {
         }
         
         try {
+          console.error(`[Index] ===== CALLING storeFHIRResources NOW =====`);
           process.stderr.write(`[Index] Calling storeFHIRResources NOW...\n`);
           storageResult = await storeFHIRResources(
             processedResources,
             storageHospitalId,
             apiKey
           );
+          console.error(`[Index] ===== storeFHIRResources RETURNED SUCCESSFULLY =====`);
           process.stderr.write(`[Index] storeFHIRResources returned\n`);
           console.log('[Index] storeFHIRResources completed successfully');
           console.log(`[Index] storageResult: ${JSON.stringify({ successful: storageResult.successful, failed: storageResult.failed, errors: storageResult.errors.length })}`);
