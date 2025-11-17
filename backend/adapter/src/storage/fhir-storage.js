@@ -16,6 +16,8 @@ const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:3002';
  * @returns {Promise<Object>} Storage results
  */
 export async function storeFHIRResources(processedResources, hospitalId, apiKey) {
+  process.stdout.write(`[Adapter Storage] storeFHIRResources called: ${processedResources.length} resources, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}\n`);
+  
   const results = {
     successful: 0,
     failed: 0,
@@ -33,16 +35,22 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
     resourcesByType[type].push(resource.processed);
   });
 
+  process.stdout.write(`[Adapter Storage] Grouped into ${Object.keys(resourcesByType).length} resource types: ${Object.keys(resourcesByType).join(', ')}\n`);
+
   // Store each resource type
   for (const [resourceType, resources] of Object.entries(resourcesByType)) {
+    process.stdout.write(`[Adapter Storage] Processing resource type: ${resourceType} (${resources.length} resources)\n`);
     try {
       const response = await storeResourceType(resourceType, resources, hospitalId, apiKey);
+      process.stdout.write(`[Adapter Storage] Got response for ${resourceType}: success=${response?.success}, created=${response?.results?.created || 0}\n`);
+      
       // Check if storage actually succeeded (response might indicate partial failure)
       if (response && response.success !== false && response.results) {
         const created = response.results.created || 0;
         const errors = response.results.errors || [];
         results.successful += created;
         results.failed += (resources.length - created);
+        process.stdout.write(`[Adapter Storage] ${resourceType} result: ${created} created, ${errors.length} errors\n`);
         if (errors.length > 0) {
           results.errors.push({
             resourceType,
@@ -53,15 +61,17 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
         }
       } else {
         // Storage returned failure
+        process.stderr.write(`[Adapter Storage] ${resourceType} returned failure: ${response?.error || 'unknown error'}\n`);
         results.failed += resources.length;
         results.errors.push({
           resourceType,
-          error: response?.error || error.message || 'Storage failed',
+          error: response?.error || 'Storage failed',
           response: response,
           count: resources.length
         });
       }
     } catch (error) {
+      process.stderr.write(`[Adapter Storage] Exception storing ${resourceType}: ${error.message}\n`);
       const errorData = error.response?.data || {};
       const isTableMissing = errorData.error?.includes('does not exist') || 
                             errorData.error?.includes('migration');
@@ -89,6 +99,7 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
     }
   }
 
+  process.stdout.write(`[Adapter Storage] Final results: ${results.successful} successful, ${results.failed} failed, ${results.errors.length} errors\n`);
   return results;
 }
 
