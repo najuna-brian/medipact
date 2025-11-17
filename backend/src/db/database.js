@@ -937,20 +937,69 @@ async function createPostgreSQLTables() {
 
   // Create indexes for FHIR tables
   // FHIR table indexes - Using camelCase with quoted identifiers for consistency
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_anonymous_id ON fhir_patients("anonymousPatientId")`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_upi ON fhir_patients(upi)`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_country ON fhir_patients(country)`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_hospital ON fhir_patients("hospitalId")`);
+  // Wrap in try-catch to handle cases where columns haven't been migrated yet
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_anonymous_id ON fhir_patients("anonymousPatientId")`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_patients.anonymousPatientId (column may not exist yet): ${error.message}`);
+  }
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_upi ON fhir_patients(upi)`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_patients.upi: ${error.message}`);
+  }
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_country ON fhir_patients(country)`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_patients.country: ${error.message}`);
+  }
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_hospital ON fhir_patients("hospitalId")`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_patients.hospitalId (column may not exist yet): ${error.message}`);
+  }
   
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_anonymous_id ON fhir_conditions("anonymousPatientId")`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_code ON fhir_conditions("conditionCode")`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_name ON fhir_conditions("conditionName")`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_date ON fhir_conditions("diagnosisDate")`);
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_anonymous_id ON fhir_conditions("anonymousPatientId")`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_conditions.anonymousPatientId (column may not exist yet): ${error.message}`);
+  }
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_code ON fhir_conditions("conditionCode")`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_conditions.conditionCode (column may not exist yet): ${error.message}`);
+  }
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_name ON fhir_conditions("conditionName")`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_conditions.conditionName (column may not exist yet): ${error.message}`);
+  }
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_date ON fhir_conditions("diagnosisDate")`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_conditions.diagnosisDate (column may not exist yet): ${error.message}`);
+  }
   
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_anonymous_id ON fhir_observations("anonymousPatientId")`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_code ON fhir_observations("observationCode")`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_name ON fhir_observations("observationName")`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_date ON fhir_observations("effectiveDate")`);
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_anonymous_id ON fhir_observations("anonymousPatientId")`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_observations.anonymousPatientId (column may not exist yet): ${error.message}`);
+  }
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_code ON fhir_observations("observationCode")`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_observations.observationCode (column may not exist yet): ${error.message}`);
+  }
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_name ON fhir_observations("observationName")`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_observations.observationName (column may not exist yet): ${error.message}`);
+  }
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_date ON fhir_observations("effectiveDate")`);
+  } catch (error) {
+    console.log(`[Database] Note: Could not create index on fhir_observations.effectiveDate (column may not exist yet): ${error.message}`);
+  }
   
   await client.query(`CREATE INDEX IF NOT EXISTS idx_datasets_hospital ON datasets(hospital_id)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_datasets_country ON datasets(country)`);
