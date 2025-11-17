@@ -5,6 +5,8 @@
  */
 
 import axios from 'axios';
+import http from 'http';
+import https from 'https';
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:3002';
 
@@ -194,6 +196,7 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
 
   const url = `${BACKEND_API_URL}${endpoint}`;
   console.log(`[storeResourceType] Full URL: ${url}`);
+  console.log(`[storeResourceType] BACKEND_API_URL from env: ${process.env.BACKEND_API_URL || 'NOT SET (using default)'}`);
   // Use process.stdout.write for immediate output (not buffered)
   process.stdout.write(`[Adapter Storage] Storing ${resourceType}: ${resources.length} resources to ${url}\n`);
   process.stdout.write(`[Adapter Storage] Request details: url=${url}, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}, resourceCount=${resources.length}\n`);

@@ -479,6 +479,34 @@ async function main() {
         console.log(`[Index] apiKey present: ${!!apiKey}`);
         process.stderr.write(`[Index] About to call storeFHIRResources: length=${processedResources?.length || 'undefined'}, hospitalId=${storageHospitalId}\n`);
         
+        // Test backend connectivity before attempting storage
+        const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:3002';
+        console.log(`[Index] Testing backend connectivity to: ${backendUrl}`);
+        try {
+          const http = await import('http');
+          await new Promise((resolve, reject) => {
+            const req = http.get(`${backendUrl}/health`, (res) => {
+              console.log(`[Index] Backend health check status: ${res.statusCode}`);
+              res.on('data', () => {}); // Consume response
+              res.on('end', resolve);
+            });
+            req.on('error', (err) => {
+              console.error(`[Index] Backend health check failed: ${err.message}`);
+              console.error(`[Index] This might indicate BACKEND_API_URL is incorrect. Current: ${backendUrl}`);
+              // Don't reject - continue anyway, might be a health endpoint issue
+              resolve();
+            });
+            req.setTimeout(5000, () => {
+              req.destroy();
+              console.error(`[Index] Backend health check timed out after 5s`);
+              resolve(); // Continue anyway
+            });
+          });
+        } catch (healthError) {
+          console.error(`[Index] Health check error: ${healthError.message}`);
+          // Continue anyway - might just be missing health endpoint
+        }
+        
         try {
           process.stderr.write(`[Index] Calling storeFHIRResources NOW...\n`);
           storageResult = await storeFHIRResources(
