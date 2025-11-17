@@ -132,8 +132,8 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
         timeout: 10000, // 10 second timeout (reduced from 30s)
         validateStatus: (status) => status < 600, // Accept all status codes to handle errors properly
         // Add connection timeout
-        httpAgent: new (await import('http')).Agent({ timeout: 10000 }),
-        httpsAgent: new (await import('https')).Agent({ timeout: 10000 })
+        httpAgent: new http.Agent({ timeout: 10000 }),
+        httpsAgent: new https.Agent({ timeout: 10000 })
       }
     );
     
