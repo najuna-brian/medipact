@@ -6,6 +6,8 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg?style=for-the-badge&logo=node.js)](https://nodejs.org)
 
+**[📚 View Complete Documentation →](./docs)** | **[🌐 Live Docs (Frontend) →](http://localhost:3000/docs)**
+
 </div>
 
 ---
@@ -416,21 +418,40 @@ OPERATOR_KEY=your_private_key
 
 ---
 
-## 📡 API Documentation
+## 📡 Documentation
 
-**Interactive Swagger UI**: http://localhost:8080/api-docs
+### Interactive Documentation
 
-**Complete Documentation**: 
-- [API Documentation](./docs/api) - Full API reference
-- [Data Flow Guide](./docs/data-flow) - Complete data flow with Hedera integration
-- [Revenue Distribution](./docs/revenue-distribution) - Revenue model details
-- [Hedera Integration](./docs/hedera) - Hedera services usage
-- [Privacy & Security](./docs/privacy) - Security architecture
+- **🌐 Frontend Documentation**: [http://localhost:3000/docs](http://localhost:3000/docs) - Complete interactive documentation with diagrams
+- **📋 API Swagger UI**: [http://localhost:8080/api-docs](http://localhost:8080/api-docs) - Interactive API reference
 
-**User Guides**:
-- [For Patients](./docs/for-patients) - Patient guide
-- [For Hospitals](./docs/for-hospitals) - Hospital guide
-- [For Researchers](./docs/for-researchers) - Researcher guide
+### Frontend Documentation Pages
+
+- [Overview](/docs) - Main documentation hub
+- [Quick Start](/docs/quick-start) - Getting started guide
+- [Data Flow](/docs/data-flow) - Complete data flow with Hedera integration
+- [Revenue Distribution](/docs/revenue-distribution) - Revenue model details
+- [Hedera Integration](/docs/hedera) - Hedera services usage
+- [Privacy & Security](/docs/privacy) - Security architecture
+- [Smart Contracts](/docs/smart-contracts) - Contract documentation
+- [API Reference](/docs/api) - Full API reference
+- [Architecture](/docs/architecture) - System architecture
+- [Database Schema](/docs/database) - Database structure
+- [Pricing](/docs/pricing) - Pricing model
+- [Wallet System](/docs/wallet) - Wallet and payments
+
+### User Guides
+
+- [For Patients](/docs/for-patients) - Patient guide
+- [For Hospitals](/docs/for-hospitals) - Hospital guide
+- [For Researchers](/docs/for-researchers) - Researcher guide
+
+### Markdown Documentation
+
+- [Revenue Distribution Model](./docs/REVENUE_DISTRIBUTION_MODEL.md) - Detailed revenue model
+- [Payment & Withdrawal System](./docs/PAYMENT_AND_WITHDRAWAL_SYSTEM.md) - Payment system details
+- [System Integration Status](./docs/SYSTEM_INTEGRATION_STATUS.md) - Integration verification
+- [Testing Guide](./TESTING_GUIDE.md) - Testing documentation
 
 ---
 
