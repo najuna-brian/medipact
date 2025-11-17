@@ -18,7 +18,10 @@ import {
 import { AdminProtectedRoute } from '@/components/AdminProtectedRoute/AdminProtectedRoute';
 import { AdminSidebar } from '@/components/Sidebar/AdminSidebar';
 
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
+const API_URL =
+  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
 
 function WithdrawalsContent() {
   const [loading, setLoading] = useState(true);

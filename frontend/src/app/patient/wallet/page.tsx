@@ -23,7 +23,10 @@ import { PatientSidebar } from '@/components/Sidebar/PatientSidebar';
 import { HederaAccountId } from '@/components/HederaAccountId/HederaAccountId';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
+const API_URL =
+  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
 
 interface WalletBalance {
   balanceHBAR: number;

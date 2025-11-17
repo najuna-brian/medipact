@@ -21,7 +21,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getHospitalBalance, initiateHospitalWithdrawal, getHospitalWithdrawals } from '@/lib/api/wallet';
 import type { WalletBalance, Withdrawal } from '@/lib/api/wallet';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
+const API_URL =
+  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
 
 function HospitalWalletContent() {
   const [hospitalId, setHospitalId] = useState<string | null>(null);

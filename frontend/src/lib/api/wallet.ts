@@ -4,7 +4,7 @@
  * Functions for wallet balance and withdrawal operations.
  */
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
 
 export interface WalletBalance {
   balanceHBAR: number;

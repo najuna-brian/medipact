@@ -7,7 +7,7 @@
 
 import axios from 'axios';
 
-const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
 
 const patientIdentityClient = axios.create({
   baseURL: `${BACKEND_API_URL}/api`,

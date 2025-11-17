@@ -20,7 +20,10 @@ import { PatientProtectedRoute } from '@/components/PatientProtectedRoute/Patien
 import { PatientSidebar } from '@/components/Sidebar/PatientSidebar';
 import { getPatientBalance } from '@/lib/api/wallet';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
+const API_URL =
+  process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
 
 function PaymentSettingsContent() {
   const { upi } = usePatientSession();

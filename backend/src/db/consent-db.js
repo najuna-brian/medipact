@@ -388,25 +388,23 @@ export async function getConsentStatistics(hospitalId) {
       [hospitalId]
     );
     
-    // For SQLite, we'll use a simpler approach
+    // For SQLite, use camelCase with quoted identifiers for FHIR tables
+    // Count all FHIR resource records (not just distinct patients) - matches PostgreSQL behavior
     const recordsResult = await get(
-      `SELECT COUNT(DISTINCT 
-         CASE 
-           WHEN fp.anonymous_patient_id IS NOT NULL THEN fp.anonymous_patient_id
-           WHEN fc.anonymous_patient_id IS NOT NULL THEN fc.anonymous_patient_id
-           WHEN fo.anonymous_patient_id IS NOT NULL THEN fo.anonymous_patient_id
-         END
-       ) as count
-       FROM patient_consents p
-       LEFT JOIN fhir_patients fp ON fp.anonymous_patient_id = p.anonymous_patient_id AND fp.hospital_id = ?
-       LEFT JOIN fhir_conditions fc ON fc.anonymous_patient_id = p.anonymous_patient_id AND fc.hospital_id = ?
-       LEFT JOIN fhir_observations fo ON fo.anonymous_patient_id = p.anonymous_patient_id AND fo.hospital_id = ?
-       WHERE p.hospital_id = ?
-         AND p.status = 'active'
-         AND (p.expires_at IS NULL OR p.expires_at > datetime('now'))
-         AND (fp.anonymous_patient_id IS NOT NULL 
-              OR fc.anonymous_patient_id IS NOT NULL 
-              OR fo.anonymous_patient_id IS NOT NULL)`,
+      `SELECT COUNT(*) as count
+       FROM (
+         SELECT DISTINCT p.anonymous_patient_id
+         FROM patient_consents p
+         WHERE p.hospital_id = ?
+           AND p.status = 'active'
+           AND (p.expires_at IS NULL OR p.expires_at > datetime('now'))
+       ) consented_patients
+       LEFT JOIN fhir_patients fp ON fp."anonymousPatientId" = consented_patients.anonymous_patient_id AND fp."hospitalId" = ?
+       LEFT JOIN fhir_conditions fc ON fc."anonymousPatientId" = consented_patients.anonymous_patient_id AND fc."hospitalId" = ?
+       LEFT JOIN fhir_observations fo ON fo."anonymousPatientId" = consented_patients.anonymous_patient_id AND fo."hospitalId" = ?
+       WHERE fp."anonymousPatientId" IS NOT NULL 
+          OR fc."anonymousPatientId" IS NOT NULL 
+          OR fo."anonymousPatientId" IS NOT NULL`,
       [hospitalId, hospitalId, hospitalId, hospitalId]
     );
     
@@ -431,43 +429,43 @@ export async function getConsentStatistics(hospitalId) {
         ? tableCheck.map(t => t.table_name)
         : [];
       
-      // Build query with only existing tables
+      // Build query with only existing tables (using camelCase with quoted identifiers)
       const countQueries = [];
       const params = [];
       if (existingTables.includes('fhir_patients')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_patients WHERE hospital_id = ?)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_patients WHERE "hospitalId" = ?)');
         params.push(hospitalId);
       }
       if (existingTables.includes('fhir_conditions')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_conditions WHERE hospital_id = ?)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_conditions WHERE "hospitalId" = ?)');
         params.push(hospitalId);
       }
       if (existingTables.includes('fhir_observations')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_observations WHERE hospital_id = ?)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_observations WHERE "hospitalId" = ?)');
         params.push(hospitalId);
       }
       if (existingTables.includes('fhir_encounters')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_encounters WHERE hospital_id = ?)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_encounters WHERE "hospitalId" = ?)');
         params.push(hospitalId);
       }
       if (existingTables.includes('fhir_medication_requests')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_medication_requests WHERE hospital_id = ?)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_medication_requests WHERE "hospitalId" = ?)');
         params.push(hospitalId);
       }
       if (existingTables.includes('fhir_procedures')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_procedures WHERE hospital_id = ?)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_procedures WHERE "hospitalId" = ?)');
         params.push(hospitalId);
       }
       if (existingTables.includes('fhir_imaging_studies')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_imaging_studies WHERE hospital_id = ?)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_imaging_studies WHERE "hospitalId" = ?)');
         params.push(hospitalId);
       }
       if (existingTables.includes('fhir_allergies')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_allergies WHERE hospital_id = ?)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_allergies WHERE "hospitalId" = ?)');
         params.push(hospitalId);
       }
       if (existingTables.includes('fhir_coverage')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_coverage WHERE hospital_id = ?)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_coverage WHERE "hospitalId" = ?)');
         params.push(hospitalId);
       }
       
