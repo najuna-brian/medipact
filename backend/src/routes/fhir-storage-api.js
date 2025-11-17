@@ -263,11 +263,12 @@ async function storeResourcePostgreSQL(db, tableName, resource, hospitalId) {
 
 /**
  * Store resource in SQLite
+ * Uses camelCase field names with quoted identifiers (SQLite supports this)
  */
 async function storeResourceSQLite(db, tableName, resource, hospitalId) {
   const run = promisify(db.run.bind(db));
   
-  // Quote camelCase column names for SQLite (for consistency)
+  // Quote camelCase column names for SQLite (SQLite supports quoted identifiers)
   const quoteColumn = (str) => `"${str}"`;
   
   const originalKeys = Object.keys(resource).filter(k => k !== 'id');

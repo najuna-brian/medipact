@@ -1480,17 +1480,17 @@ async function createSQLiteTables() {
   await run(`
     CREATE TABLE IF NOT EXISTS fhir_patients (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      anonymous_patient_id TEXT NOT NULL,
+      "anonymousPatientId" TEXT NOT NULL,
       upi TEXT NOT NULL,
       country TEXT NOT NULL,
       region TEXT,
-      age_range TEXT,
+      "ageRange" TEXT,
       gender TEXT,
-      hospital_id TEXT NOT NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "hospitalId" TEXT NOT NULL,
+      "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-      FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+      FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
     )
   `);
 
@@ -1498,17 +1498,17 @@ async function createSQLiteTables() {
   await run(`
     CREATE TABLE IF NOT EXISTS fhir_conditions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      anonymous_patient_id TEXT NOT NULL,
+      "anonymousPatientId" TEXT NOT NULL,
       upi TEXT NOT NULL,
-      condition_code TEXT NOT NULL,
-      condition_name TEXT NOT NULL,
-      diagnosis_date DATE,
-      hospital_id TEXT NOT NULL,
+      "conditionCode" TEXT NOT NULL,
+      "conditionName" TEXT NOT NULL,
+      "diagnosisDate" DATE,
+      "hospitalId" TEXT NOT NULL,
       severity TEXT,
       status TEXT,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-      FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+      FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
     )
   `);
 
@@ -1516,19 +1516,19 @@ async function createSQLiteTables() {
   await run(`
     CREATE TABLE IF NOT EXISTS fhir_observations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      anonymous_patient_id TEXT NOT NULL,
+      "anonymousPatientId" TEXT NOT NULL,
       upi TEXT NOT NULL,
-      observation_code TEXT NOT NULL,
-      observation_name TEXT NOT NULL,
+      "observationCode" TEXT NOT NULL,
+      "observationName" TEXT NOT NULL,
       value TEXT,
       unit TEXT,
-      effective_date DATE NOT NULL,
-      hospital_id TEXT NOT NULL,
-      reference_range TEXT,
+      "effectiveDate" DATE NOT NULL,
+      "hospitalId" TEXT NOT NULL,
+      "referenceRange" TEXT,
       interpretation TEXT,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-      FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+      FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
     )
   `);
 
