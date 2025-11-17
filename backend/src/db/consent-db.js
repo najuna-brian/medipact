@@ -357,12 +357,16 @@ export async function getConsentStatistics(hospitalId) {
       }
     }
     
-    return {
+    const stats = {
       patientsWithOnChainConsent: parseInt(onChainResult?.count || 0),
       totalActiveConsents: parseInt(activeConsentsResult?.count || 0),
       recordsWithActiveConsent: parseInt(recordsResult?.count || 0),
       totalRecords: parseInt(totalRecordsResult?.count || 0)
     };
+    
+    console.log(`[Consent Stats] Hospital ${hospitalId} statistics (PostgreSQL):`, stats);
+    
+    return stats;
   } else {
     // SQLite version
     const onChainResult = await get(
