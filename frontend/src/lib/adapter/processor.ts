@@ -41,7 +41,7 @@ export interface ProcessingOptions {
 /**
  * Get the adapter directory path
  * In Next.js, process.cwd() returns the project root (frontend/)
- * So we need to go up one level to get to medipact/, then into adapter/
+ * So we need to go up one level to get to medipact/, then into backend/adapter/
  */
 function getAdapterDir(): string {
   // Try environment variable first
@@ -52,9 +52,9 @@ function getAdapterDir(): string {
   // Get the project root (where package.json is - frontend/)
   const projectRoot = process.cwd();
   
-  // Go up one level to medipact/, then into adapter/
+  // Go up one level to medipact/, then into backend/adapter/
   const parentDir = path.dirname(projectRoot);
-  const adapterDir = path.join(parentDir, 'adapter');
+  const adapterDir = path.join(parentDir, 'backend', 'adapter');
   
   return path.resolve(adapterDir);
 }
