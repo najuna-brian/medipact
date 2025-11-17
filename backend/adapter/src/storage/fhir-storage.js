@@ -115,9 +115,16 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
   try {
     const requestStart = Date.now();
     console.log(`[Adapter Storage] Making request to ${url}...`);
+    console.log(`[Adapter Storage] Request config:`, {
+      hasApiKey: !!apiKey,
+      apiKeyLength: apiKey?.length || 0,
+      hospitalId,
+      resourceCount: resources.length,
+      timeout: 10000
+    });
     
-    // Use Promise.race to detect timeouts more reliably
-    const requestPromise = axios.post(
+    // Make the request with timeout
+    const response = await axios.post(
       url,
       {
         hospitalId,
@@ -129,20 +136,21 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
           'X-Hospital-ID': hospitalId,
           'X-API-Key': apiKey
         },
-        timeout: 10000, // 10 second timeout (reduced from 30s)
-        validateStatus: (status) => status < 600, // Accept all status codes to handle errors properly
+        timeout: 10000, // 10 second timeout
+        validateStatus: (status) => status < 600, // Accept all status codes
         // Add connection timeout
-        httpAgent: new http.Agent({ timeout: 10000 }),
-        httpsAgent: new https.Agent({ timeout: 10000 })
+        httpAgent: new http.Agent({ 
+          timeout: 10000,
+          keepAlive: false // Disable keep-alive to avoid connection issues
+        }),
+        httpsAgent: new https.Agent({ 
+          timeout: 10000,
+          keepAlive: false
+        })
       }
     );
     
-    // Add explicit timeout wrapper
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout after 10 seconds')), 10000);
-    });
-    
-    const response = await Promise.race([requestPromise, timeoutPromise]);
+    console.log(`[Adapter Storage] Request completed, processing response...`);
 
     const requestDuration = Date.now() - requestStart;
     console.log(`[Adapter Storage] Successfully stored ${resourceType} (${requestDuration}ms):`, {
