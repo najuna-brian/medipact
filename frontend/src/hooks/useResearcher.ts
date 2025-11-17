@@ -1,126 +1,41 @@
 /**
- * React Query hooks for researcher APIs
+ * React Hooks for Researcher Management
+ * 
+ * Custom hooks for fetching researcher data and analytics
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import {
-  registerResearcher,
-  getResearcher,
-  getResearcherByEmail,
-  submitResearcherVerification,
-  getResearcherVerificationStatus,
-  getResearcherStatus,
-  browseDatasets,
-  purchaseDataset,
-  type ResearcherInfo,
-  type PurchaseRequest
-} from '@/lib/api/patient-identity';
+  getResearcherPurchases,
+  getResearcherAnalytics,
+} from '@/lib/api/marketplace';
 
 /**
- * Register a new researcher
+ * Hook to get researcher purchases
  */
-export function useRegisterResearcher() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: (researcherInfo: ResearcherInfo) => registerResearcher(researcherInfo),
-    onSuccess: (data) => {
-      // Invalidate researcher queries
-      queryClient.invalidateQueries({ queryKey: ['researcher', data.researcher.researcherId] });
+export function useResearcherPurchases(researcherId: string | null, limit: number = 50) {
+  return useQuery({
+    queryKey: ['researcher-purchases', researcherId, limit],
+    queryFn: () => {
+      if (!researcherId) throw new Error('Researcher ID is required');
+      return getResearcherPurchases(researcherId, limit);
     },
-  });
-}
-
-/**
- * Get researcher by ID
- */
-export function useResearcher(researcherId: string | null) {
-  return useQuery({
-    queryKey: ['researcher', researcherId],
-    queryFn: () => getResearcher(researcherId!),
     enabled: !!researcherId,
+    staleTime: 30000, // 30 seconds
   });
 }
 
 /**
- * Get researcher by email
+ * Hook to get researcher analytics
  */
-export function useResearcherByEmail(email: string | null) {
+export function useResearcherAnalytics(researcherId: string | null) {
   return useQuery({
-    queryKey: ['researcher', 'email', email],
-    queryFn: () => getResearcherByEmail(email!),
-    enabled: !!email,
-  });
-}
-
-/**
- * Submit verification documents
- */
-export function useSubmitResearcherVerification() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ researcherId, documents }: { researcherId: string; documents: any }) =>
-      submitResearcherVerification(researcherId, documents),
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['researcher', variables.researcherId] });
-      queryClient.invalidateQueries({ queryKey: ['researcher', 'verification', variables.researcherId] });
+    queryKey: ['researcher-analytics', researcherId],
+    queryFn: () => {
+      if (!researcherId) throw new Error('Researcher ID is required');
+      return getResearcherAnalytics(researcherId);
     },
-  });
-}
-
-/**
- * Get verification status
- */
-export function useResearcherVerificationStatus(researcherId: string | null) {
-  return useQuery({
-    queryKey: ['researcher', 'verification', researcherId],
-    queryFn: () => getResearcherVerificationStatus(researcherId!),
     enabled: !!researcherId,
-    refetchInterval: false, // No auto-polling - users can manually refresh
-    refetchOnWindowFocus: false, // Don't auto-refetch on window focus
-    retry: 3, // Retry failed requests up to 3 times
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    staleTime: 60000, // 1 minute
   });
 }
-
-/**
- * Get researcher status (with verification prompt)
- */
-export function useResearcherStatus(researcherId: string | null) {
-  return useQuery({
-    queryKey: ['researcher', 'status', researcherId],
-    queryFn: () => getResearcherStatus(researcherId!),
-    enabled: !!researcherId,
-    refetchInterval: false, // No auto-polling - users can manually refresh
-    refetchOnWindowFocus: false, // Don't auto-refetch on window focus
-    retry: 3, // Retry failed requests up to 3 times
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-  });
-}
-
-/**
- * Browse datasets
- */
-export function useBrowseDatasets() {
-  return useQuery({
-    queryKey: ['marketplace', 'datasets'],
-    queryFn: () => browseDatasets(),
-  });
-}
-
-/**
- * Purchase dataset
- */
-export function usePurchaseDataset() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: (purchaseRequest: PurchaseRequest) => purchaseDataset(purchaseRequest),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['marketplace', 'datasets'] });
-      queryClient.invalidateQueries({ queryKey: ['researcher', 'purchases'] });
-    },
-  });
-}
-

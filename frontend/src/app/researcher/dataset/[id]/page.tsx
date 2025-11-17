@@ -92,18 +92,21 @@ export default function DatasetPage({ params }: DatasetPageProps) {
     }
   };
 
-  const handleExport = async (format: 'fhir' | 'csv' | 'json') => {
+  const handleExport = async (format: 'fhir' | 'csv' | 'csv-zip' | 'json') => {
     if (!researcherId || !dataset) return;
 
     try {
+      const options = format === 'csv-zip' ? { zip: true, multiFile: true } : undefined;
       const result = await exportMutation.mutateAsync({
         datasetId: dataset.id,
         format,
         researcherId,
+        options,
       });
 
-      if (format === 'csv' && result instanceof Blob) {
-        downloadDataset(result, `dataset-${dataset.id}.csv`);
+      if ((format === 'csv' || format === 'csv-zip') && result instanceof Blob) {
+        const extension = format === 'csv-zip' ? 'zip' : 'csv';
+        downloadDataset(result, `dataset-${dataset.id}.${extension}`);
       } else {
         // For JSON/FHIR, create a download link
         const blob = new Blob([JSON.stringify(result, null, 2)], {
@@ -281,27 +284,76 @@ export default function DatasetPage({ params }: DatasetPageProps) {
               </Card>
             )}
 
-            {dataset.hcsTopicId && (
+            {(dataset.consentTopicId || dataset.dataTopicId) && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Hedera Verification</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Hedera Verification
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Verify the authenticity and integrity of this dataset on Hedera HashScan. All
+                    data proofs are stored immutably on the Hedera Consensus Service.
+                  </p>
                   {dataset.consentTopicId && (
-                    <div>
-                      <p className="mb-1 text-sm text-muted-foreground">Consent Proof</p>
-                      <HashScanLink
-                        transactionId={dataset.consentTopicId}
-                        label="View on HashScan"
-                      />
+                    <div className="rounded-lg border bg-gray-50 p-3">
+                      <p className="mb-2 text-sm font-medium text-muted-foreground">
+                        Consent Proof Topic
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 rounded bg-white px-2 py-1 font-mono text-xs">
+                          {dataset.consentTopicId}
+                        </code>
+                        <a
+                          href={`https://hashscan.io/${process.env.NEXT_PUBLIC_HEDERA_NETWORK || 'testnet'}/topic/${dataset.consentTopicId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        View all consent proofs for patients in this dataset
+                      </p>
                     </div>
                   )}
                   {dataset.dataTopicId && (
-                    <div>
-                      <p className="mb-1 text-sm text-muted-foreground">Data Proof</p>
-                      <HashScanLink transactionId={dataset.dataTopicId} label="View on HashScan" />
+                    <div className="rounded-lg border bg-gray-50 p-3">
+                      <p className="mb-2 text-sm font-medium text-muted-foreground">
+                        Data Proof Topic
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <code className="flex-1 rounded bg-white px-2 py-1 font-mono text-xs">
+                          {dataset.dataTopicId}
+                        </code>
+                        <a
+                          href={`https://hashscan.io/${process.env.NEXT_PUBLIC_HEDERA_NETWORK || 'testnet'}/topic/${dataset.dataTopicId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        View all data provenance proofs for this dataset
+                      </p>
                     </div>
                   )}
+                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                    <p className="mb-1 text-xs font-medium text-blue-900">
+                      How Verification Works:
+                    </p>
+                    <ul className="list-inside list-disc space-y-1 text-xs text-blue-800">
+                      <li>Each patient record has a cryptographic hash stored on Hedera</li>
+                      <li>Click the topic links above to view all proofs on HashScan</li>
+                      <li>All data is anonymized and cannot be traced back to individuals</li>
+                      <li>Query execution is logged to Hedera for audit trail</li>
+                    </ul>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -355,11 +407,11 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                     <Button
                       variant="outline"
                       className="w-full justify-start"
-                      onClick={() => handleExport('fhir')}
+                      onClick={() => handleExport('csv-zip')}
                       disabled={exportMutation.isPending}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Export as FHIR
+                      Download CSV (ZIP) - Multi-file
                     </Button>
                     <Button
                       variant="outline"
@@ -368,7 +420,16 @@ export default function DatasetPage({ params }: DatasetPageProps) {
                       disabled={exportMutation.isPending}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Export as CSV
+                      Export as CSV (Single file)
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => handleExport('fhir')}
+                      disabled={exportMutation.isPending}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Export as FHIR
                     </Button>
                     <Button
                       variant="outline"

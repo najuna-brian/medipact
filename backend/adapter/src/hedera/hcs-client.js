@@ -125,18 +125,20 @@ export function getHashScanLink(transactionId, network = null) {
 
 /**
  * Initialize HCS topics for MediPact
- * Creates two topics: one for consent proofs, one for data proofs
+ * Creates topics: consent proofs, data proofs, and lookup audit trail
  * @param {Client} client - Hedera client
- * @returns {Promise<{consentTopicId: string, dataTopicId: string}>}
+ * @returns {Promise<{consentTopicId: string, dataTopicId: string, lookupTopicId: string}>}
  */
 export async function initializeMedipactTopics(client) {
   console.log('Initializing MediPact HCS topics...');
   
   const consentTopicId = await createTopic(client, 'MediPact Consent Proofs');
   const dataTopicId = await createTopic(client, 'MediPact Data Proofs');
+  const lookupTopicId = await createTopic(client, 'MediPact Patient Lookup Audit Trail');
 
   return {
     consentTopicId,
-    dataTopicId
+    dataTopicId,
+    lookupTopicId
   };
 }

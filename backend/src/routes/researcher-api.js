@@ -15,6 +15,7 @@ import {
   getAllResearchers
 } from '../db/researcher-db.js';
 import { verifyAdminToken, extractTokenFromHeader } from '../services/admin-auth-service.js';
+import { getResearcherBalanceWithDetails } from '../services/balance-service.js';
 
 const router = express.Router();
 
@@ -442,6 +443,124 @@ router.post('/admin/researchers/:researcherId/reject', async (req, res) => {
     });
   } catch (error) {
     console.error('Error rejecting researcher:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/researcher/:researcherId/wallet/balance
+ * Get researcher wallet balance
+ */
+router.get('/:researcherId/wallet/balance', async (req, res) => {
+  try {
+    const { researcherId } = req.params;
+    const balance = await getResearcherBalanceWithDetails(researcherId);
+    res.json(balance);
+  } catch (error) {
+    console.error('Error fetching researcher balance:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/researcher/:researcherId/api-keys
+ * Create a new API key for the researcher
+ */
+router.post('/:researcherId/api-keys', async (req, res) => {
+  try {
+    const { researcherId } = req.params;
+    const { name = 'Default API Key' } = req.body;
+    
+    // Verify researcher exists and is verified
+    const researcher = await getResearcher(researcherId);
+    if (!researcher) {
+      return res.status(404).json({ error: 'Researcher not found' });
+    }
+    
+    if (researcher.verificationStatus !== 'verified') {
+      return res.status(403).json({ 
+        error: 'Researcher must be verified to create API keys. Please complete verification first.' 
+      });
+    }
+    
+    const { createAPIKey } = await import('../db/api-key-db.js');
+    const apiKey = await createAPIKey(researcherId, name);
+    
+    res.status(201).json({
+      success: true,
+      message: 'API key created successfully. Store it securely - it will not be shown again.',
+      apiKey: {
+        id: apiKey.id,
+        key: apiKey.apiKey, // Only shown once on creation
+        name: apiKey.name,
+        createdAt: apiKey.createdAt,
+        status: apiKey.status
+      }
+    });
+  } catch (error) {
+    console.error('Error creating API key:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/researcher/:researcherId/api-keys
+ * Get all API keys for the researcher
+ */
+router.get('/:researcherId/api-keys', async (req, res) => {
+  try {
+    const { researcherId } = req.params;
+    
+    // Verify researcher exists
+    const researcher = await getResearcher(researcherId);
+    if (!researcher) {
+      return res.status(404).json({ error: 'Researcher not found' });
+    }
+    
+    const { getResearcherAPIKeys } = await import('../db/api-key-db.js');
+    const apiKeys = await getResearcherAPIKeys(researcherId);
+    
+    res.json({
+      success: true,
+      count: apiKeys.length,
+      apiKeys: apiKeys.map(key => ({
+        id: key.id,
+        name: key.name,
+        createdAt: key.createdAt,
+        lastUsedAt: key.lastUsedAt,
+        status: key.status
+        // Note: API key value is never returned after creation
+      }))
+    });
+  } catch (error) {
+    console.error('Error fetching API keys:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/researcher/:researcherId/api-keys/:keyId
+ * Revoke an API key
+ */
+router.delete('/:researcherId/api-keys/:keyId', async (req, res) => {
+  try {
+    const { researcherId, keyId } = req.params;
+    
+    // Verify researcher exists
+    const researcher = await getResearcher(researcherId);
+    if (!researcher) {
+      return res.status(404).json({ error: 'Researcher not found' });
+    }
+    
+    const { revokeAPIKey } = await import('../db/api-key-db.js');
+    await revokeAPIKey(keyId, researcherId);
+    
+    res.json({
+      success: true,
+      message: 'API key revoked successfully'
+    });
+  } catch (error) {
+    console.error('Error revoking API key:', error);
     res.status(500).json({ error: error.message });
   }
 });

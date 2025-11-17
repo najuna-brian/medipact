@@ -11,6 +11,7 @@ import { linkHospitalToUPI } from '../services/hospital-linkage-service.js';
 import { createPatient, patientExists, getPatient } from '../db/patient-db.js';
 import { createLinkage, getLinkagesByHospital } from '../db/linkage-db.js';
 import { upsertPatientContact, findUPIByEmail, findUPIByPhone, findUPIByNationalId } from '../db/patient-contacts-db.js';
+import { checkLookupPermission } from '../services/patient-lookup-service.js';
 import { verifyHospitalApiKey, getHospital as getHospitalFromDB } from '../db/hospital-db.js';
 import { isHospitalVerified } from '../services/hospital-verification-service.js';
 
@@ -391,6 +392,206 @@ router.post('/:hospitalId/patients', authenticateHospital, async (req, res) => {
   } catch (error) {
     console.error('Error registering patient:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/hospital/:hospitalId/patients/lookup
+ * Lookup patient UPI by email, phone, or national ID
+ * 
+ * Access Control:
+ * - Only hospitals linked to the patient can lookup
+ * - All lookups are logged to HCS for audit trail
+ */
+router.post('/:hospitalId/patients/lookup', authenticateHospital, async (req, res) => {
+  try {
+    const { hospitalId } = req.params;
+    const { email, phone, nationalId } = req.body;
+    
+    if (!email && !phone && !nationalId) {
+      return res.status(400).json({ 
+        error: 'At least one of email, phone, or nationalId is required' 
+      });
+    }
+    
+    // Check lookup permission (hospital must be linked to patient)
+    const permission = await checkLookupPermission(
+      { email, phone, nationalId },
+      'hospital',
+      hospitalId,
+      {} // No auth proof needed for hospitals (they're authenticated via API key)
+    );
+    
+    if (!permission.allowed) {
+      return res.status(403).json({ 
+        found: false,
+        error: permission.reason || 'Access denied' 
+      });
+    }
+    
+    // Record lookup on HCS for audit trail
+    try {
+      const { createHederaClient, initializeMedipactTopics, submitMessage } = await import('../adapter/src/hedera/hcs-client.js');
+      const client = createHederaClient();
+      const { lookupTopicId } = await initializeMedipactTopics(client);
+      
+      // Create lookup hash (no PII)
+      const crypto = (await import('crypto')).default;
+      const contactHash = crypto.createHash('sha256')
+        .update(`${email || ''}${phone || ''}${nationalId || ''}`)
+        .digest('hex');
+      const upiHash = crypto.createHash('sha256')
+        .update(permission.upi)
+        .digest('hex');
+      
+      const lookupRecord = {
+        lookupHash: contactHash,
+        upiHash: upiHash,
+        hospitalId: hospitalId,
+        timestamp: new Date().toISOString(),
+        requestType: 'lookup'
+      };
+      
+      await submitMessage(client, lookupTopicId, JSON.stringify(lookupRecord));
+    } catch (hcsError) {
+      // Log but don't fail the request
+      console.warn('Failed to record lookup on HCS:', hcsError.message);
+    }
+    
+    res.json({ 
+      upi: permission.upi, 
+      found: true,
+      message: 'Patient UPI found. Share this with the patient so they can access their account.'
+    });
+  } catch (error) {
+    console.error('Error looking up patient:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/hospital/:hospitalId/qr-code
+ * Generate QR code for hospital linking
+ * Patients can scan this QR code to link to the hospital
+ */
+router.get('/:hospitalId/qr-code', authenticateHospital, async (req, res) => {
+  try {
+    const { hospitalId } = req.params;
+    
+    // Create signed token (expires in 1 hour)
+    const crypto = (await import('crypto')).default;
+    const timestamp = Date.now();
+    const expiresAt = timestamp + (60 * 60 * 1000); // 1 hour
+    const tokenData = {
+      hospitalId,
+      timestamp,
+      expiresAt
+    };
+    
+    // Sign token with hospital API key (from headers)
+    const apiKey = req.headers['x-api-key'];
+    const signature = crypto
+      .createHmac('sha256', apiKey)
+      .update(JSON.stringify(tokenData))
+      .digest('hex');
+    
+    const signedToken = {
+      ...tokenData,
+      signature
+    };
+    
+    // Encode token as base64 for QR code
+    const tokenString = Buffer.from(JSON.stringify(signedToken)).toString('base64');
+    
+    // QR code data format: medipact://link-hospital?token=<base64-token>
+    const qrData = `medipact://link-hospital?token=${tokenString}`;
+    
+    // Generate QR code (using qrcode library)
+    const QRCode = (await import('qrcode')).default;
+    const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+      errorCorrectionLevel: 'M',
+      type: 'image/png',
+      width: 300,
+      margin: 2
+    });
+    
+    res.json({
+      qrCode: qrCodeDataUrl,
+      token: tokenString,
+      expiresAt: new Date(expiresAt).toISOString(),
+      message: 'QR code generated successfully. Patients can scan this to link to your hospital.'
+    });
+  } catch (error) {
+    console.error('Error generating QR code:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/hospital/:hospitalId/verify-token
+ * Verify QR code token for hospital linking
+ * Used by patients to verify the token before linking
+ */
+router.get('/:hospitalId/verify-token', async (req, res) => {
+  try {
+    const { hospitalId } = req.params;
+    const { token } = req.query;
+    
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ valid: false, error: 'Token is required' });
+    }
+    
+    // Decode token
+    let tokenData;
+    try {
+      tokenData = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
+    } catch (err) {
+      return res.status(400).json({ valid: false, error: 'Invalid token format' });
+    }
+    
+    // Verify hospital ID matches
+    if (tokenData.hospitalId !== hospitalId) {
+      return res.status(400).json({ valid: false, error: 'Hospital ID mismatch' });
+    }
+    
+    // Verify token hasn't expired
+    if (Date.now() > tokenData.expiresAt) {
+      return res.status(400).json({ valid: false, error: 'Token has expired' });
+    }
+    
+    // Verify signature (we need to get the hospital's API key)
+    const { getHospital } = await import('../db/hospital-db.js');
+    const hospital = await getHospital(hospitalId);
+    
+    if (!hospital || !hospital.apiKey) {
+      return res.status(404).json({ valid: false, error: 'Hospital not found' });
+    }
+    
+    const crypto = (await import('crypto')).default;
+    const expectedSignature = crypto
+      .createHmac('sha256', hospital.apiKey)
+      .update(JSON.stringify({
+        hospitalId: tokenData.hospitalId,
+        timestamp: tokenData.timestamp,
+        expiresAt: tokenData.expiresAt
+      }))
+      .digest('hex');
+    
+    if (tokenData.signature !== expectedSignature) {
+      return res.status(401).json({ valid: false, error: 'Invalid token signature' });
+    }
+    
+    // Token is valid
+    res.json({
+      valid: true,
+      hospitalId: tokenData.hospitalId,
+      expiresAt: new Date(tokenData.expiresAt).toISOString(),
+      // Return API key for linking (in production, this should be more secure)
+      apiKey: hospital.apiKey
+    });
+  } catch (error) {
+    console.error('Error verifying token:', error);
+    res.status(500).json({ valid: false, error: error.message });
   }
 });
 

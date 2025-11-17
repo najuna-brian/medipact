@@ -11,7 +11,8 @@ import { getPatientMedicalHistory, getHospitalMedicalHistory, getPatientSummary 
 import { verifyHospital } from '../services/hospital-registry-service.js';
 import { createPatient, patientExists, getPatient } from '../db/patient-db.js';
 import { getLinkagesByUPI, getLinkage, createLinkage, removeLinkage } from '../db/linkage-db.js';
-import { lookupPatientUPI, registerPatientWithContact } from '../services/patient-lookup-service.js';
+import { lookupPatientUPI, registerPatientWithContact, checkLookupPermission } from '../services/patient-lookup-service.js';
+import { createPatientSession } from '../services/patient-authentication-service.js';
 import { findUPIByEmail, findUPIByPhone, findUPIByNationalId, upsertPatientContact } from '../db/patient-contacts-db.js';
 import { processBulkRegistration } from '../services/bulk-patient-service.js';
 import { requirePatientAccess, restrictPlatformAccess } from '../middleware/access-control.js';
@@ -206,6 +207,11 @@ router.post('/register', async (req, res) => {
 /**
  * POST /api/patient/lookup
  * Lookup patient UPI by email, phone, or national ID
+ * 
+ * Access Control:
+ * - Patients can lookup their own UPI (must provide contact info for verification)
+ * - This endpoint is for "Forgot UPI" recovery only
+ * - Full lookup with all options is available in hospital portal
  */
 router.post('/lookup', async (req, res) => {
   try {
@@ -217,6 +223,7 @@ router.post('/lookup', async (req, res) => {
       });
     }
     
+    // Find UPI from contact info
     const upi = await lookupPatientUPI(
       { email, phone, nationalId },
       findUPIByEmail,
@@ -224,11 +231,34 @@ router.post('/lookup', async (req, res) => {
       findUPIByNationalId
     );
     
-    if (upi) {
-      res.json({ upi, found: true });
-    } else {
-      res.json({ found: false, message: 'Patient not found' });
+    if (!upi) {
+      return res.json({ found: false, message: 'Patient not found' });
     }
+    
+    // For patient recovery, verify contact info matches
+    // This is a simplified check - full access control is in hospital portal
+    const { getPatientContact } = await import('../db/patient-contacts-db.js');
+    const contact = await getPatientContact(upi);
+    
+    if (!contact) {
+      return res.json({ found: false, message: 'Patient not found' });
+    }
+    
+    // Verify at least one contact matches
+    let matches = 0;
+    if (email && contact.email && contact.email.toLowerCase() === email.toLowerCase()) matches++;
+    if (phone && contact.phone && contact.phone.replace(/\D/g, '') === phone.replace(/\D/g, '')) matches++;
+    if (nationalId && contact.nationalId && contact.nationalId === nationalId) matches++;
+    
+    if (matches === 0) {
+      return res.status(403).json({ 
+        found: false,
+        error: 'Contact information does not match. Please contact your hospital for assistance.' 
+      });
+    }
+    
+    // Return UPI (for recovery purposes)
+    res.json({ upi, found: true, message: 'UPI found. You can now login with this UPI.' });
   } catch (error) {
     console.error('Error looking up patient:', error);
     res.status(500).json({ error: error.message });

@@ -306,7 +306,7 @@ router.get('/filter-options', async (req, res) => {
 router.post('/datasets/:datasetId/export', async (req, res) => {
   try {
     const { datasetId } = req.params;
-    const { format = 'fhir', researcherId } = req.body;
+    const { format = 'fhir', researcherId, multiFile, zip } = req.body;
     
     if (!researcherId) {
       return res.status(400).json({ error: 'Researcher ID required' });
@@ -321,10 +321,19 @@ router.post('/datasets/:datasetId/export', async (req, res) => {
       });
     }
     
-    const exportData = await exportDataset(datasetId, format);
+    const exportOptions = { multiFile, zip };
+    const exportData = await exportDataset(datasetId, format, exportOptions);
     
-    // Set appropriate content type
-    if (format === 'csv') {
+    // Set appropriate content type and headers
+    if (format === 'csv-zip' || (format === 'csv' && zip)) {
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="dataset-${datasetId}.zip"`);
+      res.send(exportData.data);
+    } else if (format === 'csv' && multiFile) {
+      // Multi-file CSV as JSON response
+      res.setHeader('Content-Type', 'application/json');
+      res.json(exportData);
+    } else if (format === 'csv') {
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', `attachment; filename="dataset-${datasetId}.csv"`);
       res.send(exportData.data);
@@ -594,14 +603,59 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
     }
     
     // Record purchase in database
-    const purchaseId = `PURCHASE-${Date.now()}`;
-    // TODO: Store purchase record in purchases table
+    const { getDatabaseType, run } = await import('../db/database.js');
+    const dbType = getDatabaseType();
+    const purchaseId = `PUR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+    
+    // Store purchase record
+    if (datasetId) {
+      const revenueHash = distributionResult?.distribution?.hash || null;
+      if (dbType === 'postgresql') {
+        await run(
+          `INSERT INTO purchases (
+            id, researcher_id, dataset_id, amount, currency, hedera_transaction_id, 
+            revenue_distribution_hash, access_type, status, purchased_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+          ON CONFLICT (id) DO NOTHING`,
+          [
+            purchaseId,
+            researcherId,
+            datasetId,
+            amountHBAR,
+            'HBAR',
+            transactionId || null,
+            revenueHash,
+            'download',
+            'completed'
+          ]
+        );
+      } else {
+        await run(
+          `INSERT OR IGNORE INTO purchases (
+            id, researcher_id, dataset_id, amount, currency, hedera_transaction_id, 
+            revenue_distribution_hash, access_type, status, purchased_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+          [
+            purchaseId,
+            researcherId,
+            datasetId,
+            amountHBAR,
+            'HBAR',
+            transactionId || null,
+            revenueHash,
+            'download',
+            'completed'
+          ]
+        );
+      }
+    }
     
     // Get USD amount using dynamic exchange rate
     const { hbarToUSD } = await import('../services/pricing-service.js');
     const amountUSD = await hbarToUSD(amountHBAR);
     
     res.json({
+      success: true,
       message: 'Purchase successful',
       purchaseId,
       datasetId,
@@ -639,6 +693,186 @@ router.get('/researcher/:researcherId/status', checkResearcherVerification, asyn
     });
   } catch (error) {
     console.error('Error fetching researcher status:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/marketplace/researcher/:researcherId/purchases
+ * Get researcher purchase history
+ */
+router.get('/researcher/:researcherId/purchases', async (req, res) => {
+  try {
+    const { researcherId } = req.params;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    // Check if researcher exists
+    const researcher = await getResearcher(researcherId);
+    if (!researcher) {
+      return res.status(404).json({ error: 'Researcher not found' });
+    }
+    
+    // Get purchases from database
+    const { getDatabaseType, all } = await import('../db/database.js');
+    const dbType = getDatabaseType();
+    
+    let purchases;
+    if (dbType === 'postgresql') {
+      purchases = await all(
+        `SELECT 
+          p.id,
+          p.researcher_id as "researcherId",
+          p.dataset_id as "datasetId",
+          p.amount,
+          p.currency,
+          p.hedera_transaction_id as "hederaTransactionId",
+          p.revenue_distribution_hash as "revenueDistributionHash",
+          p.access_type as "accessType",
+          p.access_expires_at as "accessExpiresAt",
+          p.status,
+          p.purchased_at as "purchasedAt",
+          d.name as "datasetName",
+          d.description as "datasetDescription",
+          d.record_count as "recordCount"
+        FROM purchases p
+        LEFT JOIN datasets d ON p.dataset_id = d.id
+        WHERE p.researcher_id = $1
+        ORDER BY p.purchased_at DESC
+        LIMIT $2`,
+        [researcherId, limit]
+      );
+    } else {
+      purchases = await all(
+        `SELECT 
+          p.id,
+          p.researcher_id as researcherId,
+          p.dataset_id as datasetId,
+          p.amount,
+          p.currency,
+          p.hedera_transaction_id as hederaTransactionId,
+          p.revenue_distribution_hash as revenueDistributionHash,
+          p.access_type as accessType,
+          p.access_expires_at as accessExpiresAt,
+          p.status,
+          p.purchased_at as purchasedAt,
+          d.name as datasetName,
+          d.description as datasetDescription,
+          d.record_count as recordCount
+        FROM purchases p
+        LEFT JOIN datasets d ON p.dataset_id = d.id
+        WHERE p.researcher_id = ?
+        ORDER BY p.purchased_at DESC
+        LIMIT ?`,
+        [researcherId, limit]
+      );
+    }
+    
+    // Convert HBAR to USD for each purchase
+    const { hbarToUSD } = await import('../services/pricing-service.js');
+    const purchasesWithUSD = await Promise.all(
+      purchases.map(async (purchase) => {
+        const amountUSD = await hbarToUSD(purchase.amount);
+        return {
+          ...purchase,
+          amountUSD
+        };
+      })
+    );
+    
+    res.json({
+      purchases: purchasesWithUSD,
+      count: purchasesWithUSD.length
+    });
+  } catch (error) {
+    console.error('Error fetching purchases:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/marketplace/researcher/:researcherId/analytics
+ * Get researcher analytics (datasets used, records analyzed, total spent, etc.)
+ */
+router.get('/researcher/:researcherId/analytics', async (req, res) => {
+  try {
+    const { researcherId } = req.params;
+    
+    // Check if researcher exists
+    const researcher = await getResearcher(researcherId);
+    if (!researcher) {
+      return res.status(404).json({ error: 'Researcher not found' });
+    }
+    
+    const { getDatabaseType, all, get } = await import('../db/database.js');
+    const dbType = getDatabaseType();
+    
+    // Get purchase statistics
+    let purchaseStats;
+    if (dbType === 'postgresql') {
+      purchaseStats = await get(
+        `SELECT 
+          COUNT(*) as "datasetsUsed",
+          SUM(p.amount) as "totalSpentHBAR",
+          SUM(d.record_count) as "totalRecords"
+        FROM purchases p
+        LEFT JOIN datasets d ON p.dataset_id = d.id
+        WHERE p.researcher_id = $1 AND p.status = 'completed'`,
+        [researcherId]
+      );
+    } else {
+      purchaseStats = await get(
+        `SELECT 
+          COUNT(*) as datasetsUsed,
+          SUM(p.amount) as totalSpentHBAR,
+          SUM(d.record_count) as totalRecords
+        FROM purchases p
+        LEFT JOIN datasets d ON p.dataset_id = d.id
+        WHERE p.researcher_id = ? AND p.status = 'completed'`,
+        [researcherId]
+      );
+    }
+    
+    // Get query statistics
+    let queryStats;
+    if (dbType === 'postgresql') {
+      queryStats = await get(
+        `SELECT 
+          COUNT(*) as "totalQueries",
+          SUM(result_count) as "totalRecordsAnalyzed"
+        FROM query_logs
+        WHERE researcher_id = $1`,
+        [researcherId]
+      );
+    } else {
+      queryStats = await get(
+        `SELECT 
+          COUNT(*) as totalQueries,
+          SUM(result_count) as totalRecordsAnalyzed
+        FROM query_logs
+        WHERE researcher_id = ?`,
+        [researcherId]
+      );
+    }
+    
+    // Convert HBAR to USD
+    const { hbarToUSD } = await import('../services/pricing-service.js');
+    const totalSpentUSD = purchaseStats.totalSpentHBAR 
+      ? await hbarToUSD(purchaseStats.totalSpentHBAR)
+      : 0;
+    
+    // Get downloads count (purchases with download access)
+    const downloadsCount = purchaseStats.datasetsUsed || 0;
+    
+    res.json({
+      datasetsUsed: parseInt(purchaseStats.datasetsUsed || 0),
+      recordsAnalyzed: parseInt(queryStats.totalRecordsAnalyzed || purchaseStats.totalRecords || 0),
+      totalSpentHBAR: parseFloat(purchaseStats.totalSpentHBAR || 0),
+      totalSpentUSD: totalSpentUSD,
+      downloads: downloadsCount,
+      totalQueries: parseInt(queryStats.totalQueries || 0)
+    });
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
     res.status(500).json({ error: error.message });
   }
 });

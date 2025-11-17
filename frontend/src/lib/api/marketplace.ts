@@ -182,6 +182,51 @@ export async function getFilterOptions(): Promise<FilterOptions> {
 }
 
 /**
+ * Get researcher purchase history
+ */
+export async function getResearcherPurchases(researcherId: string, limit: number = 50): Promise<{
+  purchases: Array<{
+    id: string;
+    researcherId: string;
+    datasetId: string;
+    amount: number;
+    amountUSD: number;
+    currency: string;
+    hederaTransactionId: string | null;
+    status: string;
+    purchasedAt: string;
+    datasetName?: string;
+    datasetDescription?: string;
+    recordCount?: number;
+  }>;
+  count: number;
+}> {
+  const response = await fetch(`${API_URL}/api/marketplace/researcher/${researcherId}/purchases?limit=${limit}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch purchases: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
+ * Get researcher analytics
+ */
+export async function getResearcherAnalytics(researcherId: string): Promise<{
+  datasetsUsed: number;
+  recordsAnalyzed: number;
+  totalSpentHBAR: number;
+  totalSpentUSD: number;
+  downloads: number;
+  totalQueries: number;
+}> {
+  const response = await fetch(`${API_URL}/api/marketplace/researcher/${researcherId}/analytics`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch analytics: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+/**
  * Purchase dataset
  * Returns either a PurchaseResponse (if transactionId provided) or PaymentRequest (if payment needed)
  */
@@ -214,8 +259,9 @@ export async function purchaseDataset(request: PurchaseRequest): Promise<Purchas
  */
 export async function exportDataset(
   datasetId: string,
-  format: 'fhir' | 'csv' | 'json',
-  researcherId: string
+  format: 'fhir' | 'csv' | 'csv-zip' | 'json',
+  researcherId: string,
+  options?: { multiFile?: boolean; zip?: boolean }
 ): Promise<Blob | any> {
   const response = await fetch(`${API_URL}/api/marketplace/datasets/${datasetId}/export`, {
     method: 'POST',
@@ -225,6 +271,8 @@ export async function exportDataset(
     body: JSON.stringify({
       format,
       researcherId,
+      multiFile: options?.multiFile,
+      zip: options?.zip,
     }),
   });
 
@@ -232,7 +280,7 @@ export async function exportDataset(
     throw new Error(`Export failed: ${response.statusText}`);
   }
 
-  if (format === 'csv') {
+  if (format === 'csv' || format === 'csv-zip') {
     return response.blob();
   } else {
     return response.json();

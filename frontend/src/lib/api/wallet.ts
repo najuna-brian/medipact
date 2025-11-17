@@ -113,3 +113,14 @@ export async function getHospitalWithdrawals(hospitalId: string, limit: number =
   return response.json();
 }
 
+/**
+ * Get researcher wallet balance
+ */
+export async function getResearcherBalance(researcherId: string): Promise<WalletBalance> {
+  const response = await fetch(`${API_URL}/api/researcher/${researcherId}/wallet/balance`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch balance');
+  }
+  return response.json();
+}
+

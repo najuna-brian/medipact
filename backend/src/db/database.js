@@ -1019,6 +1019,25 @@ async function createPostgreSQLTables() {
   await client.query(`CREATE INDEX IF NOT EXISTS idx_consents_type ON patient_consents(consent_type)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_consents_hospital ON patient_consents(hospital_id)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_consents_active ON patient_consents(status, expires_at) WHERE status = 'active'`);
+  
+  // Researcher API Keys Table
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS researcher_api_keys (
+      id VARCHAR(32) PRIMARY KEY,
+      researcher_id VARCHAR(32) NOT NULL,
+      key_hash VARCHAR(64) NOT NULL UNIQUE,
+      name VARCHAR(255) NOT NULL DEFAULT 'Default API Key',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_used_at TIMESTAMP,
+      status VARCHAR(20) NOT NULL DEFAULT 'active',
+      CHECK (status IN ('active', 'revoked')),
+      FOREIGN KEY (researcher_id) REFERENCES researchers(researcher_id)
+    )
+  `);
+  
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_api_keys_researcher ON researcher_api_keys(researcher_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON researcher_api_keys(key_hash)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_api_keys_status ON researcher_api_keys(status)`);
 }
 
 /**
@@ -1709,6 +1728,25 @@ async function createSQLiteTables() {
   await run(`CREATE INDEX IF NOT EXISTS idx_consents_type ON patient_consents(consent_type)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_consents_hospital ON patient_consents(hospital_id)`);
   await run(`CREATE INDEX IF NOT EXISTS idx_consents_active ON patient_consents(status, expires_at) WHERE status = 'active'`);
+  
+  // Researcher API Keys Table
+  await run(`
+    CREATE TABLE IF NOT EXISTS researcher_api_keys (
+      id TEXT PRIMARY KEY,
+      researcher_id TEXT NOT NULL,
+      key_hash TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL DEFAULT 'Default API Key',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      last_used_at TIMESTAMP,
+      status TEXT NOT NULL DEFAULT 'active',
+      CHECK (status IN ('active', 'revoked')),
+      FOREIGN KEY (researcher_id) REFERENCES researchers(researcher_id)
+    )
+  `);
+  
+  await run(`CREATE INDEX IF NOT EXISTS idx_api_keys_researcher ON researcher_api_keys(researcher_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_api_keys_hash ON researcher_api_keys(key_hash)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_api_keys_status ON researcher_api_keys(status)`);
 }
 
 /**

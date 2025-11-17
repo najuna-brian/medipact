@@ -17,6 +17,7 @@ import temporaryAccessRoutes from './routes/temporary-access-api.js';
 import adminRoutes from './routes/admin-api.js';
 import adminAuthRoutes from './routes/admin-auth-api.js';
 import researcherRoutes from './routes/researcher-api.js';
+import researcherDataRoutes from './routes/researcher-data-api.js';
 import marketplaceRoutes from './routes/marketplace-api.js';
 import revenueRoutes from './routes/revenue-api.js';
 import adapterRoutes from './routes/adapter-api.js';
@@ -126,6 +127,7 @@ app.use('/api/hospital', apiKeyLimiter, hospitalPatientsRoutes); // Hospital pat
 app.use('/api', temporaryAccessRoutes); // Temporary access routes (for hospitals and patients)
 app.use('/api/admin', adminRoutes); // Admin routes (protected)
 app.use('/api/researcher', apiKeyLimiter, researcherRoutes); // Researcher routes (API key rate limit)
+app.use('/api/researcher', apiKeyLimiter, researcherDataRoutes); // Researcher data API routes (REST API with API key auth)
 app.use('/api/marketplace', apiKeyLimiter, marketplaceRoutes); // Data marketplace routes (API key rate limit)
 app.use('/api/revenue', apiKeyLimiter, revenueRoutes); // Revenue distribution routes (API key rate limit)
 app.use('/api/adapter', apiKeyLimiter, adapterRoutes); // Adapter integration routes (API key rate limit)

@@ -99,11 +99,13 @@ export function useExportDataset() {
       datasetId,
       format,
       researcherId,
+      options,
     }: {
       datasetId: string;
-      format: 'fhir' | 'csv' | 'json';
+      format: 'fhir' | 'csv' | 'csv-zip' | 'json';
       researcherId: string;
-    }) => exportDataset(datasetId, format, researcherId),
+      options?: { multiFile?: boolean; zip?: boolean };
+    }) => exportDataset(datasetId, format, researcherId, options),
   });
 }
 

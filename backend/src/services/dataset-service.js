@@ -147,13 +147,14 @@ export async function getDatasetWithPreview(datasetId, options = {}) {
 }
 
 /**
- * Generate dataset export (FHIR Bundle or CSV)
+ * Generate dataset export (FHIR Bundle, CSV, or JSON)
  * 
  * @param {string} datasetId - Dataset ID
- * @param {string} format - Export format ('fhir', 'csv', 'json')
+ * @param {string} format - Export format ('fhir', 'csv', 'csv-zip', 'json')
+ * @param {Object} options - Export options (multiFile, zip)
  * @returns {Promise<Object>} Export data
  */
-export async function exportDataset(datasetId, format = 'fhir') {
+export async function exportDataset(datasetId, format = 'fhir', options = {}) {
   const dataset = await getDataset(datasetId);
   
   if (!dataset) {
@@ -175,14 +176,18 @@ export async function exportDataset(datasetId, format = 'fhir') {
   }
   
   // Query all matching resources
-  filters.limit = 10000; // Large limit for export
+  filters.limit = 100000; // Large limit for export
   const patients = await queryFHIRResources(filters);
   
   // Format based on requested format
   if (format === 'fhir') {
     return formatAsFHIRBundle(patients, dataset);
-  } else if (format === 'csv') {
-    return formatAsCSV(patients, dataset);
+  } else if (format === 'csv' || format === 'csv-zip') {
+    const csvOptions = {
+      multiFile: format === 'csv-zip' || options.multiFile,
+      zip: format === 'csv-zip' || options.zip
+    };
+    return await formatAsCSV(patients, dataset, csvOptions);
   } else {
     return formatAsJSON(patients, dataset);
   }
@@ -224,28 +229,189 @@ function formatAsFHIRBundle(patients, dataset) {
 }
 
 /**
- * Format data as CSV
+ * Format data as CSV (enhanced multi-file structure)
  */
-function formatAsCSV(patients, dataset) {
-  const headers = ['Anonymous Patient ID', 'Country', 'Age Range', 'Gender'];
-  const rows = patients.map(p => [
-    p.anonymousPatientId,
-    p.country,
-    p.ageRange || '',
-    p.gender || ''
-  ]);
+async function formatAsCSV(patients, dataset, options = {}) {
+  const { multiFile = false, zip = false } = options;
   
-  const csv = [
-    headers.join(','),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-  ].join('\n');
+  // Import resource query functions
+  const { queryPatients, queryConditions, queryObservations, queryEncounters } = await import('../db/fhir-resource-db.js');
   
-  return {
-    format: 'csv',
-    data: csv,
-    recordCount: patients.length,
-    datasetId: dataset.id
+  // Build filters from dataset
+  const filters = {};
+  if (dataset.country) filters.country = dataset.country;
+  if (dataset.dateRangeStart) filters.startDate = dataset.dateRangeStart;
+  if (dataset.dateRangeEnd) filters.endDate = dataset.dateRangeEnd;
+  if (dataset.conditionCodes) {
+    const codes = typeof dataset.conditionCodes === 'string' 
+      ? JSON.parse(dataset.conditionCodes) 
+      : dataset.conditionCodes;
+    if (codes && codes.length > 0) {
+      filters.conditionCode = codes[0];
+    }
+  }
+  filters.limit = 100000; // Large limit for export
+  
+  if (multiFile || zip) {
+    // Multi-file CSV structure
+    const csvFiles = {};
+    
+    // 1. Patients CSV
+    const patientData = await queryPatients(filters);
+    csvFiles.patients = generateCSV(
+      ['patient_id', 'age_range', 'gender', 'country', 'region', 'hospital_id'],
+      patientData.map(p => [
+        p.anonymousPatientId,
+        p.ageRange || '',
+        p.gender || '',
+        p.country,
+        p.region || '',
+        p.hospitalId
+      ])
+    );
+    
+    // 2. Conditions CSV
+    const conditionData = await queryConditions(filters);
+    csvFiles.conditions = generateCSV(
+      ['condition_id', 'patient_id', 'icd10', 'snomed', 'condition_name', 'diagnosed_date', 'severity', 'status', 'country'],
+      conditionData.map(c => [
+        c.conditionCode, // Using conditionCode as ID
+        c.anonymousPatientId,
+        c.conditionCode, // ICD10 code
+        c.conditionCode, // SNOMED (same for now)
+        c.conditionName,
+        c.diagnosisDate || '',
+        c.severity || '',
+        c.status || '',
+        c.country
+      ])
+    );
+    
+    // 3. Observations/Labs CSV
+    const observationData = await queryObservations(filters);
+    csvFiles.observations = generateCSV(
+      ['lab_id', 'patient_id', 'test_name', 'result', 'value', 'date', 'unit', 'reference_range', 'interpretation', 'country'],
+      observationData.map(o => [
+        o.observationCode, // Using observationCode as ID
+        o.anonymousPatientId,
+        o.observationName,
+        o.value || '', // Result
+        o.value || '', // Value (same as result)
+        o.effectiveDate,
+        o.unit || '',
+        o.referenceRange || '',
+        o.interpretation || '',
+        o.country
+      ])
+    );
+    
+    // 4. Encounters CSV (if table exists)
+    try {
+      const encounterData = await queryEncounters(filters);
+      if (encounterData.length > 0) {
+        csvFiles.encounters = generateCSV(
+          ['encounter_id', 'patient_id', 'date', 'encounter_type', 'encounter_class', 'reason', 'department', 'country'],
+          encounterData.map(e => [
+            `${e.anonymousPatientId}-${e.periodStart || ''}`, // Generate encounter ID
+            e.anonymousPatientId,
+            e.periodStart || '',
+            e.encounterType || '',
+            e.encounterClass || '',
+            '', // Reason (not in current schema)
+            '', // Department (not in current schema)
+            e.country
+          ])
+        );
+      }
+    } catch (error) {
+      // Encounters table doesn't exist, skip
+    }
+    
+    if (zip) {
+      // Return ZIP file
+      const archiver = (await import('archiver')).default;
+      const { Readable } = await import('stream');
+      
+      return new Promise((resolve, reject) => {
+        const archive = archiver('zip', { zlib: { level: 9 } });
+        const chunks = [];
+        
+        archive.on('data', (chunk) => chunks.push(chunk));
+        archive.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          resolve({
+            format: 'csv-zip',
+            data: buffer,
+            recordCount: {
+              patients: patientData.length,
+              conditions: conditionData.length,
+              observations: observationData.length,
+              encounters: csvFiles.encounters ? encounterData.length : 0
+            },
+            datasetId: dataset.id,
+            files: Object.keys(csvFiles)
+          });
+        });
+        archive.on('error', reject);
+        
+        // Add each CSV file to the ZIP
+        Object.entries(csvFiles).forEach(([filename, csvContent]) => {
+          archive.append(csvContent, { name: `${filename}.csv` });
+        });
+        
+        archive.finalize();
+      });
+    } else {
+      // Return object with multiple CSV files
+      return {
+        format: 'csv-multi',
+        data: csvFiles,
+        recordCount: {
+          patients: patientData.length,
+          conditions: conditionData.length,
+          observations: observationData.length
+        },
+        datasetId: dataset.id
+      };
+    }
+  } else {
+    // Single combined CSV (backward compatible)
+    const headers = ['Anonymous Patient ID', 'Country', 'Age Range', 'Gender'];
+    const rows = patients.map(p => [
+      p.anonymousPatientId,
+      p.country,
+      p.ageRange || '',
+      p.gender || ''
+    ]);
+    
+    const csv = generateCSV(headers, rows);
+    
+    return {
+      format: 'csv',
+      data: csv,
+      recordCount: patients.length,
+      datasetId: dataset.id
+    };
+  }
+}
+
+/**
+ * Generate CSV string from headers and rows
+ */
+function generateCSV(headers, rows) {
+  const escapeCSV = (value) => {
+    if (value === null || value === undefined) return '';
+    const str = String(value);
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
   };
+  
+  return [
+    headers.join(','),
+    ...rows.map(row => row.map(escapeCSV).join(','))
+  ].join('\n');
 }
 
 /**

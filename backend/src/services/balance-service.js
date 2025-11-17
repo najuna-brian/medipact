@@ -159,3 +159,62 @@ export async function getHospitalBalanceWithDetails(hospitalId) {
   };
 }
 
+/**
+ * Get account balance for a researcher
+ * 
+ * @param {string} researcherId - Researcher ID
+ * @returns {Promise<{balanceHBAR: number, balanceUSD: number, hederaAccountId: string, evmAddress: string}>}
+ */
+export async function getResearcherBalance(researcherId) {
+  const { getResearcher } = await import('../db/researcher-db.js');
+  const researcher = await getResearcher(researcherId);
+  
+  if (!researcher) {
+    throw new Error(`Researcher ${researcherId} not found`);
+  }
+  
+  if (!researcher.hederaAccountId) {
+    // Account should exist (created during registration)
+    // Return zero balance if account doesn't exist
+    return {
+      balanceHBAR: 0,
+      balanceUSD: 0,
+      hederaAccountId: null,
+      evmAddress: null
+    };
+  }
+  
+  return await getAccountBalance(researcher.hederaAccountId, researcher.evmAddress);
+}
+
+/**
+ * Get balance with details for researcher
+ * 
+ * @param {string} researcherId - Researcher ID
+ * @returns {Promise<Object>}
+ */
+export async function getResearcherBalanceWithDetails(researcherId) {
+  const { getResearcher } = await import('../db/researcher-db.js');
+  const researcher = await getResearcher(researcherId);
+  
+  if (!researcher) {
+    throw new Error(`Researcher ${researcherId} not found`);
+  }
+  
+  const balance = await getResearcherBalance(researcherId);
+  
+  return {
+    ...balance,
+    // Researchers don't have withdrawal settings (they pay, not receive)
+    paymentMethod: null,
+    bankAccountNumber: null,
+    bankName: null,
+    mobileMoneyProvider: null,
+    mobileMoneyNumber: null,
+    withdrawalThresholdUSD: 0,
+    autoWithdrawEnabled: false,
+    lastWithdrawalAt: null,
+    totalWithdrawnUSD: 0
+  };
+}
+

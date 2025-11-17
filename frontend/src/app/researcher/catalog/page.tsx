@@ -2,14 +2,17 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Database, Search, Filter, Loader2 } from 'lucide-react';
 import { DatasetCard } from '@/components/DatasetCard/DatasetCard';
 import { useDatasets, useQueryData } from '@/hooks/useDatasets';
 import { QueryBuilder } from '@/components/QueryBuilder/QueryBuilder';
 import { QueryFilters } from '@/lib/api/marketplace';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function ResearcherCatalogPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [countryFilter, setCountryFilter] = useState<string | undefined>();
   const [queryFilters, setQueryFilters] = useState<QueryFilters | null>(null);
@@ -80,9 +83,21 @@ export default function ResearcherCatalogPage() {
                   <p className="text-sm text-muted-foreground">Query Results</p>
                   <p className="text-2xl font-bold">{queryResult.count} records found</p>
                 </div>
-                {queryResult.preview && (
-                  <p className="text-sm text-muted-foreground">Preview mode</p>
-                )}
+                <div className="flex items-center gap-2">
+                  {queryResult.preview && <Badge variant="outline">Preview mode</Badge>}
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      const params = new URLSearchParams();
+                      Object.entries(queryFilters || {}).forEach(([key, value]) => {
+                        if (value) params.set(key, String(value));
+                      });
+                      router.push(`/researcher/query?${params.toString()}`);
+                    }}
+                  >
+                    View Full Results
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -3,11 +3,20 @@
  * 
  * Enables patients to find their UPI using email, phone, or national ID.
  * Hedera accounts are created immediately during registration (same as hospitals and researchers).
+ * 
+ * Access Control:
+ * - Patients can lookup their own UPI (owner)
+ * - Only hospitals linked to the patient can lookup
  */
 
 import { generateUPI } from './patient-identity-service.js';
 import { createHederaAccount } from './hedera-account-service.js';
 import { encrypt } from './encryption-service.js';
+import {
+  verifyPatientOwnershipBySignature,
+  verifyPatientOwnershipByContact,
+  verifyPatientSession
+} from './patient-authentication-service.js';
 
 /**
  * Lookup patient UPI by contact information
@@ -137,5 +146,109 @@ export async function registerPatientWithContact(
     message: patient ? 'Patient linked to existing account' : 'Patient registered successfully with Hedera account.',
     createdAt: new Date().toISOString()
   };
+}
+
+/**
+ * Check if requester can lookup patient UPI
+ * Access Control:
+ * - Patients can lookup their own UPI (must prove ownership)
+ * - Only hospitals linked to the patient can lookup
+ * 
+ * @param {Object} contactInfo - {email?, phone?, nationalId?}
+ * @param {string} requesterType - "patient" | "hospital"
+ * @param {string} requesterId - UPI (if patient) or hospitalId (if hospital)
+ * @param {Object} authProof - Proof of ownership
+ *   - signature?: {challenge: string, signature: string} (Tier 1)
+ *   - contactInfo?: {email?, phone?, nationalId?} (Tier 2)
+ *   - sessionToken?: string (Tier 3)
+ * @returns {Promise<{allowed: boolean, upi?: string, reason?: string}>}
+ */
+export async function checkLookupPermission(contactInfo, requesterType, requesterId, authProof = {}) {
+  // 1. Find patient UPI from contact info
+  const { findUPIByEmail, findUPIByPhone, findUPIByNationalId } = await import('../db/patient-contacts-db.js');
+  const upi = await lookupPatientUPI(
+    contactInfo,
+    findUPIByEmail,
+    findUPIByPhone,
+    findUPIByNationalId
+  );
+  
+  if (!upi) {
+    return { allowed: false, reason: 'Patient not found' };
+  }
+  
+  // 2. Check if requester is the patient (owner)
+  if (requesterType === 'patient') {
+    // Verify ownership
+    let ownershipVerified = false;
+    
+    if (authProof.signature) {
+      // Tier 1: Signature verification
+      const result = await verifyPatientOwnershipBySignature(
+        requesterId, // UPI
+        authProof.signature.challenge,
+        authProof.signature.signature
+      );
+      ownershipVerified = result.verified;
+    } else if (authProof.contactInfo) {
+      // Tier 2: Contact verification
+      const result = await verifyPatientOwnershipByContact(
+        requesterId, // UPI
+        authProof.contactInfo
+      );
+      ownershipVerified = result.verified;
+    } else if (authProof.sessionToken) {
+      // Tier 3: Session verification
+      const session = await verifyPatientSession(authProof.sessionToken);
+      ownershipVerified = session.valid && session.upi === requesterId;
+    } else {
+      // Fallback: If requesterId matches found UPI and contact info matches, allow
+      // This is for the "Forgot UPI" recovery flow
+      if (requesterId === upi) {
+        const { getPatientContact } = await import('../db/patient-contacts-db.js');
+        const contact = await getPatientContact(upi);
+        if (contact) {
+          let matches = 0;
+          if (contactInfo.email && contact.email && contact.email.toLowerCase() === contactInfo.email.toLowerCase()) matches++;
+          if (contactInfo.phone && contact.phone && normalizePhone(contact.phone) === normalizePhone(contactInfo.phone)) matches++;
+          if (contactInfo.nationalId && contact.nationalId && contact.nationalId === contactInfo.nationalId) matches++;
+          ownershipVerified = matches >= 1; // At least one match for recovery
+        }
+      }
+    }
+    
+    if (ownershipVerified && requesterId === upi) {
+      return { allowed: true, upi };
+    }
+    
+    return { allowed: false, reason: 'Ownership verification failed' };
+  }
+  
+  // 3. Check if requester is a linked hospital
+  if (requesterType === 'hospital') {
+    const { getLinkagesByUPI } = await import('../db/linkage-db.js');
+    const linkages = await getLinkagesByUPI(upi);
+    const isLinked = linkages.some(link => 
+      link.hospitalId === requesterId && link.status === 'active'
+    );
+    
+    if (isLinked) {
+      return { allowed: true, upi };
+    }
+    
+    return { 
+      allowed: false, 
+      reason: 'Hospital not linked to this patient. Only linked hospitals can lookup patient UPIs.' 
+    };
+  }
+  
+  return { allowed: false, reason: 'Unauthorized requester type' };
+}
+
+/**
+ * Normalize phone number for comparison
+ */
+function normalizePhone(phone) {
+  return phone.replace(/\D/g, ''); // Remove all non-digits
 }
 
