@@ -329,7 +329,7 @@ export async function getConsentStatistics(hospitalId) {
        WHERE fp.${fpAnonymousId} IS NOT NULL
           OR fc.${fcAnonymousId} IS NOT NULL
           OR fo.${foAnonymousId} IS NOT NULL`,
-      [hospitalId, hospitalId, hospitalId]
+      [hospitalId]
     );
     
     // Also count total FHIR records for this hospital (all resource types)
