@@ -20,69 +20,69 @@ export const PatientSchema = `
 -- Enhanced FHIR Patients Table (Domain 1)
 CREATE TABLE IF NOT EXISTS fhir_patients (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Demographics (Anonymized)
   country VARCHAR(100) NOT NULL,
   region VARCHAR(255),
   district VARCHAR(255),
-  age_range VARCHAR(20), -- "35-39"
+  "ageRange" VARCHAR(20), -- "35-39"
   gender VARCHAR(20), -- Male, Female, Other, Unknown
   race VARCHAR(100),
   ethnicity VARCHAR(100),
-  marital_status VARCHAR(50),
+  "maritalStatus" VARCHAR(50),
   language VARCHAR(50),
-  occupation_category VARCHAR(100),
+  "occupationCategory" VARCHAR(100),
   
   -- Administrative
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_patients_anonymous_id ON fhir_patients(anonymous_patient_id);
+CREATE INDEX idx_fhir_patients_anonymous_id ON fhir_patients("anonymousPatientId");
 CREATE INDEX idx_fhir_patients_upi ON fhir_patients(upi);
 CREATE INDEX idx_fhir_patients_country ON fhir_patients(country);
 CREATE INDEX idx_fhir_patients_region ON fhir_patients(region);
-CREATE INDEX idx_fhir_patients_age_range ON fhir_patients(age_range);
+CREATE INDEX idx_fhir_patients_age_range ON fhir_patients("ageRange");
 CREATE INDEX idx_fhir_patients_gender ON fhir_patients(gender);
-CREATE INDEX idx_fhir_patients_hospital ON fhir_patients(hospital_id);
+CREATE INDEX idx_fhir_patients_hospital ON fhir_patients("hospitalId");
 
 -- Related Persons (Emergency contacts, guardians)
 CREATE TABLE IF NOT EXISTS fhir_related_persons (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
-  relationship_code TEXT, -- SNOMED: mother, father, guardian, etc.
-  relationship_display TEXT,
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  "relationshipCode" TEXT, -- SNOMED: mother, father, guardian, etc.
+  "relationshipDisplay" TEXT,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi)
 );
 
 -- Coverage (Insurance/Payer)
 CREATE TABLE IF NOT EXISTS fhir_coverage (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
-  coverage_id TEXT,
+  "coverageId" TEXT,
   status TEXT, -- active, cancelled, draft
-  type_code TEXT, -- Insurance type code
-  type_display TEXT,
-  subscriber_id TEXT,
-  beneficiary_id TEXT,
-  period_start DATE,
-  period_end DATE,
-  payor_id TEXT,
-  payor_name TEXT,
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  "typeCode" TEXT, -- Insurance type code
+  "typeDisplay" TEXT,
+  "subscriberId" TEXT,
+  "beneficiaryId" TEXT,
+  "periodStart" DATE,
+  "periodEnd" DATE,
+  "payorId" TEXT,
+  "payorName" TEXT,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi)
 );
 `;
@@ -94,57 +94,57 @@ CREATE TABLE IF NOT EXISTS fhir_coverage (
 export const EncounterSchema = `
 CREATE TABLE IF NOT EXISTS fhir_encounters (
   id SERIAL PRIMARY KEY,
-  encounter_id TEXT NOT NULL,
-  anonymous_patient_id TEXT NOT NULL,
+  "encounterId" TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Encounter Details
-  encounter_class TEXT, -- inpatient, outpatient, emergency, virtual, ambulatory
-  encounter_type_code TEXT, -- SNOMED: consultation, follow-up, surgery, triage
-  encounter_type_display TEXT,
+  "encounterClass" TEXT, -- inpatient, outpatient, emergency, virtual, ambulatory
+  "encounterTypeCode" TEXT, -- SNOMED: consultation, follow-up, surgery, triage
+  "encounterTypeDisplay" TEXT,
   status TEXT, -- planned, arrived, triaged, in-progress, onleave, finished, cancelled
   
   -- Location & Organization
-  facility_id TEXT,
-  facility_name TEXT,
-  department_code TEXT,
-  department_name TEXT,
-  location_id TEXT,
-  location_name TEXT,
-  bed_id TEXT,
-  room_number TEXT,
+  "facilityId" TEXT,
+  "facilityName" TEXT,
+  "departmentCode" TEXT,
+  "departmentName" TEXT,
+  "locationId" TEXT,
+  "locationName" TEXT,
+  "bedId" TEXT,
+  "roomNumber" TEXT,
   
   -- Timing
-  admission_date TIMESTAMP,
-  discharge_date TIMESTAMP,
-  period_start TIMESTAMP,
-  period_end TIMESTAMP,
+  "admissionDate" TIMESTAMP,
+  "dischargeDate" TIMESTAMP,
+  "periodStart" TIMESTAMP,
+  "periodEnd" TIMESTAMP,
   
   -- Clinical
-  reason_code TEXT, -- ICD-10 or SNOMED
-  reason_display TEXT,
-  diagnosis_code TEXT, -- Primary diagnosis
-  diagnosis_display TEXT,
+  "reasonCode" TEXT, -- ICD-10 or SNOMED
+  "reasonDisplay" TEXT,
+  "diagnosisCode" TEXT, -- Primary diagnosis
+  "diagnosisDisplay" TEXT,
   
   -- Providers
-  attending_practitioner_id TEXT,
-  attending_practitioner_name TEXT,
+  "attendingPractitionerId" TEXT,
+  "attendingPractitionerName" TEXT,
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_encounters_patient ON fhir_encounters(anonymous_patient_id);
+CREATE INDEX idx_fhir_encounters_patient ON fhir_encounters("anonymousPatientId");
 CREATE INDEX idx_fhir_encounters_upi ON fhir_encounters(upi);
-CREATE INDEX idx_fhir_encounters_class ON fhir_encounters(encounter_class);
-CREATE INDEX idx_fhir_encounters_type ON fhir_encounters(encounter_type_code);
-CREATE INDEX idx_fhir_encounters_admission ON fhir_encounters(admission_date);
-CREATE INDEX idx_fhir_encounters_discharge ON fhir_encounters(discharge_date);
-CREATE INDEX idx_fhir_encounters_hospital ON fhir_encounters(hospital_id);
+CREATE INDEX idx_fhir_encounters_class ON fhir_encounters("encounterClass");
+CREATE INDEX idx_fhir_encounters_type ON fhir_encounters("encounterTypeCode");
+CREATE INDEX idx_fhir_encounters_admission ON fhir_encounters("admissionDate");
+CREATE INDEX idx_fhir_encounters_discharge ON fhir_encounters("dischargeDate");
+CREATE INDEX idx_fhir_encounters_hospital ON fhir_encounters("hospitalId");
 `;
 
 /**
@@ -155,91 +155,91 @@ export const ConditionSchema = `
 -- Enhanced Conditions Table
 CREATE TABLE IF NOT EXISTS fhir_conditions (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Coding (Multiple coding systems)
-  condition_code_icd10 TEXT, -- ICD-10 code (e.g., E11)
-  condition_code_snomed TEXT, -- SNOMED CT code (preferred)
-  condition_name TEXT NOT NULL,
+  "conditionCodeIcd10" TEXT, -- ICD-10 code (e.g., E11)
+  "conditionCodeSnomed" TEXT, -- SNOMED CT code (preferred)
+  "conditionName" TEXT NOT NULL,
   
   -- Clinical Details
-  body_site_code TEXT, -- SNOMED body site
-  body_site_display TEXT,
-  stage_code TEXT, -- For cancers
-  stage_display TEXT,
-  severity_code TEXT,
-  severity_display TEXT,
+  "bodySiteCode" TEXT, -- SNOMED body site
+  "bodySiteDisplay" TEXT,
+  "stageCode" TEXT, -- For cancers
+  "stageDisplay" TEXT,
+  "severityCode" TEXT,
+  "severityDisplay" TEXT,
   
   -- Timing
-  onset_date DATE,
-  diagnosis_date DATE,
-  abatement_date DATE, -- Resolution date
+  "onsetDate" DATE,
+  "diagnosisDate" DATE,
+  "abatementDate" DATE, -- Resolution date
   
   -- Classification
-  diagnosis_role TEXT, -- primary, secondary, billing
-  category_code TEXT, -- problem-list-item, encounter-diagnosis
-  category_display TEXT,
+  "diagnosisRole" TEXT, -- primary, secondary, billing
+  "categoryCode" TEXT, -- problem-list-item, encounter-diagnosis
+  "categoryDisplay" TEXT,
   status TEXT, -- active, recurrence, relapse, inactive, remission, resolved
   
   -- Context
-  encounter_id TEXT, -- Link to encounter
-  encounter_id_ref INTEGER REFERENCES fhir_encounters(id),
+  "encounterId" TEXT, -- Link to encounter
+  "encounterIdRef" INTEGER REFERENCES fhir_encounters(id),
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_conditions_patient ON fhir_conditions(anonymous_patient_id);
+CREATE INDEX idx_fhir_conditions_patient ON fhir_conditions("anonymousPatientId");
 CREATE INDEX idx_fhir_conditions_upi ON fhir_conditions(upi);
-CREATE INDEX IF NOT EXISTS idx_fhir_conditions_code ON fhir_conditions(condition_code);
-CREATE INDEX idx_fhir_conditions_name ON fhir_conditions(condition_name);
-CREATE INDEX idx_fhir_conditions_diagnosis_date ON fhir_conditions(diagnosis_date);
+CREATE INDEX IF NOT EXISTS idx_fhir_conditions_code ON fhir_conditions("conditionCodeSnomed");
+CREATE INDEX idx_fhir_conditions_name ON fhir_conditions("conditionName");
+CREATE INDEX idx_fhir_conditions_diagnosis_date ON fhir_conditions("diagnosisDate");
 CREATE INDEX idx_fhir_conditions_status ON fhir_conditions(status);
-CREATE INDEX idx_fhir_conditions_hospital ON fhir_conditions(hospital_id);
+CREATE INDEX idx_fhir_conditions_hospital ON fhir_conditions("hospitalId");
 
 -- Allergies
 CREATE TABLE IF NOT EXISTS fhir_allergies (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Substance
-  substance_code TEXT, -- SNOMED or RxNorm
-  substance_display TEXT,
+  "substanceCode" TEXT, -- SNOMED or RxNorm
+  "substanceDisplay" TEXT,
   
   -- Reaction
-  reaction_type_code TEXT, -- SNOMED reaction type
-  reaction_type_display TEXT,
-  reaction_manifestation_code TEXT,
-  reaction_manifestation_display TEXT,
+  "reactionTypeCode" TEXT, -- SNOMED reaction type
+  "reactionTypeDisplay" TEXT,
+  "reactionManifestationCode" TEXT,
+  "reactionManifestationDisplay" TEXT,
   
   -- Severity & Certainty
   severity TEXT, -- mild, moderate, severe
   certainty TEXT, -- confirmed, suspected, unlikely
   
   -- Timing
-  onset_date DATE,
-  last_occurrence_date DATE,
+  "onsetDate" DATE,
+  "lastOccurrenceDate" DATE,
   
   -- Clinical
   criticality TEXT, -- low, high, unable-to-assess
   status TEXT, -- active, inactive, resolved
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_allergies_patient ON fhir_allergies(anonymous_patient_id);
-CREATE INDEX idx_fhir_allergies_substance ON fhir_allergies(substance_code);
+CREATE INDEX idx_fhir_allergies_patient ON fhir_allergies("anonymousPatientId");
+CREATE INDEX idx_fhir_allergies_substance ON fhir_allergies("substanceCode");
 CREATE INDEX idx_fhir_allergies_severity ON fhir_allergies(severity);
 `;
 
@@ -251,168 +251,168 @@ export const ObservationSchema = `
 -- Enhanced Observations Table
 CREATE TABLE IF NOT EXISTS fhir_observations (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Coding
-  observation_code_loinc TEXT NOT NULL, -- LOINC code (e.g., 4548-4)
-  observation_name TEXT NOT NULL,
-  category_code TEXT, -- vital-signs, laboratory, imaging, etc.
-  category_display TEXT,
+  "observationCodeLoinc" TEXT NOT NULL, -- LOINC code (e.g., 4548-4)
+  "observationName" TEXT NOT NULL,
+  "categoryCode" TEXT, -- vital-signs, laboratory, imaging, etc.
+  "categoryDisplay" TEXT,
   
   -- Value
-  value_quantity TEXT,
-  value_unit TEXT,
-  value_string TEXT,
-  value_codeable_concept_code TEXT,
-  value_codeable_concept_display TEXT,
+  "valueQuantity" TEXT,
+  "valueUnit" TEXT,
+  "valueString" TEXT,
+  "valueCodeableConceptCode" TEXT,
+  "valueCodeableConceptDisplay" TEXT,
   
   -- Reference Range
-  reference_range_low TEXT,
-  reference_range_high TEXT,
-  reference_range_text TEXT,
+  "referenceRangeLow" TEXT,
+  "referenceRangeHigh" TEXT,
+  "referenceRangeText" TEXT,
   
   -- Interpretation
-  interpretation_code TEXT,
-  interpretation_display TEXT, -- High, Normal, Low, Critical
+  "interpretationCode" TEXT,
+  "interpretationDisplay" TEXT, -- High, Normal, Low, Critical
   
   -- Timing
-  effective_date TIMESTAMP NOT NULL,
-  effective_period_start TIMESTAMP,
-  effective_period_end TIMESTAMP,
+  "effectiveDate" TIMESTAMP NOT NULL,
+  "effectivePeriodStart" TIMESTAMP,
+  "effectivePeriodEnd" TIMESTAMP,
   
   -- Context
-  encounter_id TEXT,
-  encounter_id_ref INTEGER REFERENCES fhir_encounters(id),
+  "encounterId" TEXT,
+  "encounterIdRef" INTEGER REFERENCES fhir_encounters(id),
   
   -- Performer
-  performer_id TEXT,
-  performer_name TEXT,
-  performer_type TEXT, -- Practitioner, Organization, Device
+  "performerId" TEXT,
+  "performerName" TEXT,
+  "performerType" TEXT, -- Practitioner, Organization, Device
   
   -- Method & Device
-  method_code TEXT,
-  method_display TEXT,
-  device_code TEXT,
-  device_display TEXT,
+  "methodCode" TEXT,
+  "methodDisplay" TEXT,
+  "deviceCode" TEXT,
+  "deviceDisplay" TEXT,
   
   -- Specimen
-  specimen_id TEXT,
-  specimen_id_ref INTEGER REFERENCES fhir_specimens(id),
+  "specimenId" TEXT,
+  "specimenIdRef" INTEGER REFERENCES fhir_specimens(id),
   
   -- Diagnostic Report Link
-  diagnostic_report_id INTEGER REFERENCES fhir_diagnostic_reports(id),
+  "diagnosticReportId" INTEGER REFERENCES fhir_diagnostic_reports(id),
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_observations_patient ON fhir_observations(anonymous_patient_id);
+CREATE INDEX idx_fhir_observations_patient ON fhir_observations("anonymousPatientId");
 CREATE INDEX idx_fhir_observations_upi ON fhir_observations(upi);
-CREATE INDEX IF NOT EXISTS idx_fhir_observations_code ON fhir_observations(observation_code);
-CREATE INDEX idx_fhir_observations_name ON fhir_observations(observation_name);
-CREATE INDEX idx_fhir_observations_effective_date ON fhir_observations(effective_date);
-CREATE INDEX idx_fhir_observations_hospital ON fhir_observations(hospital_id);
+CREATE INDEX IF NOT EXISTS idx_fhir_observations_code ON fhir_observations("observationCodeLoinc");
+CREATE INDEX idx_fhir_observations_name ON fhir_observations("observationName");
+CREATE INDEX idx_fhir_observations_effective_date ON fhir_observations("effectiveDate");
+CREATE INDEX idx_fhir_observations_hospital ON fhir_observations("hospitalId");
 
 -- Observation Components (for panels like CBC)
 CREATE TABLE IF NOT EXISTS fhir_observation_components (
   id SERIAL PRIMARY KEY,
-  observation_id INTEGER NOT NULL REFERENCES fhir_observations(id),
-  component_code_loinc TEXT,
-  component_name TEXT,
-  value_quantity TEXT,
-  value_unit TEXT,
-  reference_range_low TEXT,
-  reference_range_high TEXT,
-  interpretation_code TEXT,
-  interpretation_display TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  "observationId" INTEGER NOT NULL REFERENCES fhir_observations(id),
+  "componentCodeLoinc" TEXT,
+  "componentName" TEXT,
+  "valueQuantity" TEXT,
+  "valueUnit" TEXT,
+  "referenceRangeLow" TEXT,
+  "referenceRangeHigh" TEXT,
+  "interpretationCode" TEXT,
+  "interpretationDisplay" TEXT,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Specimens
 CREATE TABLE IF NOT EXISTS fhir_specimens (
   id SERIAL PRIMARY KEY,
-  specimen_id TEXT NOT NULL,
-  anonymous_patient_id TEXT NOT NULL,
+  "specimenId" TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Specimen Type
-  type_code TEXT, -- SNOMED: blood, serum, urine, sputum, etc.
-  type_display TEXT,
+  "typeCode" TEXT, -- SNOMED: blood, serum, urine, sputum, etc.
+  "typeDisplay" TEXT,
   
   -- Collection
-  collection_method_code TEXT,
-  collection_method_display TEXT,
-  collection_date TIMESTAMP,
-  collector_id TEXT,
-  collector_name TEXT,
+  "collectionMethodCode" TEXT,
+  "collectionMethodDisplay" TEXT,
+  "collectionDate" TIMESTAMP,
+  "collectorId" TEXT,
+  "collectorName" TEXT,
   
   -- Container
-  container_id TEXT,
-  container_type_code TEXT,
-  container_type_display TEXT,
+  "containerId" TEXT,
+  "containerTypeCode" TEXT,
+  "containerTypeDisplay" TEXT,
   
   -- Handling
-  received_date TIMESTAMP,
-  processing_date TIMESTAMP,
-  condition_code TEXT, -- satisfactory, unsatisfactory, etc.
+  "receivedDate" TIMESTAMP,
+  "processingDate" TIMESTAMP,
+  "conditionCode" TEXT, -- satisfactory, unsatisfactory, etc.
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
 -- Diagnostic Reports
 CREATE TABLE IF NOT EXISTS fhir_diagnostic_reports (
   id SERIAL PRIMARY KEY,
-  report_id TEXT NOT NULL,
-  anonymous_patient_id TEXT NOT NULL,
+  "reportId" TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Report Details
-  report_code_loinc TEXT, -- Panel code
-  report_name TEXT,
+  "reportCodeLoinc" TEXT, -- Panel code
+  "reportName" TEXT,
   status TEXT, -- registered, partial, preliminary, final, corrected, cancelled
   
   -- Category
-  category_code TEXT,
-  category_display TEXT,
+  "categoryCode" TEXT,
+  "categoryDisplay" TEXT,
   
   -- Timing
-  effective_date TIMESTAMP NOT NULL,
-  issued_date TIMESTAMP,
+  "effectiveDate" TIMESTAMP NOT NULL,
+  "issuedDate" TIMESTAMP,
   
   -- Performer
-  performer_id TEXT,
-  performer_name TEXT,
-  performer_type TEXT,
+  "performerId" TEXT,
+  "performerName" TEXT,
+  "performerType" TEXT,
   
   -- Results
   conclusion TEXT, -- Narrative summary
-  conclusion_code TEXT, -- Coded conclusion
+  "conclusionCode" TEXT, -- Coded conclusion
   
   -- Context
-  encounter_id TEXT,
-  encounter_id_ref INTEGER REFERENCES fhir_encounters(id),
+  "encounterId" TEXT,
+  "encounterIdRef" INTEGER REFERENCES fhir_encounters(id),
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_diagnostic_reports_patient ON fhir_diagnostic_reports(anonymous_patient_id);
-CREATE INDEX idx_fhir_diagnostic_reports_loinc ON fhir_diagnostic_reports(report_code_loinc);
-CREATE INDEX idx_fhir_diagnostic_reports_effective_date ON fhir_diagnostic_reports(effective_date);
+CREATE INDEX idx_fhir_diagnostic_reports_patient ON fhir_diagnostic_reports("anonymousPatientId");
+CREATE INDEX idx_fhir_diagnostic_reports_loinc ON fhir_diagnostic_reports("reportCodeLoinc");
+CREATE INDEX idx_fhir_diagnostic_reports_effective_date ON fhir_diagnostic_reports("effectiveDate");
 `;
 
 /**
@@ -423,134 +423,134 @@ export const MedicationSchema = `
 -- Medication Requests (Prescriptions)
 CREATE TABLE IF NOT EXISTS fhir_medication_requests (
   id SERIAL PRIMARY KEY,
-  medication_request_id TEXT NOT NULL,
-  anonymous_patient_id TEXT NOT NULL,
+  "medicationRequestId" TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Medication
-  medication_code_rxnorm TEXT, -- RxNorm code
-  medication_name TEXT NOT NULL,
-  atc_code TEXT, -- ATC therapeutic category
-  atc_display TEXT,
+  "medicationCodeRxnorm" TEXT, -- RxNorm code
+  "medicationName" TEXT NOT NULL,
+  "atcCode" TEXT, -- ATC therapeutic category
+  "atcDisplay" TEXT,
   
   -- Dosage
-  dosage_quantity TEXT,
-  dosage_unit TEXT,
-  dosage_text TEXT, -- "10 mg"
-  frequency_code TEXT, -- q8h, once daily, etc.
-  frequency_text TEXT,
-  route_code TEXT, -- SNOMED: oral, IV, IM, topical
-  route_display TEXT,
+  "dosageQuantity" TEXT,
+  "dosageUnit" TEXT,
+  "dosageText" TEXT, -- "10 mg"
+  "frequencyCode" TEXT, -- q8h, once daily, etc.
+  "frequencyText" TEXT,
+  "routeCode" TEXT, -- SNOMED: oral, IV, IM, topical
+  "routeDisplay" TEXT,
   
   -- Timing
-  start_date DATE,
-  end_date DATE,
-  expected_duration TEXT,
+  "startDate" DATE,
+  "endDate" DATE,
+  "expectedDuration" TEXT,
   
   -- Status
   status TEXT, -- active, completed, stopped, cancelled, entered-in-error
   intent TEXT, -- proposal, plan, order, original-order, reflex-order
   
   -- Prescriber
-  prescriber_id TEXT,
-  prescriber_name TEXT,
-  prescriber_type TEXT,
+  "prescriberId" TEXT,
+  "prescriberName" TEXT,
+  "prescriberType" TEXT,
   
   -- Dispensing
-  dispenser_id TEXT,
-  dispenser_name TEXT,
-  dispense_quantity TEXT,
-  number_of_repeats INTEGER,
+  "dispenserId" TEXT,
+  "dispenserName" TEXT,
+  "dispenseQuantity" TEXT,
+  "numberOfRepeats" INTEGER,
   
   -- Context
-  encounter_id TEXT,
-  encounter_id_ref INTEGER REFERENCES fhir_encounters(id),
+  "encounterId" TEXT,
+  "encounterIdRef" INTEGER REFERENCES fhir_encounters(id),
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_medication_requests_patient ON fhir_medication_requests(anonymous_patient_id);
-CREATE INDEX idx_fhir_medication_requests_rxnorm ON fhir_medication_requests(medication_code_rxnorm);
-CREATE INDEX idx_fhir_medication_requests_atc ON fhir_medication_requests(atc_code);
+CREATE INDEX idx_fhir_medication_requests_patient ON fhir_medication_requests("anonymousPatientId");
+CREATE INDEX idx_fhir_medication_requests_rxnorm ON fhir_medication_requests("medicationCodeRxnorm");
+CREATE INDEX idx_fhir_medication_requests_atc ON fhir_medication_requests("atcCode");
 CREATE INDEX idx_fhir_medication_requests_status ON fhir_medication_requests(status);
-CREATE INDEX idx_fhir_medication_requests_start_date ON fhir_medication_requests(start_date);
+CREATE INDEX idx_fhir_medication_requests_start_date ON fhir_medication_requests("startDate");
 
 -- Medication Administrations (Given by nurse)
 CREATE TABLE IF NOT EXISTS fhir_medication_administrations (
   id SERIAL PRIMARY KEY,
-  medication_administration_id TEXT NOT NULL,
-  anonymous_patient_id TEXT NOT NULL,
+  "medicationAdministrationId" TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Link to Request
-  medication_request_id INTEGER REFERENCES fhir_medication_requests(id),
+  "medicationRequestId" INTEGER REFERENCES fhir_medication_requests(id),
   
   -- Medication
-  medication_code_rxnorm TEXT,
-  medication_name TEXT,
+  "medicationCodeRxnorm" TEXT,
+  "medicationName" TEXT,
   
   -- Administration
-  administered_date TIMESTAMP NOT NULL,
-  dosage_quantity TEXT,
-  dosage_unit TEXT,
-  route_code TEXT,
-  route_display TEXT,
+  "administeredDate" TIMESTAMP NOT NULL,
+  "dosageQuantity" TEXT,
+  "dosageUnit" TEXT,
+  "routeCode" TEXT,
+  "routeDisplay" TEXT,
   
   -- Performer
-  performer_id TEXT,
-  performer_name TEXT,
-  performer_type TEXT,
+  "performerId" TEXT,
+  "performerName" TEXT,
+  "performerType" TEXT,
   
   -- Status
   status TEXT, -- in-progress, not-done, on-hold, completed, entered-in-error, stopped
   
   -- Context
-  encounter_id TEXT,
-  encounter_id_ref INTEGER REFERENCES fhir_encounters(id),
+  "encounterId" TEXT,
+  "encounterIdRef" INTEGER REFERENCES fhir_encounters(id),
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
 -- Medication Statements (Patient self-reported)
 CREATE TABLE IF NOT EXISTS fhir_medication_statements (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Medication
-  medication_code_rxnorm TEXT,
-  medication_name TEXT,
+  "medicationCodeRxnorm" TEXT,
+  "medicationName" TEXT,
   
   -- Status
   status TEXT, -- active, completed, entered-in-error, intended, stopped, on-hold
   
   -- Timing
-  effective_start_date DATE,
-  effective_end_date DATE,
+  "effectiveStartDate" DATE,
+  "effectiveEndDate" DATE,
   
   -- Dosage
-  dosage_text TEXT,
-  frequency_text TEXT,
+  "dosageText" TEXT,
+  "frequencyText" TEXT,
   
   -- Source
-  information_source TEXT, -- patient, practitioner, etc.
+  "informationSource" TEXT, -- patient, practitioner, etc.
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 `;
 
@@ -561,65 +561,65 @@ CREATE TABLE IF NOT EXISTS fhir_medication_statements (
 export const ProcedureSchema = `
 CREATE TABLE IF NOT EXISTS fhir_procedures (
   id SERIAL PRIMARY KEY,
-  procedure_id TEXT NOT NULL,
-  anonymous_patient_id TEXT NOT NULL,
+  "procedureId" TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Procedure Coding
-  procedure_code_snomed TEXT, -- SNOMED CT (preferred)
-  procedure_code_cpt TEXT, -- CPT code
-  procedure_code_icd10pcs TEXT, -- ICD-10-PCS
-  procedure_name TEXT NOT NULL,
+  "procedureCodeSnomed" TEXT, -- SNOMED CT (preferred)
+  "procedureCodeCpt" TEXT, -- CPT code
+  "procedureCodeIcd10pcs" TEXT, -- ICD-10-PCS
+  "procedureName" TEXT NOT NULL,
   
   -- Body Site
-  body_site_code TEXT, -- SNOMED body site
-  body_site_display TEXT,
+  "bodySiteCode" TEXT, -- SNOMED body site
+  "bodySiteDisplay" TEXT,
   
   -- Technique
-  technique_code TEXT,
-  technique_display TEXT,
+  "techniqueCode" TEXT,
+  "techniqueDisplay" TEXT,
   
   -- Timing
-  performed_date TIMESTAMP NOT NULL,
-  performed_period_start TIMESTAMP,
-  performed_period_end TIMESTAMP,
+  "performedDate" TIMESTAMP NOT NULL,
+  "performedPeriodStart" TIMESTAMP,
+  "performedPeriodEnd" TIMESTAMP,
   
   -- Status
   status TEXT, -- preparation, in-progress, not-done, on-hold, stopped, completed, entered-in-error, unknown
   
   -- Outcome
-  outcome_code TEXT,
-  outcome_display TEXT,
-  outcome_text TEXT,
+  "outcomeCode" TEXT,
+  "outcomeDisplay" TEXT,
+  "outcomeText" TEXT,
   
   -- Performer
-  performer_id TEXT,
-  performer_name TEXT,
-  performer_role_code TEXT, -- surgeon, assistant, etc.
-  performer_role_display TEXT,
+  "performerId" TEXT,
+  "performerName" TEXT,
+  "performerRoleCode" TEXT, -- surgeon, assistant, etc.
+  "performerRoleDisplay" TEXT,
   
   -- Device
-  device_implanted_code TEXT,
-  device_implanted_display TEXT,
+  "deviceImplantedCode" TEXT,
+  "deviceImplantedDisplay" TEXT,
   
   -- Context
-  encounter_id TEXT,
-  encounter_id_ref INTEGER REFERENCES fhir_encounters(id),
-  reason_code TEXT,
-  reason_display TEXT,
+  "encounterId" TEXT,
+  "encounterIdRef" INTEGER REFERENCES fhir_encounters(id),
+  "reasonCode" TEXT,
+  "reasonDisplay" TEXT,
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_procedures_patient ON fhir_procedures(anonymous_patient_id);
-CREATE INDEX idx_fhir_procedures_snomed ON fhir_procedures(procedure_code_snomed);
-CREATE INDEX idx_fhir_procedures_cpt ON fhir_procedures(procedure_code_cpt);
-CREATE INDEX idx_fhir_procedures_performed_date ON fhir_procedures(performed_date);
+CREATE INDEX idx_fhir_procedures_patient ON fhir_procedures("anonymousPatientId");
+CREATE INDEX idx_fhir_procedures_snomed ON fhir_procedures("procedureCodeSnomed");
+CREATE INDEX idx_fhir_procedures_cpt ON fhir_procedures("procedureCodeCpt");
+CREATE INDEX idx_fhir_procedures_performed_date ON fhir_procedures("performedDate");
 CREATE INDEX idx_fhir_procedures_status ON fhir_procedures(status);
 `;
 
@@ -630,57 +630,57 @@ CREATE INDEX idx_fhir_procedures_status ON fhir_procedures(status);
 export const ImagingSchema = `
 CREATE TABLE IF NOT EXISTS fhir_imaging_studies (
   id SERIAL PRIMARY KEY,
-  study_id TEXT NOT NULL,
-  anonymous_patient_id TEXT NOT NULL,
+  "studyId" TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Modality
-  modality_code TEXT, -- CT, MRI, XRAY, PET, US, etc.
-  modality_display TEXT,
+  "modalityCode" TEXT, -- CT, MRI, XRAY, PET, US, etc.
+  "modalityDisplay" TEXT,
   
   -- Body Site
-  body_site_code TEXT,
-  body_site_display TEXT,
+  "bodySiteCode" TEXT,
+  "bodySiteDisplay" TEXT,
   
   -- Study Details
-  study_description TEXT,
-  series_count INTEGER,
-  image_count INTEGER,
+  "studyDescription" TEXT,
+  "seriesCount" INTEGER,
+  "imageCount" INTEGER,
   
   -- Timing
-  started_date TIMESTAMP NOT NULL,
-  ended_date TIMESTAMP,
+  "startedDate" TIMESTAMP NOT NULL,
+  "endedDate" TIMESTAMP,
   
   -- Performer
-  performer_id TEXT,
-  performer_name TEXT,
-  performer_type TEXT,
+  "performerId" TEXT,
+  "performerName" TEXT,
+  "performerType" TEXT,
   
   -- Equipment
-  equipment_device_id TEXT,
-  equipment_device_name TEXT,
-  equipment_manufacturer TEXT,
-  equipment_model TEXT,
+  "equipmentDeviceId" TEXT,
+  "equipmentDeviceName" TEXT,
+  "equipmentManufacturer" TEXT,
+  "equipmentModel" TEXT,
   
   -- Report
-  report_text TEXT, -- Radiologist report
-  report_id TEXT,
+  "reportText" TEXT, -- Radiologist report
+  "reportId" TEXT,
   
   -- Context
-  encounter_id TEXT,
-  encounter_id_ref INTEGER REFERENCES fhir_encounters(id),
+  "encounterId" TEXT,
+  "encounterIdRef" INTEGER REFERENCES fhir_encounters(id),
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_imaging_studies_patient ON fhir_imaging_studies(anonymous_patient_id);
-CREATE INDEX idx_fhir_imaging_studies_modality ON fhir_imaging_studies(modality_code);
-CREATE INDEX idx_fhir_imaging_studies_started_date ON fhir_imaging_studies(started_date);
+CREATE INDEX idx_fhir_imaging_studies_patient ON fhir_imaging_studies("anonymousPatientId");
+CREATE INDEX idx_fhir_imaging_studies_modality ON fhir_imaging_studies("modalityCode");
+CREATE INDEX idx_fhir_imaging_studies_started_date ON fhir_imaging_studies("startedDate");
 `;
 
 /**
@@ -692,40 +692,40 @@ export const VitalsSchema = `
 -- This table provides optimized access for common vitals
 CREATE TABLE IF NOT EXISTS fhir_vital_signs (
   id SERIAL PRIMARY KEY,
-  observation_id INTEGER NOT NULL REFERENCES fhir_observations(id),
-  anonymous_patient_id TEXT NOT NULL,
+  "observationId" INTEGER NOT NULL REFERENCES fhir_observations(id),
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Vital Type
-  vital_type_code TEXT, -- heart-rate, blood-pressure, temperature, etc.
-  vital_type_display TEXT,
+  "vitalTypeCode" TEXT, -- heart-rate, blood-pressure, temperature, etc.
+  "vitalTypeDisplay" TEXT,
   
   -- Value
-  value_quantity TEXT,
-  value_unit TEXT,
+  "valueQuantity" TEXT,
+  "valueUnit" TEXT,
   
   -- For Blood Pressure (has components)
-  systolic_value TEXT,
-  diastolic_value TEXT,
+  "systolicValue" TEXT,
+  "diastolicValue" TEXT,
   
   -- Timing
-  effective_date TIMESTAMP NOT NULL,
+  "effectiveDate" TIMESTAMP NOT NULL,
   
   -- Context
-  encounter_id TEXT,
-  encounter_id_ref INTEGER REFERENCES fhir_encounters(id),
+  "encounterId" TEXT,
+  "encounterIdRef" INTEGER REFERENCES fhir_encounters(id),
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_vital_signs_patient ON fhir_vital_signs(anonymous_patient_id);
-CREATE INDEX idx_fhir_vital_signs_type ON fhir_vital_signs(vital_type_code);
-CREATE INDEX idx_fhir_vital_signs_effective_date ON fhir_vital_signs(effective_date);
+CREATE INDEX idx_fhir_vital_signs_patient ON fhir_vital_signs("anonymousPatientId");
+CREATE INDEX idx_fhir_vital_signs_type ON fhir_vital_signs("vitalTypeCode");
+CREATE INDEX idx_fhir_vital_signs_effective_date ON fhir_vital_signs("effectiveDate");
 `;
 
 /**
@@ -735,36 +735,36 @@ CREATE INDEX idx_fhir_vital_signs_effective_date ON fhir_vital_signs(effective_d
 export const SDOHSchema = `
 CREATE TABLE IF NOT EXISTS fhir_sdoh (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
   -- Category
-  category_code TEXT, -- housing, income, education, employment, lifestyle
-  category_display TEXT,
+  "categoryCode" TEXT, -- housing, income, education, employment, lifestyle
+  "categoryDisplay" TEXT,
   
   -- Specific SDOH
-  sdoh_code TEXT, -- LOINC or SNOMED
-  sdoh_display TEXT,
+  "sdohCode" TEXT, -- LOINC or SNOMED
+  "sdohDisplay" TEXT,
   
   -- Value
-  value_code TEXT,
-  value_display TEXT,
-  value_text TEXT,
+  "valueCode" TEXT,
+  "valueDisplay" TEXT,
+  "valueText" TEXT,
   
   -- Timing
-  effective_date DATE,
+  "effectiveDate" DATE,
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_sdoh_patient ON fhir_sdoh(anonymous_patient_id);
-CREATE INDEX idx_fhir_sdoh_category ON fhir_sdoh(category_code);
-CREATE INDEX idx_fhir_sdoh_code ON fhir_sdoh(sdoh_code);
+CREATE INDEX idx_fhir_sdoh_patient ON fhir_sdoh("anonymousPatientId");
+CREATE INDEX idx_fhir_sdoh_category ON fhir_sdoh("categoryCode");
+CREATE INDEX idx_fhir_sdoh_code ON fhir_sdoh("sdohCode");
 `;
 
 /**
@@ -775,81 +775,81 @@ export const MetadataSchema = `
 -- Provenance (Who created/modified resources)
 CREATE TABLE IF NOT EXISTS fhir_provenance (
   id SERIAL PRIMARY KEY,
-  target_resource_type TEXT NOT NULL, -- Patient, Condition, Observation, etc.
-  target_resource_id INTEGER NOT NULL,
-  target_resource_fhir_id TEXT,
+  "targetResourceType" TEXT NOT NULL, -- Patient, Condition, Observation, etc.
+  "targetResourceId" INTEGER NOT NULL,
+  "targetResourceFhirId" TEXT,
   
   -- Activity
-  activity_code TEXT, -- create, update, delete, read
-  activity_display TEXT,
+  "activityCode" TEXT, -- create, update, delete, read
+  "activityDisplay" TEXT,
   
   -- Agent (Who did it)
-  agent_id TEXT,
-  agent_name TEXT,
-  agent_type TEXT, -- Practitioner, Organization, Device, Patient
-  agent_role_code TEXT,
-  agent_role_display TEXT,
+  "agentId" TEXT,
+  "agentName" TEXT,
+  "agentType" TEXT, -- Practitioner, Organization, Device, Patient
+  "agentRoleCode" TEXT,
+  "agentRoleDisplay" TEXT,
   
   -- When
-  occurred_at TIMESTAMP NOT NULL,
+  "occurredAt" TIMESTAMP NOT NULL,
   
   -- Why
-  reason_code TEXT,
-  reason_display TEXT,
+  "reasonCode" TEXT,
+  "reasonDisplay" TEXT,
   
   -- Signature
-  signature_type TEXT,
-  signature_data TEXT, -- Cryptographic signature
+  "signatureType" TEXT,
+  "signatureData" TEXT, -- Cryptographic signature
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_provenance_target ON fhir_provenance(target_resource_type, target_resource_id);
-CREATE INDEX idx_fhir_provenance_agent ON fhir_provenance(agent_id);
-CREATE INDEX idx_fhir_provenance_occurred ON fhir_provenance(occurred_at);
+CREATE INDEX idx_fhir_provenance_target ON fhir_provenance("targetResourceType", "targetResourceId");
+CREATE INDEX idx_fhir_provenance_agent ON fhir_provenance("agentId");
+CREATE INDEX idx_fhir_provenance_occurred ON fhir_provenance("occurredAt");
 
 -- Audit Events (Access logs)
 CREATE TABLE IF NOT EXISTS fhir_audit_events (
   id SERIAL PRIMARY KEY,
-  event_type TEXT NOT NULL, -- read, write, delete, export, access
-  event_subtype TEXT,
+  "eventType" TEXT NOT NULL, -- read, write, delete, export, access
+  "eventSubtype" TEXT,
   
   -- Agent (Who)
-  agent_id TEXT,
-  agent_name TEXT,
-  agent_type TEXT,
-  agent_ip_address TEXT,
-  agent_user_agent TEXT,
+  "agentId" TEXT,
+  "agentName" TEXT,
+  "agentType" TEXT,
+  "agentIpAddress" TEXT,
+  "agentUserAgent" TEXT,
   
   -- Resource (What)
-  resource_type TEXT,
-  resource_id INTEGER,
-  resource_fhir_id TEXT,
+  "resourceType" TEXT,
+  "resourceId" INTEGER,
+  "resourceFhirId" TEXT,
   
   -- Outcome
-  outcome_code TEXT, -- success, failure, partial
-  outcome_display TEXT,
-  outcome_description TEXT,
+  "outcomeCode" TEXT, -- success, failure, partial
+  "outcomeDisplay" TEXT,
+  "outcomeDescription" TEXT,
   
   -- When
-  occurred_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "occurredAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
   -- Purpose
-  purpose_of_use_code TEXT,
-  purpose_of_use_display TEXT,
+  "purposeOfUseCode" TEXT,
+  "purposeOfUseDisplay" TEXT,
   
-  hospital_id VARCHAR(32) NOT NULL,
+  "hospitalId" VARCHAR(32) NOT NULL,
   
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
-CREATE INDEX idx_fhir_audit_events_type ON fhir_audit_events(event_type);
-CREATE INDEX idx_fhir_audit_events_agent ON fhir_audit_events(agent_id);
-CREATE INDEX idx_fhir_audit_events_resource ON fhir_audit_events(resource_type, resource_id);
-CREATE INDEX idx_fhir_audit_events_occurred ON fhir_audit_events(occurred_at);
+CREATE INDEX idx_fhir_audit_events_type ON fhir_audit_events("eventType");
+CREATE INDEX idx_fhir_audit_events_agent ON fhir_audit_events("agentId");
+CREATE INDEX idx_fhir_audit_events_resource ON fhir_audit_events("resourceType", "resourceId");
+CREATE INDEX idx_fhir_audit_events_occurred ON fhir_audit_events("occurredAt");
 `;
 
 /**
@@ -859,135 +859,135 @@ export const AdditionalResourcesSchema = `
 -- Immunizations
 CREATE TABLE IF NOT EXISTS fhir_immunizations (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
-  vaccine_code TEXT, -- CVX or SNOMED
-  vaccine_display TEXT,
+  "vaccineCode" TEXT, -- CVX or SNOMED
+  "vaccineDisplay" TEXT,
   
   status TEXT, -- completed, entered-in-error, not-done
-  occurrence_date DATE NOT NULL,
+  "occurrenceDate" DATE NOT NULL,
   
-  performer_id TEXT,
-  performer_name TEXT,
+  "performerId" TEXT,
+  "performerName" TEXT,
   
-  lot_number TEXT,
-  expiration_date DATE,
+  "lotNumber" TEXT,
+  "expirationDate" DATE,
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
 -- Care Plans
 CREATE TABLE IF NOT EXISTS fhir_care_plans (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
-  care_plan_id TEXT,
+  "carePlanId" TEXT,
   status TEXT, -- draft, active, on-hold, revoked, completed, entered-in-error
   intent TEXT, -- proposal, plan, order, option
   
-  category_code TEXT,
-  category_display TEXT,
+  "categoryCode" TEXT,
+  "categoryDisplay" TEXT,
   
-  period_start DATE,
-  period_end DATE,
+  "periodStart" DATE,
+  "periodEnd" DATE,
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
 -- Care Teams
 CREATE TABLE IF NOT EXISTS fhir_care_teams (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
-  care_team_id TEXT,
+  "careTeamId" TEXT,
   status TEXT, -- proposed, active, suspended, inactive, entered-in-error
   
-  category_code TEXT,
-  category_display TEXT,
+  "categoryCode" TEXT,
+  "categoryDisplay" TEXT,
   
-  period_start DATE,
-  period_end DATE,
+  "periodStart" DATE,
+  "periodEnd" DATE,
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
 -- Devices
 CREATE TABLE IF NOT EXISTS fhir_devices (
   id SERIAL PRIMARY KEY,
-  anonymous_patient_id TEXT NOT NULL,
+  "anonymousPatientId" TEXT NOT NULL,
   upi VARCHAR(64) NOT NULL,
   
-  device_id TEXT,
-  device_type_code TEXT,
-  device_type_display TEXT,
+  "deviceId" TEXT,
+  "deviceTypeCode" TEXT,
+  "deviceTypeDisplay" TEXT,
   
   manufacturer TEXT,
   model TEXT,
-  serial_number TEXT,
+  "serialNumber" TEXT,
   
   status TEXT, -- active, inactive, entered-in-error, unknown
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (anonymous_patient_id) REFERENCES fhir_patients(anonymous_patient_id),
+  FOREIGN KEY ("anonymousPatientId") REFERENCES fhir_patients("anonymousPatientId"),
   FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
 -- Organizations
 CREATE TABLE IF NOT EXISTS fhir_organizations (
   id SERIAL PRIMARY KEY,
-  organization_id TEXT NOT NULL,
+  "organizationId" TEXT NOT NULL,
   name TEXT NOT NULL,
   
-  type_code TEXT,
-  type_display TEXT,
+  "typeCode" TEXT,
+  "typeDisplay" TEXT,
   
-  address_country TEXT,
-  address_region TEXT,
-  address_city TEXT,
+  "addressCountry" TEXT,
+  "addressRegion" TEXT,
+  "addressCity" TEXT,
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 
 -- Practitioners
 CREATE TABLE IF NOT EXISTS fhir_practitioners (
   id SERIAL PRIMARY KEY,
-  practitioner_id TEXT NOT NULL,
+  "practitionerId" TEXT NOT NULL,
   name TEXT,
   
-  qualification_code TEXT,
-  qualification_display TEXT,
+  "qualificationCode" TEXT,
+  "qualificationDisplay" TEXT,
   
-  organization_id TEXT,
-  organization_id_ref INTEGER REFERENCES fhir_organizations(id),
+  "organizationId" TEXT,
+  "organizationIdRef" INTEGER REFERENCES fhir_organizations(id),
   
-  hospital_id VARCHAR(32) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "hospitalId" VARCHAR(32) NOT NULL,
+  "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   
-  FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+  FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
 );
 `;
 

@@ -213,39 +213,36 @@ async function storeResources(req, res, tableName) {
 
 /**
  * Store resource in PostgreSQL
- * Converts camelCase field names from adapter to snake_case for database columns
- * This matches the project standard: camelCase in JS/API, snake_case in DB
+ * Uses camelCase field names directly with quoted identifiers
+ * This matches the project standard: camelCase in JS/API and DB
  */
 async function storeResourcePostgreSQL(db, tableName, resource, hospitalId) {
-  // Convert camelCase to snake_case for column names (matches DB schema)
-  // Example: anonymousPatientId -> anonymous_patient_id, ageRange -> age_range
-  const convertToSnakeCase = (str) => {
-    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-  };
+  // Quote camelCase column names for PostgreSQL
+  const quoteColumn = (str) => `"${str}"`;
   
-  // Filter out id and convert keys to snake_case to match database columns
+  // Filter out id and use camelCase column names directly (quoted)
   const originalKeys = Object.keys(resource).filter(k => k !== 'id');
-  const columns = originalKeys.map(k => convertToSnakeCase(k));
+  const columns = originalKeys.map(k => quoteColumn(k));
   const values = originalKeys.map(key => resource[key]);
   
   const placeholders = columns.map((_, i) => `$${i + 1}`);
   
-  // Determine conflict target based on table (use snake_case column names)
+  // Determine conflict target based on table (use quoted camelCase column names)
   let conflictClause = '';
   if (tableName === 'fhir_patients') {
-    conflictClause = 'ON CONFLICT (anonymous_patient_id, hospital_id) DO NOTHING';
+    conflictClause = 'ON CONFLICT ("anonymousPatientId", "hospitalId") DO NOTHING';
   } else if (tableName === 'fhir_encounters') {
-    conflictClause = 'ON CONFLICT (encounter_id, hospital_id) DO NOTHING';
+    conflictClause = 'ON CONFLICT ("encounterId", "hospitalId") DO NOTHING';
   } else {
     // For other tables without unique constraints, try simple insert
     conflictClause = '';
   }
 
   const query = conflictClause
-    ? `INSERT INTO ${tableName} (${columns.join(', ')}, hospital_id)
+    ? `INSERT INTO ${tableName} (${columns.join(', ')}, "hospitalId")
        VALUES (${placeholders.join(', ')}, $${columns.length + 1})
        ${conflictClause}`
-    : `INSERT INTO ${tableName} (${columns.join(', ')}, hospital_id)
+    : `INSERT INTO ${tableName} (${columns.join(', ')}, "hospitalId")
        VALUES (${placeholders.join(', ')}, $${columns.length + 1})`;
 
   try {
@@ -254,7 +251,7 @@ async function storeResourcePostgreSQL(db, tableName, resource, hospitalId) {
     // If conflict clause fails or constraint doesn't exist, try without it
     if (error.message.includes('ON CONFLICT') || error.code === '42601' || error.code === '42P01') {
       const simpleQuery = `
-        INSERT INTO ${tableName} (${columns.join(', ')}, hospital_id)
+        INSERT INTO ${tableName} (${columns.join(', ')}, "hospitalId")
         VALUES (${placeholders.join(', ')}, $${columns.length + 1})
       `;
       await db.query(simpleQuery, [...values, hospitalId]);
@@ -270,12 +267,16 @@ async function storeResourcePostgreSQL(db, tableName, resource, hospitalId) {
 async function storeResourceSQLite(db, tableName, resource, hospitalId) {
   const run = promisify(db.run.bind(db));
   
-  const columns = Object.keys(resource).filter(k => k !== 'id');
-  const values = columns.map(col => resource[col]);
+  // Quote camelCase column names for SQLite (for consistency)
+  const quoteColumn = (str) => `"${str}"`;
+  
+  const originalKeys = Object.keys(resource).filter(k => k !== 'id');
+  const columns = originalKeys.map(k => quoteColumn(k));
+  const values = originalKeys.map(key => resource[key]);
   const placeholders = columns.map(() => '?');
 
   const query = `
-    INSERT OR IGNORE INTO ${tableName} (${columns.join(', ')}, hospital_id)
+    INSERT OR IGNORE INTO ${tableName} (${columns.join(', ')}, "hospitalId")
     VALUES (${placeholders.join(', ')}, ?)
   `;
 

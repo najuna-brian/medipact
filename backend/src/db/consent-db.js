@@ -272,12 +272,12 @@ export async function getConsentStatistics(hospitalId) {
            AND p.status = 'active'
            AND (p.expires_at IS NULL OR p.expires_at > CURRENT_TIMESTAMP)
        ) consented_patients
-       LEFT JOIN fhir_patients fp ON fp.anonymous_patient_id = consented_patients.anonymous_patient_id
-       LEFT JOIN fhir_conditions fc ON fc.anonymous_patient_id = consented_patients.anonymous_patient_id
-       LEFT JOIN fhir_observations fo ON fo.anonymous_patient_id = consented_patients.anonymous_patient_id
-       WHERE fp.anonymous_patient_id IS NOT NULL
-          OR fc.anonymous_patient_id IS NOT NULL
-          OR fo.anonymous_patient_id IS NOT NULL`,
+       LEFT JOIN fhir_patients fp ON fp."anonymousPatientId" = consented_patients.anonymous_patient_id
+       LEFT JOIN fhir_conditions fc ON fc."anonymousPatientId" = consented_patients.anonymous_patient_id
+       LEFT JOIN fhir_observations fo ON fo."anonymousPatientId" = consented_patients.anonymous_patient_id
+       WHERE fp."anonymousPatientId" IS NOT NULL
+          OR fc."anonymousPatientId" IS NOT NULL
+          OR fo."anonymousPatientId" IS NOT NULL`,
       [hospitalId]
     );
     
@@ -306,34 +306,34 @@ export async function getConsentStatistics(hospitalId) {
       
       console.log(`[Consent Stats] Found ${existingTables.length} FHIR tables: ${existingTables.join(', ')}`);
       
-      // Build query with only existing tables
+      // Build query with only existing tables (using quoted camelCase column names)
       const countQueries = [];
       if (existingTables.includes('fhir_patients')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_patients WHERE hospital_id = $1)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_patients WHERE "hospitalId" = $1)');
       }
       if (existingTables.includes('fhir_conditions')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_conditions WHERE hospital_id = $1)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_conditions WHERE "hospitalId" = $1)');
       }
       if (existingTables.includes('fhir_observations')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_observations WHERE hospital_id = $1)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_observations WHERE "hospitalId" = $1)');
       }
       if (existingTables.includes('fhir_encounters')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_encounters WHERE hospital_id = $1)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_encounters WHERE "hospitalId" = $1)');
       }
       if (existingTables.includes('fhir_medication_requests')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_medication_requests WHERE hospital_id = $1)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_medication_requests WHERE "hospitalId" = $1)');
       }
       if (existingTables.includes('fhir_procedures')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_procedures WHERE hospital_id = $1)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_procedures WHERE "hospitalId" = $1)');
       }
       if (existingTables.includes('fhir_imaging_studies')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_imaging_studies WHERE hospital_id = $1)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_imaging_studies WHERE "hospitalId" = $1)');
       }
       if (existingTables.includes('fhir_allergies')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_allergies WHERE hospital_id = $1)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_allergies WHERE "hospitalId" = $1)');
       }
       if (existingTables.includes('fhir_coverage')) {
-        countQueries.push('(SELECT COUNT(*) FROM fhir_coverage WHERE hospital_id = $1)');
+        countQueries.push('(SELECT COUNT(*) FROM fhir_coverage WHERE "hospitalId" = $1)');
       }
       
       if (countQueries.length === 0) {

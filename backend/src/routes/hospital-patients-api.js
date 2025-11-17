@@ -140,16 +140,16 @@ router.get('/:hospitalId/patients', authenticateHospital, async (req, res) => {
         
         const result = await all(
           `SELECT DISTINCT ON (upi)
-            anonymous_patient_id as "anonymousPatientId",
+            "anonymousPatientId",
             upi,
-            hospital_id as "hospitalId",
-            created_at as "createdAt",
-            ${hasEncountersTable ? `(SELECT COUNT(*) FROM fhir_encounters WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1)` : '0'} as "encounterCount",
-            (SELECT COUNT(*) FROM fhir_conditions WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1) as "conditionCount",
-            (SELECT COUNT(*) FROM fhir_observations WHERE anonymous_patient_id = fp.anonymous_patient_id AND hospital_id = $1) as "observationCount"
+            "hospitalId",
+            "createdAt",
+            ${hasEncountersTable ? `(SELECT COUNT(*) FROM fhir_encounters WHERE "anonymousPatientId" = fp."anonymousPatientId" AND "hospitalId" = $1)` : '0'} as "encounterCount",
+            (SELECT COUNT(*) FROM fhir_conditions WHERE "anonymousPatientId" = fp."anonymousPatientId" AND "hospitalId" = $1) as "conditionCount",
+            (SELECT COUNT(*) FROM fhir_observations WHERE "anonymousPatientId" = fp."anonymousPatientId" AND "hospitalId" = $1) as "observationCount"
           FROM fhir_patients fp
-          WHERE hospital_id = $1 AND upi IS NOT NULL
-          ORDER BY upi, created_at DESC`,
+          WHERE "hospitalId" = $1 AND upi IS NOT NULL
+          ORDER BY upi, "createdAt" DESC`,
           [hospitalId]
         );
         fhirPatients = result.rows || result;
@@ -169,21 +169,21 @@ router.get('/:hospitalId/patients', authenticateHospital, async (req, res) => {
         // SQLite - get distinct UPIs with latest record info
         const rows = await all(
           `SELECT 
-            fp1.anonymous_patient_id as anonymousPatientId,
+            fp1."anonymousPatientId" as anonymousPatientId,
             fp1.upi,
-            fp1.hospital_id as hospitalId,
-            fp1.created_at as createdAt,
-            ${hasEncountersTable ? `(SELECT COUNT(*) FROM fhir_encounters WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?)` : '0'} as encounterCount,
-            (SELECT COUNT(*) FROM fhir_conditions WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?) as conditionCount,
-            (SELECT COUNT(*) FROM fhir_observations WHERE anonymous_patient_id = fp1.anonymous_patient_id AND hospital_id = ?) as observationCount
+            fp1."hospitalId" as hospitalId,
+            fp1."createdAt" as createdAt,
+            ${hasEncountersTable ? `(SELECT COUNT(*) FROM fhir_encounters WHERE "anonymousPatientId" = fp1."anonymousPatientId" AND "hospitalId" = ?)` : '0'} as encounterCount,
+            (SELECT COUNT(*) FROM fhir_conditions WHERE "anonymousPatientId" = fp1."anonymousPatientId" AND "hospitalId" = ?) as conditionCount,
+            (SELECT COUNT(*) FROM fhir_observations WHERE "anonymousPatientId" = fp1."anonymousPatientId" AND "hospitalId" = ?) as observationCount
           FROM fhir_patients fp1
           INNER JOIN (
-            SELECT upi, MAX(created_at) as max_created
+            SELECT upi, MAX("createdAt") as max_created
             FROM fhir_patients
-            WHERE hospital_id = ? AND upi IS NOT NULL
+            WHERE "hospitalId" = ? AND upi IS NOT NULL
             GROUP BY upi
-          ) fp2 ON fp1.upi = fp2.upi AND fp1.created_at = fp2.max_created
-          WHERE fp1.hospital_id = ?`,
+          ) fp2 ON fp1.upi = fp2.upi AND fp1."createdAt" = fp2.max_created
+          WHERE fp1."hospitalId" = ?`,
           [hospitalId, hospitalId, hospitalId, hospitalId, hospitalId]
         );
         fhirPatients = rows.map(row => ({
