@@ -70,6 +70,7 @@ export interface QueryResult {
   filters: QueryFilters;
   preview: boolean;
   hcsMessageId?: string;
+  dataTopicId?: string;
   timestamp: string;
 }
 

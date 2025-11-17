@@ -107,7 +107,7 @@ export default function ResearcherPurchasesPage() {
                       )}
                     </CardDescription>
                   </div>
-                  <Badge variant={purchase.status === 'completed' ? 'default' : 'secondary'}>
+                  <Badge variant={purchase.status === 'completed' ? 'success' : 'warning'}>
                     {purchase.status}
                   </Badge>
                 </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { TrendingUp, Database, DollarSign, FileDown, Loader2, Search } from 'lucide-react';
 import { useResearcherAnalytics } from '@/hooks/useResearcher';
 

@@ -84,7 +84,7 @@ export default function ResearcherCatalogPage() {
                   <p className="text-2xl font-bold">{queryResult.count} records found</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {queryResult.preview && <Badge variant="outline">Preview mode</Badge>}
+                  {queryResult.preview && <Badge variant="info">Preview mode</Badge>}
                   <Button
                     variant="default"
                     onClick={() => {

@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+export const dynamic = 'force-dynamic';
+
+import { useState, useEffect, Suspense } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +27,7 @@ import HashScanLink from '@/components/HashScanLink/HashScanLink';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function ResearcherQueryPage() {
+function ResearcherQueryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [researcherId, setResearcherId] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export default function ResearcherQueryPage() {
     const filters: QueryFilters = {};
     searchParams.forEach((value, key) => {
       if (key !== 'preview') {
-        filters[key as keyof QueryFilters] = value;
+        (filters as any)[key] = value;
       }
     });
     if (Object.keys(filters).length > 0) {
@@ -49,11 +51,12 @@ export default function ResearcherQueryPage() {
     }
   }, [searchParams]);
 
-  const { data: queryResult, isLoading, error, refetch } = useQueryData(
-    queryFilters || {},
-    researcherId,
-    !!queryFilters && !!researcherId
-  );
+  const {
+    data: queryResult,
+    isLoading,
+    error,
+    refetch,
+  } = useQueryData(queryFilters || {}, researcherId, !!queryFilters && !!researcherId);
 
   const purchaseMutation = usePurchaseDataset();
 
@@ -79,8 +82,9 @@ export default function ResearcherQueryPage() {
       // This requires payment verification
       const result = await purchaseMutation.mutateAsync({
         researcherId,
+        datasetId: 'query-access', // Placeholder for query-based purchases
         amount: 10, // Default amount for query access (10 HBAR)
-      });
+      } as any);
 
       // If payment request is returned, show payment UI
       if ('paymentRequest' in result) {
@@ -195,9 +199,7 @@ export default function ResearcherQueryPage() {
                   <div>
                     <p className="text-sm text-muted-foreground">Timestamp</p>
                     <p className="text-sm font-medium">
-                      {queryResult.timestamp
-                        ? formatDate(queryResult.timestamp)
-                        : 'N/A'}
+                      {queryResult.timestamp ? formatDate(queryResult.timestamp) : 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -205,12 +207,13 @@ export default function ResearcherQueryPage() {
                 {queryResult.preview && (
                   <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
                     <div className="flex items-start gap-2">
-                      <EyeOff className="h-5 w-5 text-amber-600 mt-0.5" />
+                      <EyeOff className="mt-0.5 h-5 w-5 text-amber-600" />
                       <div className="flex-1">
                         <p className="font-medium text-amber-900">Preview Mode</p>
-                        <p className="text-sm text-amber-700 mt-1">
-                          You're viewing a preview with {queryResult.count} records found. To view the full anonymized data
-                          and verify it on Hedera HashScan, purchase access to the dataset.
+                        <p className="mt-1 text-sm text-amber-700">
+                          You're viewing a preview with {queryResult.count} records found. To view
+                          the full anonymized data and verify it on Hedera HashScan, purchase access
+                          to the dataset.
                         </p>
                         <div className="mt-3 flex gap-2">
                           <Button
@@ -225,7 +228,8 @@ export default function ResearcherQueryPage() {
                             onClick={() => {
                               // Navigate to catalog with current filters pre-filled
                               const params = new URLSearchParams();
-                              if (queryFilters?.country) params.set('country', queryFilters.country);
+                              if (queryFilters?.country)
+                                params.set('country', queryFilters.country);
                               router.push(`/researcher/catalog?${params.toString()}`);
                             }}
                           >
@@ -262,16 +266,16 @@ export default function ResearcherQueryPage() {
                     {queryResult.results.map((patient: any, idx: number) => (
                       <div
                         key={idx}
-                        className="rounded-lg border bg-white p-4 hover:shadow-md transition-shadow"
+                        className="rounded-lg border bg-white p-4 transition-shadow hover:shadow-md"
                       >
                         <div className="mb-3 flex items-start justify-between">
                           <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge variant="outline" className="font-mono">
+                            <div className="mb-2 flex items-center gap-2">
+                              <Badge variant="info" className="font-mono">
                                 {patient.anonymousPatientId || `Patient ${idx + 1}`}
                               </Badge>
                               {patient.country && (
-                                <Badge variant="secondary">{patient.country}</Badge>
+                                <Badge variant="default">{patient.country}</Badge>
                               )}
                             </div>
                             <div className="grid grid-cols-2 gap-4 text-sm">
@@ -313,7 +317,7 @@ export default function ResearcherQueryPage() {
                           <div className="mt-3 space-y-2 border-t pt-3">
                             {patient.conditions && patient.conditions.length > 0 && (
                               <div>
-                                <p className="text-xs font-medium text-muted-foreground mb-1">
+                                <p className="mb-1 text-xs font-medium text-muted-foreground">
                                   Conditions:
                                 </p>
                                 <div className="flex flex-wrap gap-1">
@@ -323,7 +327,7 @@ export default function ResearcherQueryPage() {
                                     </Badge>
                                   ))}
                                   {patient.conditions.length > 3 && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge variant="info" className="text-xs">
                                       +{patient.conditions.length - 3} more
                                     </Badge>
                                   )}
@@ -333,17 +337,19 @@ export default function ResearcherQueryPage() {
 
                             {patient.observations && patient.observations.length > 0 && (
                               <div>
-                                <p className="text-xs font-medium text-muted-foreground mb-1">
+                                <p className="mb-1 text-xs font-medium text-muted-foreground">
                                   Observations:
                                 </p>
                                 <div className="flex flex-wrap gap-1">
-                                  {patient.observations.slice(0, 3).map((obs: any, oIdx: number) => (
-                                    <Badge key={oIdx} variant="secondary" className="text-xs">
-                                      {obs.observationName || obs.observationCode}
-                                    </Badge>
-                                  ))}
+                                  {patient.observations
+                                    .slice(0, 3)
+                                    .map((obs: any, oIdx: number) => (
+                                      <Badge key={oIdx} variant="default" className="text-xs">
+                                        {obs.observationName || obs.observationCode}
+                                      </Badge>
+                                    ))}
                                   {patient.observations.length > 3 && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge variant="info" className="text-xs">
                                       +{patient.observations.length - 3} more
                                     </Badge>
                                   )}
@@ -395,8 +401,8 @@ export default function ResearcherQueryPage() {
                   authenticity and integrity of the data by clicking the HashScan links.
                 </p>
                 <div className="rounded-lg border bg-gray-50 p-3">
-                  <p className="font-medium mb-1">How Verification Works:</p>
-                  <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <p className="mb-1 font-medium">How Verification Works:</p>
+                  <ul className="list-inside list-disc space-y-1 text-muted-foreground">
                     <li>Each patient record has a cryptographic hash stored on Hedera</li>
                     <li>Click "Verify on HashScan" to view the original data proof</li>
                     <li>Query execution is logged to Hedera Consensus Service (HCS)</li>
@@ -420,6 +426,20 @@ export default function ResearcherQueryPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ResearcherQueryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      }
+    >
+      <ResearcherQueryPageContent />
+    </Suspense>
   );
 }
 
