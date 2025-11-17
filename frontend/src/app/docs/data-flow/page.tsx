@@ -11,47 +11,210 @@ export default function DataFlowPage() {
       </div>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Complete Data Flow Sequence</h2>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Complete Data Flow with Hedera Integration
+        </h2>
+        <p className="mt-2 text-gray-600">
+          This diagram shows the complete flow from data upload to revenue distribution,
+          highlighting all Hedera integration points.
+        </p>
         <MermaidDiagram
           chart={`sequenceDiagram
     participant H as Hospital EHR
     participant A as Adapter
-    participant HCS as Hedera HCS
-    participant SC as Smart Contracts
-    participant B as Backend
+    participant HCS as Hedera HCS<br/>(Consent & Data Topics)
+    participant SC as Smart Contracts<br/>(ConsentManager & RevenueSplitter)
+    participant B as Backend<br/>(Database)
     participant M as Marketplace
     participant R as Researcher
+    participant HA as Hedera Accounts<br/>(0.0.xxxxx)
     
-    H->>A: Export EHR Data
+    Note over H,A: Data Collection & Processing
+    H->>A: Export EHR Data (CSV/FHIR)
     A->>A: Stage 1: Storage Anonymization<br/>Remove PII, 5-year age ranges
-    A->>B: Store Stage 1 Data
+    A->>B: Store Stage 1 Data (FHIR format)
     A->>A: Stage 2: Chain Anonymization<br/>10-year ranges, month/year dates
-    A->>HCS: Submit Consent Proof
-    A->>HCS: Submit Provenance Record<br/>(Storage Hash + Chain Hash)
-    A->>SC: Record Consent
-    A->>B: Store Anonymized Data
-    B->>B: Create Dataset
+    A->>A: Generate Hashes<br/>(Storage H1 + Chain H2)
     
+    Note over A,HCS: Hedera Level 1: Immutable Proofs
+    A->>HCS: Submit Consent Proof<br/>(Consent Topic)
+    A->>HCS: Submit Provenance Record<br/>(Data Topic: H1 + H2 + Proof)
+    HCS-->>A: Transaction ID (HashScan Link)
+    
+    Note over A,SC: Hedera Level 2: Smart Contracts
+    A->>SC: Record Consent<br/>(ConsentManager Contract)
+    SC-->>A: Consent Recorded (Tx ID)
+    
+    Note over A,B: Data Storage
+    A->>B: Store Anonymized Data<br/>(FHIR Resources)
+    B->>B: Create Dataset<br/>(Metadata + Topic IDs)
+    
+    Note over R,M: Researcher Access
     R->>M: Browse Datasets
     R->>M: Query with Filters
-    M->>B: Execute Query<br/>(Consent Validation)
-    B->>M: Return Results
-    R->>M: Purchase Dataset
-    M->>R: Payment Request<br/>(Account, Amount HBAR)
-    R->>Hedera: Send HBAR Payment
-    R->>M: Provide Transaction ID
-    M->>Hedera: Verify Payment
-    Hedera-->>M: Payment Verified
-    M->>SC: Trigger Revenue Distribution
-    SC->>SC: Auto-Split: 60/25/15
-    SC->>Patient: Transfer 60% HBAR
-    SC->>Hospital: Transfer 25% HBAR
-    SC->>Platform: Transfer 15% HBAR
-    SC->>R: Grant Access
-    R->>M: Download Data
+    M->>B: Execute Query<br/>(Consent Validation via SC)
+    B->>SC: Verify Consent Status
+    SC-->>B: Consent Valid
+    B->>M: Return Results (Preview)
     
-    Note over HCS,SC: All transactions<br/>verifiable on HashScan`}
+    Note over R,HA: Hedera Level 3: Payment
+    R->>M: Purchase Dataset
+    M->>R: Payment Request<br/>(Platform Account, Amount HBAR)
+    R->>HA: Send HBAR Payment<br/>(Researcher Account → Platform)
+    R->>M: Provide Transaction ID
+    M->>HA: Verify Payment<br/>(Query Transaction Receipt)
+    HA-->>M: Payment Verified
+    
+    Note over SC,HA: Hedera Level 4: Revenue Distribution
+    M->>SC: Trigger Revenue Distribution<br/>(RevenueSplitter Contract)
+    SC->>SC: Calculate Split: 60/25/15<br/>(Per Patient)
+    SC->>HA: Transfer 60% to Patient Account
+    SC->>HA: Transfer 25% to Hospital Account<br/>(Original Collector)
+    SC->>HA: Transfer 15% to Platform Account
+    HA-->>SC: Transfers Confirmed (Tx IDs)
+    SC-->>M: Distribution Complete
+    M->>R: Grant Access
+    R->>M: Download Data (CSV/FHIR)
+    
+    Note over HCS,HA: All Hedera Transactions<br/>Verifiable on HashScan`}
         />
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900">Hedera Integration Levels</h2>
+        <p className="mt-2 text-gray-600">
+          MediPact uses Hedera at four distinct levels, each providing critical functionality:
+        </p>
+        <div className="mt-6 space-y-6">
+          <div className="rounded-lg border-2 border-[#00A9CE] bg-[#E3F2FD] p-6">
+            <h3 className="text-xl font-bold text-[#00A9CE]">
+              Level 1: Hedera Consensus Service (HCS)
+            </h3>
+            <p className="mt-2 text-gray-700">
+              <strong>Purpose:</strong> Immutable storage of consent proofs and data provenance
+              records
+            </p>
+            <ul className="mt-3 list-disc space-y-2 pl-6 text-gray-700">
+              <li>
+                <strong>Consent Topic:</strong> Stores consent records with anonymous patient IDs,
+                timestamps, and data hashes
+              </li>
+              <li>
+                <strong>Data Topic:</strong> Stores provenance records containing:
+                <ul className="mt-1 list-disc space-y-1 pl-6">
+                  <li>Storage Hash (H1) - Stage 1 anonymization proof</li>
+                  <li>Chain Hash (H2) - Stage 2 anonymization proof</li>
+                  <li>Provenance Proof - Links both hashes together</li>
+                  <li>Transformation Proof - Verifies H2 derived from H1</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Cost:</strong> ~$0.0001 per message
+              </li>
+              <li>
+                <strong>Verification:</strong> All messages publicly verifiable on HashScan
+              </li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border-2 border-[#00A9CE] bg-[#E3F2FD] p-6">
+            <h3 className="text-xl font-bold text-[#00A9CE]">
+              Level 2: Smart Contracts (Hedera EVM)
+            </h3>
+            <p className="mt-2 text-gray-700">
+              <strong>Purpose:</strong> Automated consent management and revenue distribution
+            </p>
+            <ul className="mt-3 list-disc space-y-2 pl-6 text-gray-700">
+              <li>
+                <strong>ConsentManager Contract:</strong>
+                <ul className="mt-1 list-disc space-y-1 pl-6">
+                  <li>Records patient consent with anonymous IDs</li>
+                  <li>Validates consent before data access</li>
+                  <li>Immutable consent history</li>
+                </ul>
+              </li>
+              <li>
+                <strong>RevenueSplitter Contract:</strong>
+                <ul className="mt-1 list-disc space-y-1 pl-6">
+                  <li>Automatically splits revenue: 60% Patient, 25% Hospital, 15% Platform</li>
+                  <li>Handles multi-hospital datasets correctly</li>
+                  <li>Direct HBAR transfers to Hedera accounts</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Cost:</strong> Low gas fees (~$0.01 per transaction)
+              </li>
+              <li>
+                <strong>Verification:</strong> All contract calls verifiable on HashScan
+              </li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border-2 border-[#00A9CE] bg-[#E3F2FD] p-6">
+            <h3 className="text-xl font-bold text-[#00A9CE]">
+              Level 3: Hedera Accounts (Native Accounts)
+            </h3>
+            <p className="mt-2 text-gray-700">
+              <strong>Purpose:</strong> Seamless wallet management for all users
+            </p>
+            <ul className="mt-3 list-disc space-y-2 pl-6 text-gray-700">
+              <li>
+                <strong>Automatic Creation:</strong> Accounts created during registration
+                (hospitals/researchers) or on first payment (patients)
+              </li>
+              <li>
+                <strong>Format:</strong> Native Hedera Account IDs (0.0.xxxxx)
+              </li>
+              <li>
+                <strong>EVM Compatible:</strong> All accounts support EVM addresses for smart
+                contract interactions
+              </li>
+              <li>
+                <strong>Direct Transfers:</strong> HBAR sent directly to account IDs, no complex
+                wallet management
+              </li>
+              <li>
+                <strong>User Experience:</strong> Users never see private keys - platform manages
+                everything
+              </li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border-2 border-[#00A9CE] bg-[#E3F2FD] p-6">
+            <h3 className="text-xl font-bold text-[#00A9CE]">
+              Level 4: HBAR Payments & Revenue Distribution
+            </h3>
+            <p className="mt-2 text-gray-700">
+              <strong>Purpose:</strong> Instant, low-cost micropayments for revenue distribution
+            </p>
+            <ul className="mt-3 list-disc space-y-2 pl-6 text-gray-700">
+              <li>
+                <strong>Researcher Payment:</strong> Researchers pay in HBAR to platform account
+              </li>
+              <li>
+                <strong>Payment Verification:</strong> System verifies payment using Hedera
+                transaction receipts
+              </li>
+              <li>
+                <strong>Revenue Distribution:</strong> Smart contract automatically distributes to:
+                <ul className="mt-1 list-disc space-y-1 pl-6">
+                  <li>60% to patient Hedera accounts</li>
+                  <li>25% to hospital Hedera accounts (original collectors)</li>
+                  <li>15% to platform Hedera account</li>
+                </ul>
+              </li>
+              <li>
+                <strong>Cost:</strong> ~$0.0001 per transfer
+              </li>
+              <li>
+                <strong>Speed:</strong> Instant settlement (3-5 seconds)
+              </li>
+              <li>
+                <strong>Transparency:</strong> All transfers verifiable on HashScan
+              </li>
+            </ul>
+          </div>
+        </div>
       </section>
 
       <section>
