@@ -263,6 +263,7 @@ export async function getConsentStatistics(hospitalId) {
     
     // Count records (FHIR resources) associated with active consents
     // This counts all FHIR resources (patients, conditions, observations) for patients with active consent
+    // PostgreSQL uses camelCase with quoted identifiers for FHIR tables (consistent with SQLite)
     const recordsResult = await get(
       `SELECT COUNT(*) as count
        FROM (
@@ -272,13 +273,13 @@ export async function getConsentStatistics(hospitalId) {
            AND p.status = 'active'
            AND (p.expires_at IS NULL OR p.expires_at > CURRENT_TIMESTAMP)
        ) consented_patients
-       LEFT JOIN fhir_patients fp ON fp."anonymousPatientId" = consented_patients.anonymous_patient_id
-       LEFT JOIN fhir_conditions fc ON fc."anonymousPatientId" = consented_patients.anonymous_patient_id
-       LEFT JOIN fhir_observations fo ON fo."anonymousPatientId" = consented_patients.anonymous_patient_id
+       LEFT JOIN fhir_patients fp ON fp."anonymousPatientId" = consented_patients.anonymous_patient_id AND fp."hospitalId" = $1
+       LEFT JOIN fhir_conditions fc ON fc."anonymousPatientId" = consented_patients.anonymous_patient_id AND fc."hospitalId" = $1
+       LEFT JOIN fhir_observations fo ON fo."anonymousPatientId" = consented_patients.anonymous_patient_id AND fo."hospitalId" = $1
        WHERE fp."anonymousPatientId" IS NOT NULL
           OR fc."anonymousPatientId" IS NOT NULL
           OR fo."anonymousPatientId" IS NOT NULL`,
-      [hospitalId]
+      [hospitalId, hospitalId, hospitalId]
     );
     
     // Also count total FHIR records for this hospital (all resource types)

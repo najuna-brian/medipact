@@ -786,59 +786,59 @@ async function createPostgreSQLTables() {
     // Column already exists or error, ignore
   }
 
-  // FHIR Patients Table
+  // FHIR Patients Table - Using camelCase with quoted identifiers for consistency
   await client.query(`
     CREATE TABLE IF NOT EXISTS fhir_patients (
       id SERIAL PRIMARY KEY,
-      anonymous_patient_id TEXT NOT NULL,
+      "anonymousPatientId" TEXT NOT NULL,
       upi VARCHAR(64) NOT NULL,
       country VARCHAR(100) NOT NULL,
       region VARCHAR(255),
-      age_range VARCHAR(20),
+      "ageRange" VARCHAR(20),
       gender VARCHAR(20),
-      hospital_id VARCHAR(32) NOT NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "hospitalId" VARCHAR(32) NOT NULL,
+      "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-      FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+      FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
     )
   `);
 
-  // FHIR Conditions Table
+  // FHIR Conditions Table - Using camelCase with quoted identifiers for consistency
   await client.query(`
     CREATE TABLE IF NOT EXISTS fhir_conditions (
       id SERIAL PRIMARY KEY,
-      anonymous_patient_id TEXT NOT NULL,
+      "anonymousPatientId" TEXT NOT NULL,
       upi VARCHAR(64) NOT NULL,
-      condition_code VARCHAR(20) NOT NULL,
-      condition_name VARCHAR(255) NOT NULL,
-      diagnosis_date DATE,
-      hospital_id VARCHAR(32) NOT NULL,
+      "conditionCode" VARCHAR(20) NOT NULL,
+      "conditionName" VARCHAR(255) NOT NULL,
+      "diagnosisDate" DATE,
+      "hospitalId" VARCHAR(32) NOT NULL,
       severity VARCHAR(50),
       status VARCHAR(50),
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-      FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+      FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
     )
   `);
 
-  // FHIR Observations Table
+  // FHIR Observations Table - Using camelCase with quoted identifiers for consistency
   await client.query(`
     CREATE TABLE IF NOT EXISTS fhir_observations (
       id SERIAL PRIMARY KEY,
-      anonymous_patient_id TEXT NOT NULL,
+      "anonymousPatientId" TEXT NOT NULL,
       upi VARCHAR(64) NOT NULL,
-      observation_code VARCHAR(50) NOT NULL,
-      observation_name VARCHAR(255) NOT NULL,
+      "observationCode" VARCHAR(50) NOT NULL,
+      "observationName" VARCHAR(255) NOT NULL,
       value TEXT,
       unit VARCHAR(50),
-      effective_date DATE NOT NULL,
-      hospital_id VARCHAR(32) NOT NULL,
-      reference_range TEXT,
+      "effectiveDate" DATE NOT NULL,
+      "hospitalId" VARCHAR(32) NOT NULL,
+      "referenceRange" TEXT,
       interpretation VARCHAR(50),
-      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "createdAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (upi) REFERENCES patient_identities(upi),
-      FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id)
+      FOREIGN KEY ("hospitalId") REFERENCES hospitals(hospital_id)
     )
   `);
 
@@ -936,20 +936,21 @@ async function createPostgreSQLTables() {
   `);
 
   // Create indexes for FHIR tables
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_anonymous_id ON fhir_patients(anonymous_patient_id)`);
+  // FHIR table indexes - Using camelCase with quoted identifiers for consistency
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_anonymous_id ON fhir_patients("anonymousPatientId")`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_upi ON fhir_patients(upi)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_country ON fhir_patients(country)`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_hospital ON fhir_patients(hospital_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_hospital ON fhir_patients("hospitalId")`);
   
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_anonymous_id ON fhir_conditions(anonymous_patient_id)`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_code ON fhir_conditions(condition_code)`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_name ON fhir_conditions(condition_name)`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_date ON fhir_conditions(diagnosis_date)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_anonymous_id ON fhir_conditions("anonymousPatientId")`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_code ON fhir_conditions("conditionCode")`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_name ON fhir_conditions("conditionName")`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_conditions_date ON fhir_conditions("diagnosisDate")`);
   
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_anonymous_id ON fhir_observations(anonymous_patient_id)`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_code ON fhir_observations(observation_code)`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_name ON fhir_observations(observation_name)`);
-  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_date ON fhir_observations(effective_date)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_anonymous_id ON fhir_observations("anonymousPatientId")`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_code ON fhir_observations("observationCode")`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_name ON fhir_observations("observationName")`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_fhir_observations_date ON fhir_observations("effectiveDate")`);
   
   await client.query(`CREATE INDEX IF NOT EXISTS idx_datasets_hospital ON datasets(hospital_id)`);
   await client.query(`CREATE INDEX IF NOT EXISTS idx_datasets_country ON datasets(country)`);

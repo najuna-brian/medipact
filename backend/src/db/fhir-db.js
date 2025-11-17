@@ -12,7 +12,7 @@ import { promisify } from 'util';
  */
 export async function createFHIRPatient(patientData) {
   const db = getDatabase();
-  const dbType = db.constructor.name;
+  const dbType = getDatabaseType();
   
   const {
     anonymousPatientId,
@@ -24,22 +24,22 @@ export async function createFHIRPatient(patientData) {
     hospitalId
   } = patientData;
   
-  if (dbType === 'Client') {
-    // PostgreSQL
+  if (dbType === 'postgresql') {
+    // PostgreSQL uses camelCase with quoted identifiers
     const result = await db.query(
       `INSERT INTO fhir_patients (
-        anonymous_patient_id, upi, country, region, age_range, gender, hospital_id
+        "anonymousPatientId", upi, country, region, "ageRange", gender, "hospitalId"
       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *`,
       [anonymousPatientId, upi, country, region, ageRange, gender, hospitalId]
     );
     return mapPatientRow(result.rows[0]);
   } else {
-    // SQLite
+    // SQLite uses camelCase with quoted identifiers
     const run = promisify(db.run.bind(db));
     await run(
       `INSERT INTO fhir_patients (
-        anonymous_patient_id, upi, country, region, age_range, gender, hospital_id
+        "anonymousPatientId", upi, country, region, "ageRange", gender, "hospitalId"
       ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [anonymousPatientId, upi, country, region, ageRange, gender, hospitalId]
     );
@@ -52,18 +52,20 @@ export async function createFHIRPatient(patientData) {
  */
 export async function getFHIRPatientByAnonymousId(anonymousPatientId) {
   const db = getDatabase();
-  const dbType = db.constructor.name;
+  const dbType = getDatabaseType();
   
-  if (dbType === 'Client') {
+  if (dbType === 'postgresql') {
+    // PostgreSQL uses camelCase with quoted identifiers
     const result = await db.query(
-      'SELECT * FROM fhir_patients WHERE anonymous_patient_id = $1',
+      'SELECT * FROM fhir_patients WHERE "anonymousPatientId" = $1',
       [anonymousPatientId]
     );
     return result.rows.length > 0 ? mapPatientRow(result.rows[0]) : null;
   } else {
+    // SQLite uses camelCase with quoted identifiers
     const get = promisify(db.get.bind(db));
     const row = await get(
-      'SELECT * FROM fhir_patients WHERE anonymous_patient_id = ?',
+      'SELECT * FROM fhir_patients WHERE "anonymousPatientId" = ?',
       [anonymousPatientId]
     );
     return row ? mapPatientRow(row) : null;
@@ -75,7 +77,7 @@ export async function getFHIRPatientByAnonymousId(anonymousPatientId) {
  */
 export async function createFHIRCondition(conditionData) {
   const db = getDatabase();
-  const dbType = db.constructor.name;
+  const dbType = getDatabaseType();
   
   const {
     anonymousPatientId,
@@ -88,22 +90,24 @@ export async function createFHIRCondition(conditionData) {
     status
   } = conditionData;
   
-  if (dbType === 'Client') {
+  if (dbType === 'postgresql') {
+    // PostgreSQL uses camelCase with quoted identifiers
     const result = await db.query(
       `INSERT INTO fhir_conditions (
-        anonymous_patient_id, upi, condition_code, condition_name,
-        diagnosis_date, hospital_id, severity, status
+        "anonymousPatientId", upi, "conditionCode", "conditionName",
+        "diagnosisDate", "hospitalId", severity, status
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *`,
       [anonymousPatientId, upi, conditionCode, conditionName, diagnosisDate, hospitalId, severity, status]
     );
     return mapConditionRow(result.rows[0]);
   } else {
+    // SQLite uses camelCase with quoted identifiers
     const run = promisify(db.run.bind(db));
     await run(
       `INSERT INTO fhir_conditions (
-        anonymous_patient_id, upi, condition_code, condition_name,
-        diagnosis_date, hospital_id, severity, status
+        "anonymousPatientId", upi, "conditionCode", "conditionName",
+        "diagnosisDate", "hospitalId", severity, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [anonymousPatientId, upi, conditionCode, conditionName, diagnosisDate, hospitalId, severity, status]
     );
@@ -117,7 +121,7 @@ export async function createFHIRCondition(conditionData) {
  */
 export async function createFHIRObservation(observationData) {
   const db = getDatabase();
-  const dbType = db.constructor.name;
+  const dbType = getDatabaseType();
   
   const {
     anonymousPatientId,
@@ -132,22 +136,24 @@ export async function createFHIRObservation(observationData) {
     interpretation
   } = observationData;
   
-  if (dbType === 'Client') {
+  if (dbType === 'postgresql') {
+    // PostgreSQL uses camelCase with quoted identifiers
     const result = await db.query(
       `INSERT INTO fhir_observations (
-        anonymous_patient_id, upi, observation_code, observation_name,
-        value, unit, effective_date, hospital_id, reference_range, interpretation
+        "anonymousPatientId", upi, "observationCode", "observationName",
+        value, unit, "effectiveDate", "hospitalId", "referenceRange", interpretation
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *`,
       [anonymousPatientId, upi, observationCode, observationName, value, unit, effectiveDate, hospitalId, referenceRange, interpretation]
     );
     return mapObservationRow(result.rows[0]);
   } else {
+    // SQLite uses camelCase with quoted identifiers
     const run = promisify(db.run.bind(db));
     await run(
       `INSERT INTO fhir_observations (
-        anonymous_patient_id, upi, observation_code, observation_name,
-        value, unit, effective_date, hospital_id, reference_range, interpretation
+        "anonymousPatientId", upi, "observationCode", "observationName",
+        value, unit, "effectiveDate", "hospitalId", "referenceRange", interpretation
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [anonymousPatientId, upi, observationCode, observationName, value, unit, effectiveDate, hospitalId, referenceRange, interpretation]
     );
@@ -703,17 +709,18 @@ export async function getPatientsWithHospitals(filters = {}) {
  */
 function mapPatientRow(row) {
   if (!row) return null;
+  // Handle both camelCase (from PostgreSQL/SQLite with camelCase schema) and snake_case (legacy)
   return {
     id: row.id,
-    anonymousPatientId: row.anonymous_patient_id,
+    anonymousPatientId: row.anonymousPatientId || row.anonymous_patient_id,
     upi: row.upi,
     country: row.country,
     region: row.region,
-    ageRange: row.age_range,
+    ageRange: row.ageRange || row.age_range,
     gender: row.gender,
-    hospitalId: row.hospital_id,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
+    hospitalId: row.hospitalId || row.hospital_id,
+    createdAt: row.createdAt || row.created_at,
+    updatedAt: row.updatedAt || row.updated_at
   };
 }
 
@@ -722,17 +729,18 @@ function mapPatientRow(row) {
  */
 function mapConditionRow(row) {
   if (!row) return null;
+  // Handle both camelCase (from PostgreSQL/SQLite with camelCase schema) and snake_case (legacy)
   return {
     id: row.id,
-    anonymousPatientId: row.anonymous_patient_id,
+    anonymousPatientId: row.anonymousPatientId || row.anonymous_patient_id,
     upi: row.upi,
-    conditionCode: row.condition_code,
-    conditionName: row.condition_name,
-    diagnosisDate: row.diagnosis_date,
-    hospitalId: row.hospital_id,
+    conditionCode: row.conditionCode || row.condition_code,
+    conditionName: row.conditionName || row.condition_name,
+    diagnosisDate: row.diagnosisDate || row.diagnosis_date,
+    hospitalId: row.hospitalId || row.hospital_id,
     severity: row.severity,
     status: row.status,
-    createdAt: row.created_at
+    createdAt: row.createdAt || row.created_at
   };
 }
 
@@ -741,19 +749,20 @@ function mapConditionRow(row) {
  */
 function mapObservationRow(row) {
   if (!row) return null;
+  // Handle both camelCase (from PostgreSQL/SQLite with camelCase schema) and snake_case (legacy)
   return {
     id: row.id,
-    anonymousPatientId: row.anonymous_patient_id,
+    anonymousPatientId: row.anonymousPatientId || row.anonymous_patient_id,
     upi: row.upi,
-    observationCode: row.observation_code,
-    observationName: row.observation_name,
+    observationCode: row.observationCode || row.observation_code,
+    observationName: row.observationName || row.observation_name,
     value: row.value,
     unit: row.unit,
-    effectiveDate: row.effective_date,
-    hospitalId: row.hospital_id,
-    referenceRange: row.reference_range,
+    effectiveDate: row.effectiveDate || row.effective_date,
+    hospitalId: row.hospitalId || row.hospital_id,
+    referenceRange: row.referenceRange || row.reference_range,
     interpretation: row.interpretation,
-    createdAt: row.created_at
+    createdAt: row.createdAt || row.created_at
   };
 }
 
