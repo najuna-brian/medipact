@@ -301,7 +301,44 @@ export default function DocsOverviewPage() {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold text-gray-900">Documentation Sections</h2>
+        <h2 className="text-2xl font-bold text-gray-900">User Guides</h2>
+        <p className="mt-2 text-gray-600">Get started with MediPact based on your role:</p>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <a
+            href="/docs/for-patients"
+            className="block rounded-lg border-2 border-green-200 bg-green-50 p-6 transition-shadow hover:shadow-md"
+          >
+            <h3 className="text-lg font-semibold text-green-900">For Patients</h3>
+            <p className="mt-2 text-sm text-gray-700">
+              Learn how to store your medical records, control your data, and earn money when
+              researchers use your anonymized data.
+            </p>
+          </a>
+          <a
+            href="/docs/for-hospitals"
+            className="block rounded-lg border-2 border-blue-200 bg-blue-50 p-6 transition-shadow hover:shadow-md"
+          >
+            <h3 className="text-lg font-semibold text-blue-900">For Hospitals</h3>
+            <p className="mt-2 text-sm text-gray-700">
+              Learn how to upload patient data, generate revenue, and contribute to medical research
+              while maintaining privacy.
+            </p>
+          </a>
+          <a
+            href="/docs/for-researchers"
+            className="block rounded-lg border-2 border-purple-200 bg-purple-50 p-6 transition-shadow hover:shadow-md"
+          >
+            <h3 className="text-lg font-semibold text-purple-900">For Researchers</h3>
+            <p className="mt-2 text-sm text-gray-700">
+              Learn how to access high-quality, anonymized medical data for research with
+              transparent pricing and verification.
+            </p>
+          </a>
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-2xl font-bold text-gray-900">Core Documentation</h2>
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <a
             href="/docs/hedera"
@@ -309,8 +346,38 @@ export default function DocsOverviewPage() {
           >
             <h3 className="text-lg font-semibold text-[#00A9CE]">Hedera Integration</h3>
             <p className="mt-2 text-sm text-gray-600">
-              Learn how MediPact leverages HCS, EVM, Accounts, and HBAR for immutable proofs and
-              micropayments.
+              Learn how MediPact leverages HCS, EVM, Accounts, and HBAR at four distinct levels for
+              immutable proofs and micropayments.
+            </p>
+          </a>
+          <a
+            href="/docs/data-flow"
+            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+          >
+            <h3 className="text-lg font-semibold text-[#00A9CE]">Data Flow</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Complete data flow from upload to revenue distribution, showing all Hedera integration
+              levels and security measures.
+            </p>
+          </a>
+          <a
+            href="/docs/revenue-distribution"
+            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+          >
+            <h3 className="text-lg font-semibold text-[#00A9CE]">Revenue Distribution</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Detailed explanation of the 60/25/15 revenue split, fair attribution, and automated
+              distribution via smart contracts.
+            </p>
+          </a>
+          <a
+            href="/docs/privacy"
+            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+          >
+            <h3 className="text-lg font-semibold text-[#00A9CE]">Privacy & Security</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Explore our multi-layered security approach, anonymization techniques, and K-anonymity
+              enforcement.
             </p>
           </a>
           <a
@@ -320,24 +387,6 @@ export default function DocsOverviewPage() {
             <h3 className="text-lg font-semibold text-[#00A9CE]">System Architecture</h3>
             <p className="mt-2 text-sm text-gray-600">
               Understand the complete system architecture and component interactions.
-            </p>
-          </a>
-          <a
-            href="/docs/data-flow"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
-          >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Data Flow</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Follow the complete data flow from EHR export to marketplace purchase.
-            </p>
-          </a>
-          <a
-            href="/docs/privacy"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
-          >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Privacy & Security</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Explore our privacy guarantees, anonymization techniques, and K-anonymity enforcement.
             </p>
           </a>
           <a
@@ -360,21 +409,12 @@ export default function DocsOverviewPage() {
             </p>
           </a>
           <a
-            href="/docs/quick-start"
-            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
-          >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Quick Start</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Get started with MediPact in minutes with our setup guide.
-            </p>
-          </a>
-          <a
             href="/docs/pricing"
             className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
           >
-            <h3 className="text-lg font-semibold text-[#00A9CE]">Pricing & Revenue</h3>
+            <h3 className="text-lg font-semibold text-[#00A9CE]">Pricing Model</h3>
             <p className="mt-2 text-sm text-gray-600">
-              Learn about our category-based pricing model and fair revenue distribution.
+              Learn about our category-based pricing model, volume discounts, and USD display.
             </p>
           </a>
           <a
@@ -393,6 +433,15 @@ export default function DocsOverviewPage() {
             <h3 className="text-lg font-semibold text-[#00A9CE]">Wallet & Payments</h3>
             <p className="mt-2 text-sm text-gray-600">
               Learn about automatic wallet creation, withdrawals, and payment methods.
+            </p>
+          </a>
+          <a
+            href="/docs/quick-start"
+            className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
+          >
+            <h3 className="text-lg font-semibold text-[#00A9CE]">Quick Start</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Get started with MediPact in minutes with our setup guide.
             </p>
           </a>
           <a
