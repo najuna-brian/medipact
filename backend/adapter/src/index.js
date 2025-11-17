@@ -420,6 +420,7 @@ async function main() {
     const apiKey = process.env.HOSPITAL_API_KEY;
     const storageBackendApiUrl = process.env.BACKEND_API_URL;
     const storageHospitalId = process.env.HOSPITAL_ID || defaultContext.hospitalId;
+    let storageResult = null; // Declare outside if block for final summary
     
     if (apiKey && storageBackendApiUrl && storageHospitalId) {
       console.log('7. Storing FHIR resources to backend...');
@@ -471,18 +472,25 @@ async function main() {
         }
         
         process.stdout.write('   Starting storage...\n');
-        const storageResult = await storeFHIRResources(
+        storageResult = await storeFHIRResources(
           processedResources,
           storageHospitalId,
           apiKey
         );
-        process.stdout.write(`   ✓ Storage complete: ${storageResult.successful} successful, ${storageResult.failed} failed\n`);
+        process.stdout.write(`\n=== STORAGE SUMMARY ===\n`);
+        process.stdout.write(`   Successful: ${storageResult.successful}\n`);
+        process.stdout.write(`   Failed: ${storageResult.failed}\n`);
+        process.stdout.write(`   Errors: ${storageResult.errors.length}\n`);
         if (storageResult.errors && storageResult.errors.length > 0) {
-          process.stderr.write(`   ⚠️  Storage errors (${storageResult.errors.length}):\n`);
+          process.stderr.write(`\n   Storage Errors:\n`);
           storageResult.errors.forEach((err, idx) => {
             process.stderr.write(`     ${idx + 1}. ${err.resourceType}: ${err.error}\n`);
+            if (err.response && typeof err.response === 'object') {
+              process.stderr.write(`        Response: ${JSON.stringify(err.response).substring(0, 200)}\n`);
+            }
           });
         }
+        process.stdout.write(`=== END STORAGE SUMMARY ===\n\n`);
       } catch (error) {
         console.error(`   ✗ Storage failed:`, {
           message: error.message,
@@ -804,6 +812,16 @@ async function main() {
 
     // Close client
     client.close();
+    
+    // Final summary
+    console.log('\n=== FINAL SUMMARY ===');
+    console.log(`FHIR resources processed: ${processedResources.length}`);
+    console.log(`Consent proofs: ${consentResults.length}`);
+    console.log(`Data proofs: ${dataResults.length}`);
+    if (storageResult) {
+      console.log(`Storage: ${storageResult.successful} successful, ${storageResult.failed} failed`);
+    }
+    console.log('=== END SUMMARY ===\n');
     
     console.log('✓ All done!');
     
