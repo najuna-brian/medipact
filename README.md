@@ -133,35 +133,72 @@ graph TB
 
 ## 🔄 Data Flow
 
+MediPact uses Hedera at **four distinct levels** throughout the data flow:
+
+1. **Level 1: HCS (Hedera Consensus Service)** - Immutable storage of consent proofs and data provenance
+2. **Level 2: Smart Contracts (Hedera EVM)** - Automated consent management and revenue distribution
+3. **Level 3: Hedera Accounts** - Native account IDs (0.0.xxxxx) for seamless wallet management
+4. **Level 4: HBAR Payments** - Instant, low-cost micropayments for revenue distribution
+
 ```mermaid
 sequenceDiagram
     participant H as Hospital EHR
     participant A as Adapter
-    participant HCS as Hedera HCS
-    participant SC as Smart Contracts
-    participant B as Backend
+    participant HCS as Hedera HCS<br/>(Consent & Data Topics)
+    participant SC as Smart Contracts<br/>(ConsentManager & RevenueSplitter)
+    participant B as Backend<br/>(Database)
     participant M as Marketplace
     participant R as Researcher
+    participant HA as Hedera Accounts<br/>(0.0.xxxxx)
     
-    H->>A: Export EHR Data
-    A->>A: Anonymize PII<br/>Generate Anonymous IDs
-    A->>HCS: Submit Consent Proof
-    A->>HCS: Submit Data Proof
-    A->>SC: Record Consent
-    A->>B: Store Anonymized Data
-    B->>B: Create Dataset
+    Note over H,A: Data Collection & Processing
+    H->>A: Export EHR Data (CSV/FHIR)
+    A->>A: Stage 1: Storage Anonymization<br/>Remove PII, 5-year age ranges
+    A->>B: Store Stage 1 Data (FHIR format)
+    A->>A: Stage 2: Chain Anonymization<br/>10-year ranges, month/year dates
+    A->>A: Generate Hashes<br/>(Storage H1 + Chain H2)
     
+    Note over A,HCS: Hedera Level 1: Immutable Proofs
+    A->>HCS: Submit Consent Proof<br/>(Consent Topic)
+    A->>HCS: Submit Provenance Record<br/>(Data Topic: H1 + H2 + Proof)
+    HCS-->>A: Transaction ID (HashScan Link)
+    
+    Note over A,SC: Hedera Level 2: Smart Contracts
+    A->>SC: Record Consent<br/>(ConsentManager Contract)
+    SC-->>A: Consent Recorded (Tx ID)
+    
+    Note over A,B: Data Storage
+    A->>B: Store Anonymized Data<br/>(FHIR Resources)
+    B->>B: Create Dataset<br/>(Metadata + Topic IDs)
+    
+    Note over R,M: Researcher Access
     R->>M: Browse Datasets
     R->>M: Query with Filters
-    M->>B: Execute Query<br/>(Consent Validation)
-    B->>M: Return Results
-    R->>M: Purchase Dataset
-    M->>SC: Trigger Revenue Distribution
-    SC->>SC: Auto-Split: 60/25/15
-    SC->>R: Grant Access
-    R->>M: Download Data
+    M->>B: Execute Query<br/>(Consent Validation via SC)
+    B->>SC: Verify Consent Status
+    SC-->>B: Consent Valid
+    B->>M: Return Results (Preview)
     
-    Note over HCS,SC: All transactions<br/>verifiable on HashScan
+    Note over R,HA: Hedera Level 3: Payment
+    R->>M: Purchase Dataset
+    M->>R: Payment Request<br/>(Platform Account, Amount HBAR)
+    R->>HA: Send HBAR Payment<br/>(Researcher Account → Platform)
+    R->>M: Provide Transaction ID
+    M->>HA: Verify Payment<br/>(Query Transaction Receipt)
+    HA-->>M: Payment Verified
+    
+    Note over SC,HA: Hedera Level 4: Revenue Distribution
+    M->>SC: Trigger Revenue Distribution<br/>(RevenueSplitter Contract)
+    SC->>SC: Calculate Split: 60/25/15<br/>(Per Patient)
+    SC->>HA: Transfer 60% to Patient Account
+    SC->>HA: Transfer 25% to Hospital Account<br/>(Original Collector)
+    SC->>HA: Transfer 15% to Platform Account
+    HA-->>SC: Transfers Confirmed (Tx IDs)
+    SC-->>M: Distribution Complete
+    M->>R: Grant Access
+    R->>M: Download Data (CSV/FHIR)
+    
+    Note over HCS,HA: All Hedera Transactions<br/>Verifiable on HashScan
 ```
 
 ### Processing Pipeline
@@ -189,22 +226,53 @@ flowchart LR
 
 ---
 
+## 💰 Revenue Distribution
+
+### 60/25/15 Split
+
+Revenue from dataset purchases is automatically distributed:
+
+- **60% → Patient** - Direct compensation for data contribution
+- **25% → Hospital** - Original data collector (sole beneficiary)
+- **15% → Platform** - MediPact operations and development
+
+### Fair Attribution
+
+**Key Principle**: The hospital that originally collected a patient's data is the sole beneficiary of revenue from that data.
+
 **How It Works**:
-1. Researcher purchases dataset (pays in HBAR)
-2. RevenueSplitter contract receives payment
-3. **Automatically distributes**: 60% Patient, 25% Hospital (original collector), 15% Platform
-4. Each patient's 25% goes to the hospital that originally collected their data
-5. All transactions verifiable on HashScan
+1. Total payment is split equally among all patients in the dataset
+2. Each patient's share is then split 60/25/15
+3. Each patient's 25% goes to their original collecting hospital
+4. Multiple hospitals in a dataset each receive revenue only for their own patients
 
-**Benefits**: Trustless, Transparent, Instant, Low fees, Fair attribution
+**Example**: Dataset with 100 patients (60 from Hospital A, 40 from Hospital B), payment: 10,000 HBAR
+- Amount per patient: 100 HBAR
+- Hospital A receives: 60 × 25 HBAR = **1,500 HBAR**
+- Hospital B receives: 40 × 25 HBAR = **1,000 HBAR**
+- Patients receive: 100 × 60 HBAR = **6,000 HBAR**
+- Platform receives: 100 × 15 HBAR = **1,500 HBAR**
 
-**Revenue Model**: The hospital that originally collected the data is the sole beneficiary. See [Revenue Distribution Model](./docs/REVENUE_DISTRIBUTION_MODEL.md) for details.
+**Benefits**: Trustless, Transparent, Instant, Low fees (~$0.0001 per transfer), Fair attribution
+
+See [Revenue Distribution Guide](./docs/REVENUE_DISTRIBUTION_MODEL.md) for complete details.
 
 ---
 
-## 🔐 Privacy & Anonymization
+## 🔐 Privacy & Security
 
-### Before vs. After
+### Multi-Layered Security Architecture
+
+MediPact implements **6 layers of security**:
+
+1. **Double Anonymization** - Two-stage process removes all PII and generalizes data
+2. **K-Anonymity Enforcement** - Minimum 5 records per demographic group
+3. **Patient Consent Control** - Opt-in/opt-out, researcher approvals
+4. **Hedera Blockchain Verification** - Immutable consent records and data provenance
+5. **Encrypted Storage** - FHIR database with secure access controls
+6. **Access Control** - API keys, rate limiting, role-based permissions
+
+### Before vs. After Anonymization
 
 | Before (Raw) | After (Anonymized) |
 |--------------|-------------------|
@@ -216,6 +284,12 @@ flowchart LR
 | ✅ Medical Data | ✅ Medical Data: Preserved |
 | ✅ Demographics | ✅ Demographics: Preserved |
 
+### Double Anonymization Process
+
+- **Stage 1 (Storage)**: Removes PII, preserves 5-year age ranges, exact dates
+- **Stage 2 (Chain)**: Further generalizes to 10-year ranges, month/year dates
+- **Provenance Tracking**: Both hashes (H1 + H2) stored on Hedera with transformation proof
+
 ### K-Anonymity Protection
 
 - **Minimum 5 records** per demographic group
@@ -226,9 +300,11 @@ flowchart LR
 
 - ✅ **No PII on Blockchain**: Only anonymous IDs and hashes
 - ✅ **No Original Patient IDs**: ConsentManager stores only anonymous IDs
-- ✅ **Demographics Generalized**: Prevents re-identification
+- ✅ **Double Anonymization**: Two-stage process for maximum privacy
 - ✅ **K-Anonymity Enforced**: Privacy protection through grouping
-- ✅ **Consent Validation**: Database-level enforcement
+- ✅ **Consent Validation**: Database and smart contract level enforcement
+- ✅ **Patient Control**: Global opt-in/out, granular preferences
+- ✅ **Immutable Audit Trail**: All consent decisions on Hedera HCS
 
 ---
 
@@ -298,7 +374,7 @@ cd ../contracts && npm install
 ```bash
 # 2. Configure .env files (see Environment Variables section)
 # 3. Start services
-cd backend && npm start      # Port 3002
+cd backend && npm start      # Port 8080
 ```
 ```bash
 cd frontend && npm run dev   # Port 3000
@@ -315,15 +391,46 @@ cd adapter && npm start      # Process data
 ### Frontend (`frontend/.env.local`)
 
 ```env
-NEXT_PUBLIC_API_URL="http://localhost:3002"
+NEXT_PUBLIC_API_URL="http://localhost:8080"
+NEXT_PUBLIC_BACKEND_API_URL="http://localhost:8080"
 NEXT_PUBLIC_HEDERA_NETWORK="testnet"
+```
+
+### Backend (`backend/.env`)
+
+```env
+PORT=8080
+HEDERA_NETWORK=testnet
+OPERATOR_ID=0.0.xxxxx
+OPERATOR_KEY=your_private_key
+PLATFORM_HEDERA_ACCOUNT_ID=0.0.xxxxx
+```
+
+### Adapter (`backend/adapter/.env`)
+
+```env
+HEDERA_NETWORK=testnet
+OPERATOR_ID=0.0.xxxxx
+OPERATOR_KEY=your_private_key
 ```
 
 ---
 
 ## 📡 API Documentation
 
-**Interactive Swagger UI**: http://localhost:3002/api-docs
+**Interactive Swagger UI**: http://localhost:8080/api-docs
+
+**Complete Documentation**: 
+- [API Documentation](./docs/api) - Full API reference
+- [Data Flow Guide](./docs/data-flow) - Complete data flow with Hedera integration
+- [Revenue Distribution](./docs/revenue-distribution) - Revenue model details
+- [Hedera Integration](./docs/hedera) - Hedera services usage
+- [Privacy & Security](./docs/privacy) - Security architecture
+
+**User Guides**:
+- [For Patients](./docs/for-patients) - Patient guide
+- [For Hospitals](./docs/for-hospitals) - Hospital guide
+- [For Researchers](./docs/for-researchers) - Researcher guide
 
 ---
 
@@ -418,30 +525,83 @@ graph TB
 | **Automated HBAR Revenue Distribution** | 60/25/15 split managed by smart contract |
 | **Fair Revenue Model** | Original collecting hospital is sole beneficiary of their data |
 | **Category-Based Pricing** | 6 pricing tiers, 40% of market rates, volume discounts, USD display |
+| **Double Anonymization** | Two-stage anonymization with provenance tracking on Hedera |
+| **Multi-Layered Security** | 6-layer security architecture (anonymization, K-anonymity, consent, blockchain, encryption, access control) |
 | **Patient Identity System (UPI)** | Cross-hospital identity linking |
+| **Automatic Wallet Creation** | Hedera accounts created automatically, users never manage private keys |
+| **USD-First Display** | All balances shown in USD with HBAR below, dynamic exchange rates |
+| **Bank & Mobile Money Withdrawals** | Direct withdrawals to bank accounts or mobile money providers |
+| **Auto-Withdrawals** | Automatic withdrawals when balance reaches user-defined threshold |
 | **Temporary Hospital Access** | Time-limited, patient-approved data sharing for telemedicine |
 | **Consent Validation** | Enforced at the database and smart-contract levels |
-| **Multi-Dimensional Query Engine** | Filter by country, date, condition, demographics |
+| **Multi-Dimensional Query Engine** | Filter by country, date, condition, demographics, all 10 FHIR domains |
 | **Smart Contract Integration** | On-chain consent registry and revenue sharing |
 | **Rate Limiting** | Protection against abuse and DDoS attacks |
 | **Bcrypt Security** | Secure password and API key hashing |
 | **Role-Based Dashboards** | Patient, Hospital, Researcher, and Admin portals |
 | **HashScan Verification** | Publicly verifiable transactions on HashScan |
+| **Complete Test Suite** | Data flow, revenue flow, and system integration tests |
 
 ---
+
+## 🧪 Testing
+
+### Test Scripts
+
+MediPact includes comprehensive test scripts for verification:
+
+```bash
+# Test complete data flow (upload → processing → researcher access)
+node scripts/test-complete-data-flow.js
+# or
+./scripts/test-complete-data-flow.sh
+```
+
+```bash
+# Test revenue flow (USD → HBAR → distribution → wallets)
+node scripts/test-revenue-flow.js
+```
+
+```bash
+# Test revenue flow with wallet verification (requires test accounts)
+export RESEARCHER_ID=your_researcher_id
+export TEST_PATIENT_UPI=patient_upi
+export TEST_HOSPITAL_ID=hospital_id
+node scripts/test-revenue-flow-detailed.js
+```
+
+```bash
+# Verify system integration (frontend ↔ backend)
+node scripts/verify-system-integration.js
+```
+
+### Unit & Integration Tests
+
+```bash
+# Run adapter tests
+cd backend/adapter && npm test
+
+# Run backend tests
+cd backend && npm test
+
+# Run contract tests
+cd contracts && npm test
+```
+
+### Documentation
+
+- [Data Flow Test Guide](./scripts/DATA_FLOW_TEST_README.md)
+- [Revenue Flow Test Guide](./scripts/REVENUE_FLOW_TEST_README.md)
+- [System Integration Status](./docs/SYSTEM_INTEGRATION_STATUS.md)
 
 ## 🧪 Development
 
 ```bash
-# Run tests
-cd contracts && npm test
-cd adapter && npm run validate
-```
-```bash
 # Development mode
-cd backend && npm run dev
-cd frontend && npm run dev
+cd backend && npm run dev      # Port 8080
+cd frontend && npm run dev      # Port 3000
 ```
+
 ```bash
 # Deploy contracts
 cd contracts && npm run deploy:testnet
