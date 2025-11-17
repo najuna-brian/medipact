@@ -68,29 +68,45 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
   const resourceTypes = Object.keys(resourcesByType);
   console.log(`[Adapter Storage] Grouped into ${resourceTypeCount} resource types: ${resourceTypes.join(', ')}`);
   process.stdout.write(`[Adapter Storage] Grouped into ${resourceTypeCount} resource types: ${resourceTypes.join(', ')}\n`);
+  
+  console.log(`[Adapter Storage] About to await setImmediate after grouping`);
   await new Promise(resolve => {
     setImmediate(() => {
+      console.log(`[Adapter Storage] After grouping setImmediate - callback executed`);
       process.stdout.write(`[Adapter Storage] After grouping setImmediate\n`);
       resolve();
     });
   });
+  console.log(`[Adapter Storage] Past grouping setImmediate, continuing...`);
 
   // Store each resource type
   console.log(`[Adapter Storage] Will process ${resourceTypes.length} resource types`);
   process.stdout.write(`[Adapter Storage] Will process ${resourceTypes.length} resource types\n`);
-  await new Promise(resolve => setImmediate(resolve));
+  console.log(`[Adapter Storage] About to await second setImmediate`);
+  await new Promise(resolve => {
+    setImmediate(() => {
+      console.log(`[Adapter Storage] Second setImmediate callback executed`);
+      resolve();
+    });
+  });
+  console.log(`[Adapter Storage] Past second setImmediate, starting loop...`);
   
+  console.log(`[Adapter Storage] Starting loop, resourceTypes.length=${resourceTypes.length}`);
   for (let i = 0; i < resourceTypes.length; i++) {
+    console.log(`[Adapter Storage] Loop iteration ${i+1}/${resourceTypes.length}`);
     const resourceType = resourceTypes[i];
     const resources = resourcesByType[resourceType];
     console.log(`[Adapter Storage] [${i+1}/${resourceTypes.length}] Processing ${resourceType}: ${resources.length} resources`);
     process.stdout.write(`[Adapter Storage] [${i+1}/${resourceTypes.length}] Processing ${resourceType}: ${resources.length} resources\n`);
+    console.log(`[Adapter Storage] About to await setImmediate before storeResourceType`);
     await new Promise(resolve => {
       setImmediate(() => {
+        console.log(`[Adapter Storage] Before storeResourceType setImmediate callback executed`);
         process.stdout.write(`[Adapter Storage] Before storeResourceType call\n`);
         resolve();
       });
     });
+    console.log(`[Adapter Storage] Past setImmediate, about to call storeResourceType for ${resourceType}`);
     
     try {
       const response = await storeResourceType(resourceType, resources, hospitalId, apiKey);
@@ -159,23 +175,29 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
  * Store resources of a specific type
  */
 async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
+  console.log(`[storeResourceType] FUNCTION ENTRY: resourceType=${resourceType}, resources.length=${resources.length}`);
   const endpoint = getStorageEndpoint(resourceType);
+  console.log(`[storeResourceType] Got endpoint: ${endpoint}`);
   
   if (!endpoint) {
+    console.error(`[storeResourceType] ERROR: No endpoint for ${resourceType}`);
     throw new Error(`No storage endpoint for resource type: ${resourceType}`);
   }
 
   const url = `${BACKEND_API_URL}${endpoint}`;
+  console.log(`[storeResourceType] Full URL: ${url}`);
   // Use process.stdout.write for immediate output (not buffered)
   process.stdout.write(`[Adapter Storage] Storing ${resourceType}: ${resources.length} resources to ${url}\n`);
   process.stdout.write(`[Adapter Storage] Request details: url=${url}, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}, resourceCount=${resources.length}\n`);
   
   try {
     const requestStart = Date.now();
+    console.log(`[storeResourceType] About to make axios.post request`);
     process.stdout.write(`[Adapter Storage] Making request to ${url}...\n`);
     process.stdout.write(`[Adapter Storage] Request config: hasApiKey=${!!apiKey}, apiKeyLength=${apiKey?.length || 0}, hospitalId=${hospitalId}, timeout=10000\n`);
     
     // Make the request with timeout
+    console.log(`[storeResourceType] Calling axios.post with payload size: ${JSON.stringify({ hospitalId, resources: resources.length }).length} bytes`);
     const response = await axios.post(
       url,
       {
@@ -202,6 +224,7 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
       }
     );
     
+    console.log(`[storeResourceType] axios.post completed, status=${response.status}`);
     process.stdout.write(`[Adapter Storage] Request completed, processing response...\n`);
 
     const requestDuration = Date.now() - requestStart;
