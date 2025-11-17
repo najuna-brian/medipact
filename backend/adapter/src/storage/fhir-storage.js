@@ -16,9 +16,18 @@ const BACKEND_API_URL = process.env.BACKEND_API_URL || 'http://localhost:3002';
  * @returns {Promise<Object>} Storage results
  */
 export async function storeFHIRResources(processedResources, hospitalId, apiKey) {
-  // Force flush stdout immediately
-  process.stdout.write(`[Adapter Storage] storeFHIRResources called: ${processedResources.length} resources, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}\n`);
-  await new Promise(resolve => setImmediate(resolve)); // Force event loop tick
+  // Use both console.log and process.stdout.write for maximum visibility
+  console.log(`[Adapter Storage] FUNCTION ENTRY: storeFHIRResources called`);
+  console.log(`[Adapter Storage] Parameters: resources=${processedResources?.length || 'undefined'}, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}`);
+  process.stdout.write(`[Adapter Storage] storeFHIRResources called: ${processedResources?.length || 0} resources, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}\n`);
+  
+  // Force flush
+  await new Promise(resolve => {
+    setImmediate(() => {
+      process.stdout.write(`[Adapter Storage] After first setImmediate\n`);
+      resolve();
+    });
+  });
   
   if (!processedResources || !Array.isArray(processedResources)) {
     process.stderr.write(`[Adapter Storage] ERROR: processedResources is not an array!\n`);
@@ -55,18 +64,34 @@ export async function storeFHIRResources(processedResources, hospitalId, apiKey)
     return { successful: 0, failed: processedResources.length, errors: [{ error: error.message }] };
   }
 
-  process.stdout.write(`[Adapter Storage] Grouped into ${Object.keys(resourcesByType).length} resource types: ${Object.keys(resourcesByType).join(', ')}\n`);
-  await new Promise(resolve => setImmediate(resolve)); // Force event loop tick
+  const resourceTypeCount = Object.keys(resourcesByType).length;
+  const resourceTypes = Object.keys(resourcesByType);
+  console.log(`[Adapter Storage] Grouped into ${resourceTypeCount} resource types: ${resourceTypes.join(', ')}`);
+  process.stdout.write(`[Adapter Storage] Grouped into ${resourceTypeCount} resource types: ${resourceTypes.join(', ')}\n`);
+  await new Promise(resolve => {
+    setImmediate(() => {
+      process.stdout.write(`[Adapter Storage] After grouping setImmediate\n`);
+      resolve();
+    });
+  });
 
   // Store each resource type
   const resourceTypes = Object.keys(resourcesByType);
+  console.log(`[Adapter Storage] Will process ${resourceTypes.length} resource types`);
   process.stdout.write(`[Adapter Storage] Will process ${resourceTypes.length} resource types\n`);
+  await new Promise(resolve => setImmediate(resolve));
   
   for (let i = 0; i < resourceTypes.length; i++) {
     const resourceType = resourceTypes[i];
     const resources = resourcesByType[resourceType];
+    console.log(`[Adapter Storage] [${i+1}/${resourceTypes.length}] Processing ${resourceType}: ${resources.length} resources`);
     process.stdout.write(`[Adapter Storage] [${i+1}/${resourceTypes.length}] Processing ${resourceType}: ${resources.length} resources\n`);
-    await new Promise(resolve => setImmediate(resolve)); // Force event loop tick
+    await new Promise(resolve => {
+      setImmediate(() => {
+        process.stdout.write(`[Adapter Storage] Before storeResourceType call\n`);
+        resolve();
+      });
+    });
     
     try {
       const response = await storeResourceType(resourceType, resources, hospitalId, apiKey);

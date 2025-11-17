@@ -472,11 +472,26 @@ async function main() {
         }
         
         process.stdout.write('   Starting storage...\n');
-        storageResult = await storeFHIRResources(
-          processedResources,
-          storageHospitalId,
-          apiKey
-        );
+        console.log('[Index] About to call storeFHIRResources');
+        console.log(`[Index] processedResources length: ${processedResources?.length || 'undefined'}`);
+        console.log(`[Index] storageHospitalId: ${storageHospitalId}`);
+        console.log(`[Index] apiKey present: ${!!apiKey}`);
+        
+        try {
+          storageResult = await storeFHIRResources(
+            processedResources,
+            storageHospitalId,
+            apiKey
+          );
+          console.log('[Index] storeFHIRResources completed successfully');
+          console.log(`[Index] storageResult: ${JSON.stringify({ successful: storageResult.successful, failed: storageResult.failed, errors: storageResult.errors.length })}`);
+        } catch (error) {
+          console.error('[Index] storeFHIRResources threw an error:', error.message);
+          console.error('[Index] Error stack:', error.stack);
+          process.stderr.write(`[Index] Storage error: ${error.message}\n`);
+          storageResult = { successful: 0, failed: processedResources.length, errors: [{ error: error.message }] };
+        }
+        
         process.stdout.write(`\n=== STORAGE SUMMARY ===\n`);
         process.stdout.write(`   Successful: ${storageResult.successful}\n`);
         process.stdout.write(`   Failed: ${storageResult.failed}\n`);
