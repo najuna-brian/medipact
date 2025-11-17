@@ -452,6 +452,13 @@ router.post('/upload-csv', authenticateHospital, upload.single('file'), async (r
     let stdout = '';
     let stderr = '';
     try {
+      console.log('[CSV Upload] Executing adapter script:', adapterScript);
+      console.log('[CSV Upload] Adapter environment:', {
+        hasApiKey: !!env.HOSPITAL_API_KEY,
+        backendUrl: env.BACKEND_API_URL,
+        hospitalId: env.HOSPITAL_ID
+      });
+      
       const result = await execAsync(
         `cd "${adapterDir}" && node "${adapterScript}"`,
         {
@@ -461,12 +468,32 @@ router.post('/upload-csv', authenticateHospital, upload.single('file'), async (r
       );
       stdout = result.stdout || '';
       stderr = result.stderr || '';
+      
+      // Log adapter output for debugging
+      console.log('[CSV Upload] Adapter stdout length:', stdout.length);
+      console.log('[CSV Upload] Adapter stderr length:', stderr.length);
+      if (stdout.includes('STORAGE SUMMARY') || stdout.includes('storeFHIRResources')) {
+        console.log('[CSV Upload] Adapter storage output found in stdout');
+        // Extract storage summary
+        const storageMatch = stdout.match(/=== STORAGE SUMMARY ===[\s\S]*?Successful: (\d+)[\s\S]*?Failed: (\d+)/);
+        if (storageMatch) {
+          console.log('[CSV Upload] Storage summary:', {
+            successful: storageMatch[1],
+            failed: storageMatch[2]
+          });
+        }
+      }
+      if (stderr.includes('storeFHIRResources') || stderr.includes('Adapter Storage')) {
+        console.log('[CSV Upload] Adapter storage logs found in stderr');
+        // Log first 2000 chars of stderr for debugging
+        console.log('[CSV Upload] Adapter stderr preview:', stderr.substring(0, 2000));
+      }
     } catch (error) {
       stdout = error.stdout || '';
       stderr = error.stderr || '';
-      console.error('Adapter execution error:', error.message);
-      console.error('Adapter stdout:', stdout);
-      console.error('Adapter stderr:', stderr);
+      console.error('[CSV Upload] Adapter execution error:', error.message);
+      console.error('[CSV Upload] Adapter stdout:', stdout.substring(0, 2000));
+      console.error('[CSV Upload] Adapter stderr:', stderr.substring(0, 2000));
       
       // Clean up file
       await fs.unlink(inputFile).catch(() => {});

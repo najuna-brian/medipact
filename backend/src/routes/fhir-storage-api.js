@@ -50,6 +50,12 @@ async function authenticateAdapter(req, res, next) {
 
   req.hospitalId = hospitalId;
   console.log(`[FHIR Storage API] ✅ Authentication passed for hospital: ${hospitalId}`);
+  console.log(`[FHIR Storage API] Request details:`, {
+    method: req.method,
+    path: req.path,
+    bodyKeys: Object.keys(req.body || {}),
+    resourceCount: req.body?.resources?.length || 0
+  });
   next();
 }
 
@@ -207,19 +213,55 @@ async function storeResources(req, res, tableName) {
 
 /**
  * Store resource in PostgreSQL
+ * Converts camelCase field names from adapter to snake_case for database columns
+ * This matches the project standard: camelCase in JS/API, snake_case in DB
  */
 async function storeResourcePostgreSQL(db, tableName, resource, hospitalId) {
-  const columns = Object.keys(resource).filter(k => k !== 'id');
-  const values = columns.map(col => resource[col]);
+  // Convert camelCase to snake_case for column names (matches DB schema)
+  // Example: anonymousPatientId -> anonymous_patient_id, ageRange -> age_range
+  const convertToSnakeCase = (str) => {
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+  };
+  
+  // Filter out id and convert keys to snake_case to match database columns
+  const originalKeys = Object.keys(resource).filter(k => k !== 'id');
+  const columns = originalKeys.map(k => convertToSnakeCase(k));
+  const values = originalKeys.map(key => resource[key]);
+  
   const placeholders = columns.map((_, i) => `$${i + 1}`);
+  
+  // Determine conflict target based on table (use snake_case column names)
+  let conflictClause = '';
+  if (tableName === 'fhir_patients') {
+    conflictClause = 'ON CONFLICT (anonymous_patient_id, hospital_id) DO NOTHING';
+  } else if (tableName === 'fhir_encounters') {
+    conflictClause = 'ON CONFLICT (encounter_id, hospital_id) DO NOTHING';
+  } else {
+    // For other tables without unique constraints, try simple insert
+    conflictClause = '';
+  }
 
-  const query = `
-    INSERT INTO ${tableName} (${columns.join(', ')}, hospital_id)
-    VALUES (${placeholders.join(', ')}, $${columns.length + 1})
-    ON CONFLICT DO NOTHING
-  `;
+  const query = conflictClause
+    ? `INSERT INTO ${tableName} (${columns.join(', ')}, hospital_id)
+       VALUES (${placeholders.join(', ')}, $${columns.length + 1})
+       ${conflictClause}`
+    : `INSERT INTO ${tableName} (${columns.join(', ')}, hospital_id)
+       VALUES (${placeholders.join(', ')}, $${columns.length + 1})`;
 
-  await db.query(query, [...values, hospitalId]);
+  try {
+    await db.query(query, [...values, hospitalId]);
+  } catch (error) {
+    // If conflict clause fails or constraint doesn't exist, try without it
+    if (error.message.includes('ON CONFLICT') || error.code === '42601' || error.code === '42P01') {
+      const simpleQuery = `
+        INSERT INTO ${tableName} (${columns.join(', ')}, hospital_id)
+        VALUES (${placeholders.join(', ')}, $${columns.length + 1})
+      `;
+      await db.query(simpleQuery, [...values, hospitalId]);
+    } else {
+      throw error;
+    }
+  }
 }
 
 /**
@@ -245,95 +287,95 @@ async function storeResourceSQLite(db, tableName, resource, hospitalId) {
 // ============================================================================
 
 router.post('/store-fhir-patients', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_patients', 'patient');
+  await storeResources(req, res, 'fhir_patients');
 });
 
 router.post('/store-fhir-encounters', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_encounters', 'encounter');
+  await storeResources(req, res, 'fhir_encounters');
 });
 
 router.post('/store-fhir-conditions', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_conditions', 'condition');
+  await storeResources(req, res, 'fhir_conditions');
 });
 
 router.post('/store-fhir-observations', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_observations', 'observation');
+  await storeResources(req, res, 'fhir_observations');
 });
 
 router.post('/store-fhir-medication-requests', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_medication_requests', 'medicationRequest');
+  await storeResources(req, res, 'fhir_medication_requests');
 });
 
 router.post('/store-fhir-medication-administrations', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_medication_administrations', 'medicationAdministration');
+  await storeResources(req, res, 'fhir_medication_administrations');
 });
 
 router.post('/store-fhir-medication-statements', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_medication_statements', 'medicationStatement');
+  await storeResources(req, res, 'fhir_medication_statements');
 });
 
 router.post('/store-fhir-procedures', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_procedures', 'procedure');
+  await storeResources(req, res, 'fhir_procedures');
 });
 
 router.post('/store-fhir-diagnostic-reports', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_diagnostic_reports', 'diagnosticReport');
+  await storeResources(req, res, 'fhir_diagnostic_reports');
 });
 
 router.post('/store-fhir-imaging-studies', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_imaging_studies', 'imagingStudy');
+  await storeResources(req, res, 'fhir_imaging_studies');
 });
 
 router.post('/store-fhir-specimens', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_specimens', 'specimen');
+  await storeResources(req, res, 'fhir_specimens');
 });
 
 router.post('/store-fhir-allergies', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_allergies', 'allergy');
+  await storeResources(req, res, 'fhir_allergies');
 });
 
 router.post('/store-fhir-immunizations', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_immunizations', 'immunization');
+  await storeResources(req, res, 'fhir_immunizations');
 });
 
 router.post('/store-fhir-care-plans', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_care_plans', 'carePlan');
+  await storeResources(req, res, 'fhir_care_plans');
 });
 
 router.post('/store-fhir-care-teams', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_care_teams', 'careTeam');
+  await storeResources(req, res, 'fhir_care_teams');
 });
 
 router.post('/store-fhir-devices', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_devices', 'device');
+  await storeResources(req, res, 'fhir_devices');
 });
 
 router.post('/store-fhir-organizations', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_organizations', 'organization');
+  await storeResources(req, res, 'fhir_organizations');
 });
 
 router.post('/store-fhir-practitioners', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_practitioners', 'practitioner');
+  await storeResources(req, res, 'fhir_practitioners');
 });
 
 router.post('/store-fhir-locations', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_locations', 'location');
+  await storeResources(req, res, 'fhir_locations');
 });
 
 router.post('/store-fhir-coverage', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_coverage', 'coverage');
+  await storeResources(req, res, 'fhir_coverage');
 });
 
 router.post('/store-fhir-related-persons', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_related_persons', 'relatedPerson');
+  await storeResources(req, res, 'fhir_related_persons');
 });
 
 router.post('/store-fhir-provenance', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_provenance', 'provenance');
+  await storeResources(req, res, 'fhir_provenance');
 });
 
 router.post('/store-fhir-audit-events', authenticateAdapter, async (req, res) => {
-  await storeResources(req, res, 'fhir_audit_events', 'auditEvent');
+  await storeResources(req, res, 'fhir_audit_events');
 });
 
 export default router;
