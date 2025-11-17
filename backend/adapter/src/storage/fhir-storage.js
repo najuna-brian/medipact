@@ -103,25 +103,14 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
   }
 
   const url = `${BACKEND_API_URL}${endpoint}`;
-  console.log(`[Adapter Storage] Storing ${resourceType}: ${resources.length} resources to ${url}`);
-  console.log(`[Adapter Storage] Request details:`, {
-    url,
-    hospitalId,
-    apiKeyPresent: !!apiKey,
-    resourceCount: resources.length,
-    firstResourceKeys: resources[0] ? Object.keys(resources[0]).slice(0, 5) : []
-  });
+  // Use process.stdout.write for immediate output (not buffered)
+  process.stdout.write(`[Adapter Storage] Storing ${resourceType}: ${resources.length} resources to ${url}\n`);
+  process.stdout.write(`[Adapter Storage] Request details: url=${url}, hospitalId=${hospitalId}, apiKeyPresent=${!!apiKey}, resourceCount=${resources.length}\n`);
   
   try {
     const requestStart = Date.now();
-    console.log(`[Adapter Storage] Making request to ${url}...`);
-    console.log(`[Adapter Storage] Request config:`, {
-      hasApiKey: !!apiKey,
-      apiKeyLength: apiKey?.length || 0,
-      hospitalId,
-      resourceCount: resources.length,
-      timeout: 10000
-    });
+    process.stdout.write(`[Adapter Storage] Making request to ${url}...\n`);
+    process.stdout.write(`[Adapter Storage] Request config: hasApiKey=${!!apiKey}, apiKeyLength=${apiKey?.length || 0}, hospitalId=${hospitalId}, timeout=10000\n`);
     
     // Make the request with timeout
     const response = await axios.post(
@@ -150,17 +139,12 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
       }
     );
     
-    console.log(`[Adapter Storage] Request completed, processing response...`);
+    process.stdout.write(`[Adapter Storage] Request completed, processing response...\n`);
 
     const requestDuration = Date.now() - requestStart;
-    console.log(`[Adapter Storage] Successfully stored ${resourceType} (${requestDuration}ms):`, {
-      status: response.status,
-      statusText: response.statusText,
-      success: response.data?.success,
-      created: response.data?.results?.created,
-      errors: response.data?.results?.errors?.length || 0,
-      message: response.data?.message
-    });
+    const created = response.data?.results?.created || 0;
+    const errors = response.data?.results?.errors?.length || 0;
+    process.stdout.write(`[Adapter Storage] ✓ Successfully stored ${resourceType} (${requestDuration}ms): status=${response.status}, created=${created}, errors=${errors}\n`);
     return response.data;
   } catch (error) {
     const errorDetails = {
@@ -175,16 +159,19 @@ async function storeResourceType(resourceType, resources, hospitalId, apiKey) {
       errorDetails.status = error.response.status;
       errorDetails.statusText = error.response.statusText;
       errorDetails.data = error.response.data;
-      console.error(`[Adapter Storage] Request failed for ${resourceType} (HTTP ${error.response.status}):`, errorDetails);
+      process.stderr.write(`[Adapter Storage] ✗ Request failed for ${resourceType} (HTTP ${error.response.status}): ${error.message}\n`);
+      process.stderr.write(`[Adapter Storage] Error details: ${JSON.stringify(errorDetails)}\n`);
     } else if (error.request) {
       // Request was made but no response received
       errorDetails.requestMade = true;
       errorDetails.noResponse = true;
-      console.error(`[Adapter Storage] Request failed for ${resourceType} (No response):`, errorDetails);
+      process.stderr.write(`[Adapter Storage] ✗ Request failed for ${resourceType} (No response): ${error.message}\n`);
+      process.stderr.write(`[Adapter Storage] Error details: ${JSON.stringify(errorDetails)}\n`);
     } else {
       // Error setting up request
       errorDetails.setupError = true;
-      console.error(`[Adapter Storage] Request failed for ${resourceType} (Setup error):`, errorDetails);
+      process.stderr.write(`[Adapter Storage] ✗ Request failed for ${resourceType} (Setup error): ${error.message}\n`);
+      process.stderr.write(`[Adapter Storage] Error details: ${JSON.stringify(errorDetails)}\n`);
     }
     
     throw error;

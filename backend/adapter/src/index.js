@@ -470,14 +470,18 @@ async function main() {
           }
         }
         
+        process.stdout.write('   Starting storage...\n');
         const storageResult = await storeFHIRResources(
           processedResources,
           storageHospitalId,
           apiKey
         );
-        console.log(`   ✓ Stored: ${storageResult.successful} successful, ${storageResult.failed} failed\n`);
+        process.stdout.write(`   ✓ Storage complete: ${storageResult.successful} successful, ${storageResult.failed} failed\n`);
         if (storageResult.errors && storageResult.errors.length > 0) {
-          console.error(`   ⚠️  Storage errors:`, storageResult.errors);
+          process.stderr.write(`   ⚠️  Storage errors (${storageResult.errors.length}):\n`);
+          storageResult.errors.forEach((err, idx) => {
+            process.stderr.write(`     ${idx + 1}. ${err.resourceType}: ${err.error}\n`);
+          });
         }
       } catch (error) {
         console.error(`   ✗ Storage failed:`, {
