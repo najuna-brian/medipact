@@ -82,6 +82,125 @@ graph LR
 
 ---
 
+## 🏥 Hedera Ecosystem for Healthcare Data
+
+MediPact leverages the complete Hedera ecosystem to solve healthcare data challenges:
+
+```mermaid
+graph TB
+    subgraph "Healthcare Data Sources"
+        EHR[🏥 Hospital EHR Systems<br/>CSV/FHIR Export]
+        PATIENT[👤 Patient Records<br/>Demographics, Conditions, Observations]
+    end
+    
+    subgraph "MediPact Processing"
+        ADAPTER[Adapter<br/>Anonymization & FHIR Conversion]
+        BACKEND[Backend<br/>Database & API]
+    end
+    
+    subgraph "Hedera HCS - Immutable Proofs"
+        CONSENT_TOPIC[Consent Topic<br/>Patient Consent Records]
+        DATA_TOPIC[Data Topic<br/>Provenance Hashes H1 + H2]
+        HASHSCAN[HashScan<br/>Public Verification]
+    end
+    
+    subgraph "Hedera EVM - Smart Contracts"
+        CONSENT_MGR[ConsentManager<br/>On-Chain Consent Registry]
+        REVENUE[RevenueSplitter<br/>60/25/15 Auto-Distribution]
+    end
+    
+    subgraph "Hedera Accounts - Native Wallets"
+        PAT_ACCT[Patient Accounts<br/>0.0.xxxxx]
+        HOSP_ACCT[Hospital Accounts<br/>0.0.xxxxx]
+        RES_ACCT[Researcher Accounts<br/>0.0.xxxxx]
+        PLATFORM[Platform Account<br/>0.0.xxxxx]
+    end
+    
+    subgraph "HBAR - Micropayments"
+        PAYMENT[Researcher Payment<br/>USD → HBAR]
+        DISTRIBUTION[Revenue Distribution<br/>60% Patient, 25% Hospital, 15% Platform]
+    end
+    
+    subgraph "Data Consumers"
+        RESEARCHER[🔬 Researchers<br/>Query & Purchase Datasets]
+    end
+    
+    %% Data Flow
+    EHR --> ADAPTER
+    PATIENT --> ADAPTER
+    ADAPTER --> BACKEND
+    
+    %% HCS Flow - Immutable Proofs
+    ADAPTER -->|Submit Consent Proof| CONSENT_TOPIC
+    ADAPTER -->|Submit Data Hash| DATA_TOPIC
+    CONSENT_TOPIC --> HASHSCAN
+    DATA_TOPIC --> HASHSCAN
+    
+    %% Smart Contract Flow
+    ADAPTER -->|Record Consent| CONSENT_MGR
+    BACKEND -->|Verify Consent| CONSENT_MGR
+    BACKEND -->|Trigger Distribution| REVENUE
+    
+    %% Account Creation
+    BACKEND -->|Create on Registration| HOSP_ACCT
+    BACKEND -->|Create on Registration| RES_ACCT
+    BACKEND -->|Create on First Payment| PAT_ACCT
+    
+    %% Payment Flow
+    RESEARCHER -->|Purchase Dataset| PAYMENT
+    PAYMENT -->|HBAR Transfer| PLATFORM
+    PLATFORM -->|Verify Payment| REVENUE
+    REVENUE -->|Auto-Distribute| DISTRIBUTION
+    
+    %% Revenue Distribution
+    DISTRIBUTION -->|60% HBAR| PAT_ACCT
+    DISTRIBUTION -->|25% HBAR| HOSP_ACCT
+    DISTRIBUTION -->|15% HBAR| PLATFORM
+    
+    %% Researcher Access
+    RESEARCHER -->|Query with Filters| BACKEND
+    BACKEND -->|Validate Consent| CONSENT_MGR
+    BACKEND -->|Grant Access| RESEARCHER
+    
+    style CONSENT_TOPIC fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style DATA_TOPIC fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style CONSENT_MGR fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style REVENUE fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style PAT_ACCT fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style HOSP_ACCT fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style RES_ACCT fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style PLATFORM fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
+    style HASHSCAN fill:#FFD700,color:#000,stroke:#FFA500,stroke-width:2px
+    style EHR fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    style PATIENT fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
+    style RESEARCHER fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
+```
+
+### How Hedera Solves Healthcare Data Challenges
+
+| Healthcare Challenge | Hedera Solution | Service Used | Impact |
+|---------------------|-----------------|--------------|--------|
+| **Consent Audit Trail** | Immutable consent records | HCS Topics | Legal compliance, unchangeable proof |
+| **Data Provenance** | Cryptographic hashes on-chain | HCS Topics | Researchers verify data authenticity |
+| **Automated Revenue Sharing** | Smart contract auto-distribution | Hedera EVM | Trustless, transparent 60/25/15 split |
+| **Patient Compensation** | Direct HBAR micropayments | HBAR + Accounts | Instant, low-cost payments to patients |
+| **Hospital Attribution** | Fair revenue to original collector | RevenueSplitter Contract | Ensures data collectors are rewarded |
+| **Regulatory Compliance** | Public verification on HashScan | All Services | Transparent, auditable transactions |
+| **Scalability** | High throughput (10,000+ TPS) | Hedera Network | Handles thousands of daily queries |
+| **Cost Efficiency** | Low fees (~$0.0001/message) | HCS | Enables micropayments at scale |
+
+### Why Hedera for Healthcare?
+
+✅ **HCS is Unique**: No other blockchain offers immutable message logging - perfect for consent and audit trails  
+✅ **Regulatory Ready**: Public verification on HashScan meets healthcare compliance requirements  
+✅ **Patient-Centric**: Native accounts (0.0.xxxxx) mean patients don't need crypto wallets  
+✅ **Fair Compensation**: Low fees enable micropayments to individual patients  
+✅ **Trustless**: Smart contracts ensure automatic, transparent revenue distribution  
+✅ **Carbon Negative**: Environmentally sustainable for healthcare organizations  
+✅ **EVM Compatible**: Leverage existing Solidity smart contracts with low gas costs
+
+---
+
 ## 🏗️ System Architecture
 
 ```mermaid
