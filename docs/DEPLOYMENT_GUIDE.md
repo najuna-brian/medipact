@@ -141,7 +141,8 @@ ENCRYPTION_KEY=0ac321771a915c7f832d1fe0dcd6c692864cdb4c13a27951d27411dcbdb9a8ef
 DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
 
 # Server Configuration
-PORT=3002
+# Note: Railway automatically sets PORT, but you can override if needed
+# PORT=8080  # Optional: Railway will auto-set PORT, default is 8080
 NODE_ENV=production
 
 # JWT Configuration (generate a strong secret!)
