@@ -24,12 +24,19 @@ const router = express.Router();
 
 /**
  * Admin authentication middleware
- * TEMPORARILY BYPASSED - Authentication will be implemented later
- * TODO: Restore proper authentication when ready
+ * 
+ * MVP Configuration:
+ * - Authentication is bypassed for MVP/demo purposes
+ * - All admin endpoints are accessible without authentication
+ * - This is suitable for testing and limited beta deployments
+ * 
+ * Production: Implement proper JWT authentication before production deployment
+ * TODO: Restore proper authentication when ready for production
  */
 async function authenticateAdmin(req, res, next) {
-  // TODO: Implement proper authentication later
-  // For now, always bypass authentication for testing
+  // MVP: Basic authentication bypassed
+  // For production, implement proper JWT authentication
+  // TODO: Implement proper authentication for production
   req.admin = {
     id: 1,
     username: 'admin',

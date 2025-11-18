@@ -208,18 +208,23 @@ export async function initiatePatientWithdrawal(upi, amountUSD = null) {
   // 3. Update withdrawal status
   
   try {
-    // TODO: Integrate with payment gateway (Flutterwave, Paystack, etc.)
-    // For now, we'll simulate the process
+    // MVP: Manual withdrawal processing
+    // Withdrawals are created with status 'processing' and completed manually by admin
+    // Admin uses the withdrawal dashboard to:
+    // 1. View pending withdrawals
+    // 2. Process payment via payment gateway (manual)
+    // 3. Mark withdrawal as completed via API
     
     // Update withdrawal status to processing
     await updateWithdrawalStatus(withdrawal.id, 'processing');
     
-    // In production, you'd:
-    // - Convert HBAR to fiat
-    // - Send to bank/mobile money
-    // - Update status to 'completed' or 'failed'
+    // TODO: For production, integrate with payment gateway (Flutterwave, Paystack, etc.)
+    // Production flow:
+    // - Convert HBAR to fiat via exchange
+    // - Send to bank/mobile money via payment gateway
+    // - Update status to 'completed' or 'failed' automatically
     
-    // For now, we'll leave it as 'processing' - admin can complete manually
+    // MVP: Admin completes withdrawals manually via admin dashboard
     
     return {
       withdrawalId: withdrawal.id,

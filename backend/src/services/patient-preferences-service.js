@@ -184,7 +184,8 @@ export async function requestPatientApproval(upi, researcherId, requestDetails =
     console.error('Error logging approval request to HCS:', error);
   }
   
-  // TODO: Notify patient (email/SMS)
+  // MVP: Patient notification stubbed (use in-app notifications)
+  // TODO: For production, integrate with email/SMS notification service
   
   return {
     status: 'pending',

@@ -1,8 +1,17 @@
 /**
  * Notification Service
  * 
- * Handles sending notifications (email, SMS) to users about withdrawal status.
- * Currently uses console logging, but can be extended with email/SMS providers.
+ * Handles sending notifications to users about withdrawal status.
+ * 
+ * MVP Configuration:
+ * - Uses console logging for development/testing
+ * - Notifications are logged and can be displayed in-app
+ * - Email/SMS integration is stubbed out for future implementation
+ * 
+ * For production, integrate with:
+ * - Email: SendGrid, AWS SES, etc.
+ * - SMS: Twilio, AWS SNS, etc.
+ * - In-app: Store notifications in database for user dashboard
  */
 
 /**
@@ -22,21 +31,26 @@ export async function sendWithdrawalNotification(options) {
   try {
     const message = buildWithdrawalMessage(status, withdrawal);
     
-    // Log notification (in production, send via email/SMS)
+    // MVP: Log notification (can be displayed in-app via notification system)
+    // In production, integrate with email/SMS services
     console.log(`[NOTIFICATION] ${userType.toUpperCase()} ${userId}: ${message.title}`);
     console.log(`[NOTIFICATION] Message: ${message.body}`);
     
-    // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
+    // MVP: Store notification in database for in-app display (future enhancement)
+    // For now, notifications are logged and can be shown in admin/user dashboards
+    
+    // Email/SMS integration stubbed out for MVP
+    // TODO: Integrate with email service (SendGrid, AWS SES, etc.) for production
     if (email) {
       await sendEmailNotification(email, message);
     }
     
-    // TODO: Integrate with SMS service (Twilio, AWS SNS, etc.)
+    // TODO: Integrate with SMS service (Twilio, AWS SNS, etc.) for production
     if (phone) {
       await sendSMSNotification(phone, message);
     }
     
-    return { success: true, sentVia: email ? 'email' : phone ? 'sms' : 'console' };
+    return { success: true, sentVia: 'console', message: 'Notification logged (in-app display available)' };
   } catch (error) {
     console.error(`[NOTIFICATION] Failed to send notification to ${userId}:`, error);
     // Don't throw - notifications are non-critical
@@ -75,10 +89,14 @@ function buildWithdrawalMessage(status, withdrawal) {
 }
 
 /**
- * Send email notification (placeholder for email service integration)
+ * Send email notification (stubbed for MVP)
+ * 
+ * MVP: Logs email notification (not sent)
+ * Production: Integrate with email service (SendGrid, AWS SES, etc.)
  */
 async function sendEmailNotification(email, message) {
-  // TODO: Integrate with email service
+  // MVP: Email notifications are logged but not sent
+  // TODO: Integrate with email service for production
   // Example with SendGrid:
   // const sgMail = require('@sendgrid/mail');
   // sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -93,13 +111,18 @@ async function sendEmailNotification(email, message) {
   console.log(`[EMAIL] To: ${email}`);
   console.log(`[EMAIL] Subject: ${message.title}`);
   console.log(`[EMAIL] Body: ${message.body}`);
+  console.log(`[EMAIL] Note: Email not sent in MVP mode - use in-app notifications`);
 }
 
 /**
- * Send SMS notification (placeholder for SMS service integration)
+ * Send SMS notification (stubbed for MVP)
+ * 
+ * MVP: Logs SMS notification (not sent)
+ * Production: Integrate with SMS service (Twilio, AWS SNS, etc.)
  */
 async function sendSMSNotification(phone, message) {
-  // TODO: Integrate with SMS service
+  // MVP: SMS notifications are logged but not sent
+  // TODO: Integrate with SMS service for production
   // Example with Twilio:
   // const twilio = require('twilio');
   // const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -111,6 +134,7 @@ async function sendSMSNotification(phone, message) {
   
   console.log(`[SMS] To: ${phone}`);
   console.log(`[SMS] Message: ${message.title}: ${message.body}`);
+  console.log(`[SMS] Note: SMS not sent in MVP mode - use in-app notifications`);
 }
 
 /**

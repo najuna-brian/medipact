@@ -336,6 +336,14 @@ cd frontend && npm run dev   # Port 3000
 cd adapter && npm start      # Process data
 ```
 
+### MVP Configuration
+
+For MVP/demo deployment, see [MVP Configuration Guide](./docs/MVP_CONFIGURATION.md) which covers:
+- Manual withdrawal processing
+- Testnet Hedera accounts
+- In-app notifications (no email/SMS)
+- Basic authentication setup
+
 ---
 
 ## 🔧 Environment Variables

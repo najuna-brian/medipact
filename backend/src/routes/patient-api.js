@@ -543,8 +543,8 @@ router.post('/retrieve-upi', async (req, res) => {
       });
     }
     
-    // TODO: Send UPI via email/SMS
-    // For now, just return it (in production, send via email/SMS service)
+    // MVP: UPI returned in response (not sent via email/SMS)
+    // TODO: For production, integrate with email/SMS service to send UPI securely
     res.json({
       message: 'UPI retrieved successfully',
       upi: upi,

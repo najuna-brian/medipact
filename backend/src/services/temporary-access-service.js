@@ -103,7 +103,8 @@ export async function requestTemporaryAccess(requestData) {
     console.error('Error logging temporary access request to HCS:', error);
   }
   
-  // TODO: Notify patient (email/SMS/push notification)
+  // MVP: Patient notification stubbed (use in-app notifications)
+  // TODO: For production, integrate with email/SMS/push notification service
   
   return request;
 }
@@ -151,7 +152,8 @@ export async function approveTemporaryAccessRequest(requestId, upi) {
     console.error('Error logging approval to HCS:', error);
   }
   
-  // TODO: Notify requesting hospital
+  // MVP: Hospital notification stubbed (use in-app notifications)
+  // TODO: For production, integrate with email/SMS notification service
   
   return approved;
 }
@@ -198,7 +200,8 @@ export async function rejectTemporaryAccessRequest(requestId, upi) {
     console.error('Error logging rejection to HCS:', error);
   }
   
-  // TODO: Notify requesting hospital
+  // MVP: Hospital notification stubbed (use in-app notifications)
+  // TODO: For production, integrate with email/SMS notification service
   
   return rejected;
 }
@@ -245,7 +248,8 @@ export async function revokeTemporaryAccessRequest(requestId, upi) {
     console.error('Error logging revocation to HCS:', error);
   }
   
-  // TODO: Notify requesting hospital
+  // MVP: Hospital notification stubbed (use in-app notifications)
+  // TODO: For production, integrate with email/SMS notification service
   
   return revoked;
 }
