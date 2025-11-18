@@ -80,7 +80,6 @@ export function FlattenedCSVPreview({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
               <FileSpreadsheet className="h-5 w-5" />
@@ -91,15 +90,6 @@ export function FlattenedCSVPreview({
               {hasMore && ` (showing first 10 of ${rows.length})`}
             </p>
           </div>
-          <Button 
-            onClick={handleExport} 
-            disabled={isExporting || !researcherId}
-            size="sm"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            {isExporting ? 'Exporting...' : 'Export CSV'}
-          </Button>
-        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">

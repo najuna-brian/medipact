@@ -474,7 +474,7 @@ router.post('/datasets/:datasetId/export', async (req, res) => {
  */
 router.post('/purchase', purchaseLimiter, async (req, res) => {
   try {
-    const { researcherId, datasetId, patientUPI, hospitalId, amount, transactionId } = req.body;
+    const { researcherId, datasetId, patientUPI, hospitalId, amount, transactionId, queryFilters } = req.body;
     
     if (!researcherId || !amount) {
       return res.status(400).json({ 
@@ -556,6 +556,7 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
     // If datasetId is provided, use dataset-based distribution
     // This splits payment equally among all patients and uses each patient's specific hospital
     let distributionResult;
+    let patientUPIs = []; // Initialize patient UPIs array
     
     if (datasetId) {
       // Dataset purchase: split equally among all patients, each patient's hospital gets their share
@@ -593,15 +594,44 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
         hospitalId,
         distribution: result.distribution
       };
+    } else if (queryFilters) {
+      // Query-based purchase: use query filters to get patients and distribute revenue
+      const { queryFHIRResources } = await import('../db/fhir-db.js');
+      const filters = { ...queryFilters };
+      filters.limit = 10000; // Get all matching patients
+      const patients = await queryFHIRResources(filters);
+      patientUPIs = [...new Set(patients.map(p => p.upi))];
+      
+      if (patientUPIs.length === 0) {
+        return res.status(400).json({ 
+          error: 'No patients found matching query filters. Cannot distribute revenue.' 
+        });
+      }
+      
+      // For query-based purchases, distribute revenue equally among all matching patients
+      // Each patient's hospital gets their share
+      const { distributeBulkRevenue } = await import('../services/adapter-integration-service.js');
+      const sales = patientUPIs.map(upi => ({
+        patientUPI: upi,
+        amount: totalTinybars / patientUPIs.length // Equal split per patient
+      }));
+      
+      const bulkResult = await distributeBulkRevenue(sales, process.env.REVENUE_SPLITTER_ADDRESS || null);
+      
+      distributionResult = {
+        success: true,
+        method: 'query-based',
+        patientCount: patientUPIs.length,
+        distribution: bulkResult
+      };
     } else {
       return res.status(400).json({ 
-        error: 'Either datasetId or both patientUPI and hospitalId are required for revenue distribution.' 
+        error: 'Either datasetId, (patientUPI and hospitalId), or queryFilters are required for revenue distribution.' 
       });
     }
     
-    // Verify dataset exists and get patient UPIs
+    // Verify dataset exists and get patient UPIs (if not already done)
     let dataset = null;
-    let patientUPIs = [];
     
     if (datasetId) {
       dataset = await getDataset(datasetId);
@@ -609,25 +639,27 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
         return res.status(404).json({ error: 'Dataset not found' });
       }
       
-      // Get all patient UPIs in this dataset
-      const { queryFHIRResources } = await import('../db/fhir-db.js');
-      const filters = {
-        country: dataset.country,
-        startDate: dataset.dateRangeStart,
-        endDate: dataset.dateRangeEnd
-      };
-      if (dataset.conditionCodes) {
-        const codes = typeof dataset.conditionCodes === 'string' 
-          ? JSON.parse(dataset.conditionCodes) 
-          : dataset.conditionCodes;
-        if (codes && codes.length > 0) {
-          filters.conditionCode = codes[0];
+      // Get all patient UPIs in this dataset (if not already set)
+      if (patientUPIs.length === 0) {
+        const { queryFHIRResources } = await import('../db/fhir-db.js');
+        const filters = {
+          country: dataset.country,
+          startDate: dataset.dateRangeStart,
+          endDate: dataset.dateRangeEnd
+        };
+        if (dataset.conditionCodes) {
+          const codes = typeof dataset.conditionCodes === 'string' 
+            ? JSON.parse(dataset.conditionCodes) 
+            : dataset.conditionCodes;
+          if (codes && codes.length > 0) {
+            filters.conditionCode = codes[0];
+          }
         }
+        filters.limit = 10000; // Get all patients
+        const patients = await queryFHIRResources(filters);
+        patientUPIs = [...new Set(patients.map(p => p.upi))];
       }
-      filters.limit = 10000; // Get all patients
-      const patients = await queryFHIRResources(filters);
-      patientUPIs = [...new Set(patients.map(p => p.upi))];
-    } else if (patientUPI) {
+    } else if (patientUPI && !queryFilters) {
       patientUPIs = [patientUPI];
     }
     
@@ -659,47 +691,49 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
     const dbType = getDatabaseType();
     const purchaseId = `PUR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     
-    // Store purchase record
-    if (datasetId) {
-      const revenueHash = distributionResult?.distribution?.hash || null;
-      if (dbType === 'postgresql') {
-        await run(
-          `INSERT INTO purchases (
-            id, researcher_id, dataset_id, amount, currency, hedera_transaction_id, 
-            revenue_distribution_hash, access_type, status, purchased_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
-          ON CONFLICT (id) DO NOTHING`,
-          [
-            purchaseId,
-            researcherId,
-            datasetId,
-            amountHBAR,
-            'HBAR',
-            transactionId || null,
-            revenueHash,
-            'download',
-            'completed'
-          ]
-        );
-      } else {
-        await run(
-          `INSERT OR IGNORE INTO purchases (
-            id, researcher_id, dataset_id, amount, currency, hedera_transaction_id, 
-            revenue_distribution_hash, access_type, status, purchased_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-          [
-            purchaseId,
-            researcherId,
-            datasetId,
-            amountHBAR,
-            'HBAR',
-            transactionId || null,
-            revenueHash,
-            'download',
-            'completed'
-          ]
-        );
-      }
+    // Store purchase record (datasetId can be null for query-based purchases)
+    const revenueHash = distributionResult?.distribution?.hash || 
+                       (distributionResult?.distribution && Array.isArray(distributionResult.distribution) 
+                         ? distributionResult.distribution[0]?.hash 
+                         : null);
+    
+    if (dbType === 'postgresql') {
+      await run(
+        `INSERT INTO purchases (
+          id, researcher_id, dataset_id, amount, currency, hedera_transaction_id, 
+          revenue_distribution_hash, access_type, status, purchased_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+        ON CONFLICT (id) DO NOTHING`,
+        [
+          purchaseId,
+          researcherId,
+          datasetId || null, // Can be null for query-based purchases
+          amountHBAR,
+          'HBAR',
+          transactionId || null,
+          revenueHash,
+          'download',
+          'completed'
+        ]
+      );
+    } else {
+      await run(
+        `INSERT OR IGNORE INTO purchases (
+          id, researcher_id, dataset_id, amount, currency, hedera_transaction_id, 
+          revenue_distribution_hash, access_type, status, purchased_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+        [
+          purchaseId,
+          researcherId,
+          datasetId || null, // Can be null for query-based purchases
+          amountHBAR,
+          'HBAR',
+          transactionId || null,
+          revenueHash,
+          'download',
+          'completed'
+        ]
+      );
     }
     
     // Get USD amount using dynamic exchange rate

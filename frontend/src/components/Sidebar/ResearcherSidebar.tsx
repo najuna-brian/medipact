@@ -6,11 +6,7 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
-  Database,
-  TrendingUp,
-  FileDown,
-  BarChart3,
-  Settings,
+  Search,
   Wallet,
   Menu,
   X,
@@ -21,12 +17,8 @@ import { Button } from '@/components/ui/button';
 
 const researcherNavItems = [
   { name: 'Dashboard', href: '/researcher/dashboard', icon: LayoutDashboard },
-  { name: 'Browse Catalog', href: '/researcher/catalog', icon: Database },
-  { name: 'My Projects', href: '/researcher/projects', icon: TrendingUp },
-  { name: 'Purchase History', href: '/researcher/purchases', icon: FileDown },
+  { name: 'Search Data', href: '/researcher/query', icon: Search },
   { name: 'Wallet', href: '/researcher/wallet', icon: Wallet },
-  { name: 'Analytics', href: '/researcher/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/researcher/settings', icon: Settings },
 ];
 
 export function ResearcherSidebar() {

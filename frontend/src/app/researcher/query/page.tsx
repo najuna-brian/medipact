@@ -27,6 +27,8 @@ import HashScanLink from '@/components/HashScanLink/HashScanLink';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FlattenedCSVPreview } from '@/components/FlattenedCSVPreview/FlattenedCSVPreview';
+import { PurchaseFlow } from '@/components/PurchaseFlow/PurchaseFlow';
+import { ResearcherSidebar } from '@/components/Sidebar/ResearcherSidebar';
 
 function ResearcherQueryPageContent() {
   const router = useRouter();
@@ -120,7 +122,9 @@ function ResearcherQueryPageContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <ResearcherSidebar />
+      <div className="ml-0 md:ml-64">
+        <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="mb-2 text-3xl font-bold">Query Data</h1>
           <p className="text-muted-foreground">
@@ -207,42 +211,6 @@ function ResearcherQueryPageContent() {
                   </div>
                 </div>
 
-                {queryResult.preview && (
-                  <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-                    <div className="flex items-start gap-2">
-                      <EyeOff className="mt-0.5 h-5 w-5 text-amber-600" />
-                      <div className="flex-1">
-                        <p className="font-medium text-amber-900">Preview Mode</p>
-                        <p className="mt-1 text-sm text-amber-700">
-                          You're viewing a preview with {queryResult.count} records found. To view
-                          the full anonymized data and verify it on Hedera HashScan, purchase access
-                          to the dataset.
-                        </p>
-                        <div className="mt-3 flex gap-2">
-                          <Button
-                            onClick={() => router.push('/researcher/catalog')}
-                            variant="default"
-                          >
-                            <DollarSign className="mr-2 h-4 w-4" />
-                            Browse Datasets
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              // Navigate to catalog with current filters pre-filled
-                              const params = new URLSearchParams();
-                              if (queryFilters?.country)
-                                params.set('country', queryFilters.country);
-                              router.push(`/researcher/catalog?${params.toString()}`);
-                            }}
-                          >
-                            Find Matching Dataset
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {purchaseSuccess && (
                   <Alert className="mt-4 border-green-200 bg-green-50">
@@ -257,135 +225,37 @@ function ResearcherQueryPageContent() {
 
             {/* Data Results - Show Flattened CSV Preview if format is csv-flattened */}
             {queryResult.format === 'csv-flattened' && queryResult.csvData && (
-              <FlattenedCSVPreview
-                csvData={queryResult.csvData}
-                recordCount={queryResult.recordCount || queryResult.count}
-                filters={queryFilters || {}}
-                researcherId={researcherId}
-              />
+              <>
+                <FlattenedCSVPreview
+                  csvData={queryResult.csvData}
+                  recordCount={queryResult.recordCount || queryResult.count}
+                  filters={queryFilters || {}}
+                  researcherId={researcherId}
+                  onExport={undefined} // Remove export from preview, use purchase flow instead
+                />
+                {/* Purchase Flow - Show after preview */}
+                <PurchaseFlow
+                  recordCount={queryResult.recordCount || queryResult.count}
+                  filters={queryFilters || {}}
+                  researcherId={researcherId || ''}
+                  onPurchaseSuccess={() => {
+                    // Refetch query to show full data
+                    refetch();
+                  }}
+                />
+              </>
             )}
 
-            {/* Data Results - Show JSON format if format is json */}
+            {/* Purchase Flow for JSON format results */}
             {queryResult.format !== 'csv-flattened' && queryResult.results && queryResult.results.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Anonymized Patient Data</CardTitle>
-                  <CardDescription>
-                    All data is anonymized and verified on Hedera HashScan
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {queryResult.results.map((patient: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="rounded-lg border bg-white p-4 transition-shadow hover:shadow-md"
-                      >
-                        <div className="mb-3 flex items-start justify-between">
-                          <div>
-                            <div className="mb-2 flex items-center gap-2">
-                              <Badge variant="info" className="font-mono">
-                                {patient.anonymousPatientId || `Patient ${idx + 1}`}
-                              </Badge>
-                              {patient.country && (
-                                <Badge variant="default">{patient.country}</Badge>
-                              )}
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              {patient.ageRange && (
-                                <div>
-                                  <span className="text-muted-foreground">Age: </span>
-                                  <span className="font-medium">{patient.ageRange}</span>
-                                </div>
-                              )}
-                              {patient.gender && (
-                                <div>
-                                  <span className="text-muted-foreground">Gender: </span>
-                                  <span className="font-medium">{patient.gender}</span>
-                                </div>
-                              )}
-                              {patient.hospitalId && (
-                                <div>
-                                  <span className="text-muted-foreground">Hospital: </span>
-                                  <span className="font-mono text-xs">{patient.hospitalId}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          {queryResult.dataTopicId && (
-                            <a
-                              href={`https://hashscan.io/${process.env.NEXT_PUBLIC_HEDERA_NETWORK || 'testnet'}/topic/${queryResult.dataTopicId}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              Verify on HashScan
-                            </a>
-                          )}
-                        </div>
-
-                        {/* Medical Data */}
-                        {(patient.conditions || patient.observations || patient.medications) && (
-                          <div className="mt-3 space-y-2 border-t pt-3">
-                            {patient.conditions && patient.conditions.length > 0 && (
-                              <div>
-                                <p className="mb-1 text-xs font-medium text-muted-foreground">
-                                  Conditions:
-                                </p>
-                                <div className="flex flex-wrap gap-1">
-                                  {patient.conditions.slice(0, 3).map((cond: any, cIdx: number) => (
-                                    <Badge key={cIdx} variant="info" className="text-xs">
-                                      {cond.conditionName || cond.conditionCode}
-                                    </Badge>
-                                  ))}
-                                  {patient.conditions.length > 3 && (
-                                    <Badge variant="info" className="text-xs">
-                                      +{patient.conditions.length - 3} more
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {patient.observations && patient.observations.length > 0 && (
-                              <div>
-                                <p className="mb-1 text-xs font-medium text-muted-foreground">
-                                  Observations:
-                                </p>
-                                <div className="flex flex-wrap gap-1">
-                                  {patient.observations
-                                    .slice(0, 3)
-                                    .map((obs: any, oIdx: number) => (
-                                      <Badge key={oIdx} variant="default" className="text-xs">
-                                        {obs.observationName || obs.observationCode}
-                                      </Badge>
-                                    ))}
-                                  {patient.observations.length > 3 && (
-                                    <Badge variant="info" className="text-xs">
-                                      +{patient.observations.length - 3} more
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-between border-t pt-4">
-                    <p className="text-sm text-muted-foreground">
-                      Showing {queryResult.results.length} of {queryResult.count} records
-                    </p>
-                    <Button variant="outline" size="sm">
-                      <Download className="mr-2 h-4 w-4" />
-                      Export Results
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <PurchaseFlow
+                recordCount={queryResult.count}
+                filters={queryFilters || {}}
+                researcherId={researcherId || ''}
+                onPurchaseSuccess={() => {
+                  refetch();
+                }}
+              />
             )}
 
             {queryResult.results && queryResult.results.length === 0 && (
@@ -437,6 +307,7 @@ function ResearcherQueryPageContent() {
             </CardContent>
           </Card>
         )}
+        </div>
       </div>
     </div>
   );

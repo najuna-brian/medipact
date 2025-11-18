@@ -88,22 +88,23 @@ export interface FilterOptions {
 
 export interface PurchaseRequest {
   researcherId: string;
-  datasetId: string;
+  datasetId?: string; // Optional for query-based purchases
   amount: number;
   patientUPI?: string;
   hospitalId?: string;
   transactionId?: string; // Optional: for payment verification
+  queryFilters?: QueryFilters; // Optional: for query-based purchases
 }
 
 export interface PurchaseResponse {
   message: string;
   purchaseId: string;
-  datasetId: string;
+  datasetId?: string; // Optional for query-based purchases
   amount: string;
   amountHBAR?: number;
   amountUSD?: number;
   transactionId?: string;
-  revenueDistribution: any;
+  revenueDistribution?: any;
   accessGranted: boolean;
   downloadUrl?: string;
   verified?: boolean;

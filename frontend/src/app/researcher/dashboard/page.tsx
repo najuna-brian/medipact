@@ -7,12 +7,12 @@ import {
   Database,
   DollarSign,
   FileDown,
-  TrendingUp,
   Shield,
   AlertCircle,
   Wallet,
   Coins,
   ExternalLink,
+  Search,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -248,18 +248,7 @@ export default function ResearcherDashboardPage() {
             </Card>
           )}
 
-          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Datasets Purchased</CardTitle>
-                <Database className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">Total datasets</p>
-              </CardContent>
-            </Card>
-
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
@@ -273,12 +262,12 @@ export default function ResearcherDashboardPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Datasets Accessed</CardTitle>
+                <Database className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">0</div>
-                <p className="text-xs text-muted-foreground">Research projects</p>
+                <p className="text-xs text-muted-foreground">Total datasets</p>
               </CardContent>
             </Card>
 
@@ -300,22 +289,10 @@ export default function ResearcherDashboardPage() {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Link href="/researcher/catalog">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Database className="mr-2 h-4 w-4" />
-                    Browse Catalog
-                  </Button>
-                </Link>
-                <Link href="/researcher/projects">
-                  <Button variant="outline" className="w-full justify-start">
-                    <TrendingUp className="mr-2 h-4 w-4" />
-                    My Projects
-                  </Button>
-                </Link>
-                <Link href="/researcher/purchases">
-                  <Button variant="outline" className="w-full justify-start">
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Purchase History
+                <Link href="/researcher/query">
+                  <Button className="w-full justify-start" size="lg">
+                    <Search className="mr-2 h-5 w-5" />
+                    Search Data
                   </Button>
                 </Link>
               </CardContent>

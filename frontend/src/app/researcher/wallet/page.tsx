@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import HashScanLink from '@/components/HashScanLink/HashScanLink';
 import { Label } from '@/components/ui/label';
 import {
   Wallet,
@@ -20,6 +21,8 @@ import { HederaAccountId } from '@/components/HederaAccountId/HederaAccountId';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getResearcherBalance } from '@/lib/api/wallet';
 import type { WalletBalance } from '@/lib/api/wallet';
+import { getResearcherPurchases } from '@/lib/api/marketplace';
+import { ResearcherSidebar } from '@/components/Sidebar/ResearcherSidebar';
 
 const API_URL =
   process.env.NEXT_PUBLIC_BACKEND_API_URL ||
@@ -29,6 +32,7 @@ const API_URL =
 export default function ResearcherWalletPage() {
   const [researcherId, setResearcherId] = useState<string | null>(null);
   const [balance, setBalance] = useState<WalletBalance | null>(null);
+  const [purchases, setPurchases] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -49,8 +53,12 @@ export default function ResearcherWalletPage() {
   const fetchBalance = async (id: string) => {
     try {
       setRefreshing(true);
-      const data = await getResearcherBalance(id);
-      setBalance(data);
+      const [balanceData, purchasesData] = await Promise.all([
+        getResearcherBalance(id),
+        getResearcherPurchases(id, 10).catch(() => ({ purchases: [], count: 0 }))
+      ]);
+      setBalance(balanceData);
+      setPurchases(purchasesData.purchases || []);
       setError(null);
     } catch (error: any) {
       console.error('Error fetching balance:', error);
@@ -104,7 +112,9 @@ export default function ResearcherWalletPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <ResearcherSidebar />
+      <div className="ml-0 md:ml-64">
+        <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="mb-2 text-3xl font-bold">Wallet</h1>
           <p className="text-muted-foreground">
@@ -312,6 +322,62 @@ export default function ResearcherWalletPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Recent Transactions */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Recent Transactions</CardTitle>
+              <CardDescription>Your recent purchases and payments</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {purchases.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No transactions yet. Purchase data to see transactions here.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {purchases.map((purchase) => (
+                    <div
+                      key={purchase.id}
+                      className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-4"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">
+                            {purchase.datasetName || 'Data Purchase'}
+                          </span>
+                          <Badge
+                            variant={
+                              purchase.status === 'completed'
+                                ? 'default'
+                                : purchase.status === 'pending'
+                                  ? 'secondary'
+                                  : 'destructive'
+                            }
+                            className="text-xs"
+                          >
+                            {purchase.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(purchase.purchasedAt).toLocaleDateString()} •{' '}
+                          {purchase.amount.toFixed(4)} HBAR (${purchase.amountUSD?.toFixed(2) || '0.00'})
+                        </p>
+                      </div>
+                      {purchase.hederaTransactionId && (
+                        <HashScanLink
+                          transactionId={purchase.hederaTransactionId}
+                          label="View"
+                          variant="link"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
