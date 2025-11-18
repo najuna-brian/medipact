@@ -12,7 +12,7 @@
  * Also calculates USD prices for existing datasets based on current HBAR price.
  */
 
-import { getDatabase, getDatabaseType } from '../src/db/database.js';
+import { initDatabase, getDatabase, getDatabaseType, closeDatabase } from '../src/db/database.js';
 import { hbarToUSD } from '../src/services/pricing-service.js';
 
 const HBAR_TO_USD = 0.16; // Current exchange rate
@@ -123,6 +123,8 @@ async function migrateSQLite(db) {
 
 async function main() {
   try {
+    // Initialize database first
+    await initDatabase();
     const db = getDatabase();
     const dbType = getDatabaseType();
     
@@ -135,9 +137,11 @@ async function main() {
     }
     
     console.log('\n✅ Migration completed successfully!\n');
+    await closeDatabase();
     process.exit(0);
   } catch (error) {
     console.error('\n❌ Migration failed:', error);
+    await closeDatabase().catch(() => {});
     process.exit(1);
   }
 }
