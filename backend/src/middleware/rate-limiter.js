@@ -19,8 +19,17 @@ export const generalLimiter = rateLimit({
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  // Skip rate limiting for health checks
-  skip: (req) => req.path === '/health',
+  // Skip rate limiting for health checks and demo data population
+  skip: (req) => {
+    // Skip for health checks
+    if (req.path === '/health') return true;
+    // Skip for demo data population script (check for special header)
+    if (req.headers['x-demo-population'] === process.env.DEMO_POPULATION_SECRET || 
+        req.headers['x-demo-population'] === 'demo-populate-allow') {
+      return true;
+    }
+    return false;
+  },
 });
 
 /**

@@ -427,6 +427,31 @@ See `env.example` for complete configuration options.
 
 ## 🧪 Testing
 
+### Demo Data Population
+
+For MVP presentations and demos, populate the database with comprehensive test data:
+
+```bash
+# Populate with demo data (hospitals, researchers, patients, FHIR data)
+cd backend
+npm run populate-demo
+
+# Custom configuration
+PATIENTS_PER_HOSPITAL=500 NUM_HOSPITALS=5 npm run populate-demo
+
+# For hosted environments
+API_URL=https://your-api.com npm run populate-demo
+```
+
+This creates:
+- Multiple verified hospitals with API keys
+- Multiple verified researchers
+- Hundreds/thousands of patients with realistic medical data
+- Multiple datasets ready for purchase
+- All login credentials saved to `backend/demo-credentials.json`
+
+See `backend/scripts/DEMO_DATA_README.md` for details.
+
 ### Test Scripts
 
 ```bash
