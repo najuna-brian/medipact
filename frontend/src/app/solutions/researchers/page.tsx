@@ -274,7 +274,8 @@ export default function ForResearchersPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600">
-                  Search by disease, country, and patient count. Export as flattened CSV (one row per patient) or FHIR Bundle
+                  Search by disease, country, and patient count. Export as flattened CSV (one row
+                  per patient) or FHIR Bundle
                 </p>
               </CardContent>
             </Card>
@@ -350,12 +351,71 @@ export default function ForResearchersPage() {
         </div>
       </section>
 
+      {/* How It Works - Search & Export */}
+      <section className="bg-white py-20">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="mb-8 text-center text-3xl font-bold">Easy Search & Export</h2>
+            <p className="mb-12 text-center text-gray-600">
+              Find exactly what you need with our intuitive search interface
+            </p>
+            <div className="grid gap-8 md:grid-cols-3">
+              <Card className="border-2 border-purple-200">
+                <CardHeader>
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-purple-600 text-xl font-bold text-white">
+                    1
+                  </div>
+                  <CardTitle>Search</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    Search by disease, country, and specify the exact number of patients you need.
+                    All fields are optional.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-purple-200">
+                <CardHeader>
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-purple-600 text-xl font-bold text-white">
+                    2
+                  </div>
+                  <CardTitle>Preview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    Preview your data in a table format. See the first 20 rows to verify the data
+                    structure matches your needs.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-purple-200">
+                <CardHeader>
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-purple-600 text-xl font-bold text-white">
+                    3
+                  </div>
+                  <CardTitle>Export</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    Export as flattened CSV - one row per patient with all data denormalized.
+                    Perfect for analysis in Excel, R, or Python.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="bg-gradient-to-br from-purple-600 to-teal-600 py-20 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="mb-4 text-4xl font-bold">Ready to Access Quality Medical Data?</h2>
           <p className="mx-auto mb-8 max-w-2xl text-xl opacity-90">
-            Join leading researchers, AI companies, and institutions worldwide
+            Search by disease, preview your data, and export in seconds. Join leading researchers,
+            AI companies, and institutions worldwide
           </p>
           <div className="flex justify-center gap-4">
             <Link href="/researcher/login">
