@@ -1446,5 +1446,164 @@ router.post('/migrate/fhir-columns-to-camelcase', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/admin/migrate/pricing-fields
+ * Run pricing fields migration to add camelCase columns
+ * Adds priceUsd, pricePerRecordHBAR, pricePerRecordUSD, pricingCategoryId, pricingCategory, volumeDiscount
+ */
+router.post('/migrate/pricing-fields', async (req, res) => {
+  try {
+    console.log('[ADMIN API] Starting pricing fields migration...');
+    
+    const { getDatabase, getDatabaseType } = await import('../db/database.js');
+    const { hbarToUSD } = await import('../services/pricing-service.js');
+    const db = getDatabase();
+    const dbType = getDatabaseType();
+    
+    console.log(`[ADMIN API] Database type: ${dbType}`);
+    
+    const results = {
+      columnsAdded: [],
+      columnsSkipped: [],
+      datasetsUpdated: 0,
+      errors: []
+    };
+    
+    // Get current HBAR to USD rate
+    const HBAR_TO_USD = await hbarToUSD(1);
+    
+    if (dbType === 'postgresql') {
+      // PostgreSQL migration
+      const alterQueries = [
+        { name: 'priceUsd', query: `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "priceUsd" DECIMAL(18, 8)` },
+        { name: 'pricePerRecordHBAR', query: `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "pricePerRecordHBAR" DECIMAL(18, 8)` },
+        { name: 'pricePerRecordUSD', query: `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "pricePerRecordUSD" DECIMAL(18, 8)` },
+        { name: 'pricingCategoryId', query: `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "pricingCategoryId" VARCHAR(32)` },
+        { name: 'pricingCategory', query: `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "pricingCategory" VARCHAR(100)` },
+        { name: 'volumeDiscount', query: `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "volumeDiscount" DECIMAL(5, 2) DEFAULT 0` }
+      ];
+      
+      for (const col of alterQueries) {
+        try {
+          await db.query(col.query);
+          results.columnsAdded.push(col.name);
+          console.log(`[ADMIN API] Added column: ${col.name}`);
+        } catch (error) {
+          if (error.message.includes('already exists') || error.message.includes('duplicate column')) {
+            results.columnsSkipped.push(col.name);
+            console.log(`[ADMIN API] Column ${col.name} already exists, skipping`);
+          } else {
+            results.errors.push({ column: col.name, error: error.message });
+            console.error(`[ADMIN API] Error adding column ${col.name}:`, error.message);
+          }
+        }
+      }
+      
+      // Update existing records with calculated USD prices
+      const updateQuery = `
+        UPDATE datasets
+        SET 
+          "priceUsd" = price * $1,
+          "pricePerRecordHBAR" = CASE 
+            WHEN record_count > 0 THEN price / record_count 
+            ELSE NULL 
+          END,
+          "pricePerRecordUSD" = CASE 
+            WHEN record_count > 0 THEN (price * $1) / record_count 
+            ELSE NULL 
+          END
+        WHERE "priceUsd" IS NULL AND price IS NOT NULL
+      `;
+      
+      try {
+        const result = await db.query(updateQuery, [HBAR_TO_USD]);
+        results.datasetsUpdated = result.rowCount || 0;
+        console.log(`[ADMIN API] Updated ${results.datasetsUpdated} existing datasets with USD prices`);
+      } catch (error) {
+        results.errors.push({ operation: 'update_datasets', error: error.message });
+        console.error(`[ADMIN API] Error updating existing records:`, error.message);
+      }
+    } else {
+      // SQLite migration
+      const { promisify } = await import('util');
+      const run = promisify(db.run.bind(db));
+      const checkColumn = promisify(db.get.bind(db));
+      
+      const columns = [
+        { name: 'priceUsd', quotedName: '"priceUsd"', type: 'REAL' },
+        { name: 'pricePerRecordHBAR', quotedName: '"pricePerRecordHBAR"', type: 'REAL' },
+        { name: 'pricePerRecordUSD', quotedName: '"pricePerRecordUSD"', type: 'REAL' },
+        { name: 'pricingCategoryId', quotedName: '"pricingCategoryId"', type: 'TEXT' },
+        { name: 'pricingCategory', quotedName: '"pricingCategory"', type: 'TEXT' },
+        { name: 'volumeDiscount', quotedName: '"volumeDiscount"', type: 'REAL DEFAULT 0' }
+      ];
+      
+      for (const col of columns) {
+        try {
+          // Check if column exists by trying to select it
+          await checkColumn(`SELECT ${col.quotedName} FROM datasets LIMIT 1`);
+          results.columnsSkipped.push(col.name);
+          console.log(`[ADMIN API] Column ${col.name} already exists`);
+        } catch (error) {
+          // Column doesn't exist, add it
+          try {
+            await run(`ALTER TABLE datasets ADD COLUMN ${col.quotedName} ${col.type}`);
+            results.columnsAdded.push(col.name);
+            console.log(`[ADMIN API] Added column: ${col.name}`);
+          } catch (addError) {
+            results.errors.push({ column: col.name, error: addError.message });
+            console.error(`[ADMIN API] Error adding column ${col.name}:`, addError.message);
+          }
+        }
+      }
+      
+      // Update existing records with calculated USD prices
+      const updateQuery = `
+        UPDATE datasets
+        SET 
+          "priceUsd" = price * ?,
+          "pricePerRecordHBAR" = CASE 
+            WHEN record_count > 0 THEN price / record_count 
+            ELSE NULL 
+          END,
+          "pricePerRecordUSD" = CASE 
+            WHEN record_count > 0 THEN (price * ?) / record_count 
+            ELSE NULL 
+          END
+        WHERE "priceUsd" IS NULL AND price IS NOT NULL
+      `;
+      
+      try {
+        const result = await run(updateQuery, [HBAR_TO_USD, HBAR_TO_USD]);
+        results.datasetsUpdated = result.changes || 0;
+        console.log(`[ADMIN API] Updated ${results.datasetsUpdated} existing datasets with USD prices`);
+      } catch (error) {
+        results.errors.push({ operation: 'update_datasets', error: error.message });
+        console.error(`[ADMIN API] Error updating existing records:`, error.message);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: 'Pricing fields migration completed',
+      databaseType: dbType,
+      results: {
+        columnsAdded: results.columnsAdded.length,
+        columnsSkipped: results.columnsSkipped.length,
+        datasetsUpdated: results.datasetsUpdated,
+        errors: results.errors.length,
+        details: results
+      }
+    });
+  } catch (error) {
+    console.error('[ADMIN API] Pricing fields migration error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Migration failed',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
 export default router;
 
