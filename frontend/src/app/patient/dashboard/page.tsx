@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { DollarSign, Activity, FileText, Settings, Building2, Loader2 } from 'lucide-react';
+import { DollarSign, FileText, Building2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { usePatientSummary, usePatientHospitals } from '@/hooks/usePatientIdentity';
@@ -109,34 +109,10 @@ function PatientDashboardContent() {
                     <CardTitle>Quick Actions</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <Link href="/patient/wallet">
-                      <Button variant="outline" className="w-full justify-start">
-                        <FileText className="mr-2 h-4 w-4" />
-                        View Health Wallet
-                      </Button>
-                    </Link>
-                    <Link href="/patient/connect">
-                      <Button variant="outline" className="w-full justify-start">
-                        <Building2 className="mr-2 h-4 w-4" />
-                        Connect Hospitals
-                      </Button>
-                    </Link>
                     <Link href="/patient/earnings">
-                      <Button variant="outline" className="w-full justify-start">
-                        <DollarSign className="mr-2 h-4 w-4" />
+                      <Button className="w-full justify-start" size="lg">
+                        <DollarSign className="mr-2 h-5 w-5" />
                         View Earnings
-                      </Button>
-                    </Link>
-                    <Link href="/patient/studies">
-                      <Button variant="outline" className="w-full justify-start">
-                        <Activity className="mr-2 h-4 w-4" />
-                        Browse Studies
-                      </Button>
-                    </Link>
-                    <Link href="/patient/marketplace">
-                      <Button variant="outline" className="w-full justify-start">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Marketplace Settings
                       </Button>
                     </Link>
                   </CardContent>

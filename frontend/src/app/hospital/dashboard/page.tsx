@@ -10,8 +10,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
-  ShieldCheck,
 } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useHospitalSession } from '@/hooks/useHospitalSession';
@@ -197,7 +197,7 @@ export default function HospitalDashboardPage() {
             </Card>
           )}
 
-          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
+          <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Patients Enrolled</CardTitle>
@@ -226,40 +226,16 @@ export default function HospitalDashboardPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Consent Status</CardTitle>
-                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">
-                  {consentStatsLoading ? '...' : consentStats?.patientsWithOnChainConsent || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">Patients with on-chain consent</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Consents</CardTitle>
-                <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {consentStatsLoading ? '...' : consentStats?.totalActiveConsents || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">Total active consents</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Consented Records</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {consentStatsLoading ? '...' : consentStats?.recordsWithActiveConsent || 0}
-                </div>
-                <p className="text-xs text-muted-foreground">Records with active consent</p>
+                <div className="text-2xl font-bold">-</div>
+                <p className="text-xs text-muted-foreground">
+                  <Link href="/hospital/revenue" className="text-primary hover:underline">
+                    View Revenue
+                  </Link>
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -271,50 +247,12 @@ export default function HospitalDashboardPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <Button
-                  variant="outline"
                   className="w-full justify-start"
+                  size="lg"
                   onClick={() => router.push('/hospital/upload')}
                 >
-                  <Upload className="mr-2 h-4 w-4" />
+                  <Upload className="mr-2 h-5 w-5" />
                   Upload Data
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => router.push('/hospital/consent')}
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  Manage Consent
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  disabled={
-                    !verificationStatus || verificationStatus.verificationStatus !== 'verified'
-                  }
-                  onClick={() => router.push('/hospital/patients/register')}
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  Register Patient
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  disabled={
-                    !verificationStatus || verificationStatus.verificationStatus !== 'verified'
-                  }
-                  onClick={() => router.push('/hospital/patients/bulk')}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  Bulk Upload
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => router.push('/hospital/revenue')}
-                >
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  View Revenue
                 </Button>
               </CardContent>
             </Card>

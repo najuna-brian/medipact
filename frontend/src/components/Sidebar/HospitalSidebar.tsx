@@ -7,12 +7,7 @@ import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
   Upload,
-  Shield,
-  Users,
   DollarSign,
-  Settings,
-  FileCheck,
-  CheckCircle2,
   Wallet,
   Menu,
   X,
@@ -24,13 +19,8 @@ import { Button } from '@/components/ui/button';
 const hospitalNavItems = [
   { name: 'Dashboard', href: '/hospital/dashboard', icon: LayoutDashboard },
   { name: 'Upload Data', href: '/hospital/upload', icon: Upload },
-  { name: 'Consent Management', href: '/hospital/consent', icon: Shield },
-  { name: 'Patient Enrollment', href: '/hospital/patients/register', icon: Users },
-  { name: 'Processing', href: '/hospital/processing', icon: FileCheck },
   { name: 'Revenue', href: '/hospital/revenue', icon: DollarSign },
   { name: 'Wallet', href: '/hospital/wallet', icon: Wallet },
-  { name: 'Verification', href: '/hospital/verification', icon: CheckCircle2 },
-  { name: 'Settings', href: '/hospital/settings', icon: Settings },
 ];
 
 export function HospitalSidebar() {

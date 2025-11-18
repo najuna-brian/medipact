@@ -113,8 +113,8 @@ function PatientEarningsContent() {
       <div className="ml-0 md:ml-64">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold">Earnings Dashboard</h1>
-            <p className="text-muted-foreground">Track your earnings from data sharing</p>
+            <h1 className="mb-2 text-3xl font-bold">Earnings</h1>
+            <p className="text-muted-foreground">Track your earnings from data sharing (60% of total revenue)</p>
           </div>
 
           <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">

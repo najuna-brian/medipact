@@ -114,7 +114,7 @@ export default function HospitalRevenuePage() {
       <div className="ml-0 md:ml-64">
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="mb-2 text-3xl font-bold">Revenue Tracking</h1>
+            <h1 className="mb-2 text-3xl font-bold">Revenue</h1>
             <p className="text-muted-foreground">
               Track your hospital&apos;s revenue from data sharing (25% of total)
             </p>

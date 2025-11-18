@@ -116,7 +116,8 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
           <Alert className="border-green-200 bg-green-100">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              Your payment has been verified and revenue has been distributed. You can now download the data.
+              Your payment has been verified and revenue has been distributed. You can now download
+              the data.
             </AlertDescription>
           </Alert>
 
@@ -145,10 +146,15 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
                   </span>
                   <span className="font-semibold">{platformShare.toFixed(4)} HBAR</span>
                 </div>
-                <div className="border-t pt-2 mt-2 flex justify-between font-bold">
+                <div className="mt-2 flex justify-between border-t pt-2 font-bold">
                   <span>Total</span>
                   <span>{totalPrice.toFixed(4)} HBAR</span>
                 </div>
+                {purchaseResult.revenueDistribution.patientCount && (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Distributed among {purchaseResult.revenueDistribution.patientCount} patients
+                  </p>
+                )}
               </div>
             </div>
           )}

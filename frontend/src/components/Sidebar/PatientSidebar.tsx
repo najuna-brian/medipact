@@ -6,12 +6,9 @@ import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
-  FileText,
   DollarSign,
-  Activity,
-  Settings,
+  Wallet,
   Building2,
-  ShoppingBag,
   Menu,
   X,
   ChevronLeft,
@@ -21,12 +18,9 @@ import { Button } from '@/components/ui/button';
 
 const patientNavItems = [
   { name: 'Dashboard', href: '/patient/dashboard', icon: LayoutDashboard },
-  { name: 'Health Wallet', href: '/patient/wallet', icon: FileText },
   { name: 'Earnings', href: '/patient/earnings', icon: DollarSign },
-  { name: 'Studies', href: '/patient/studies', icon: Activity },
-  { name: 'Marketplace', href: '/patient/marketplace', icon: ShoppingBag },
+  { name: 'Wallet', href: '/patient/wallet', icon: Wallet },
   { name: 'Connect Hospitals', href: '/patient/connect', icon: Building2 },
-  { name: 'Settings', href: '/patient/settings', icon: Settings },
 ];
 
 export function PatientSidebar() {
