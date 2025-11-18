@@ -155,171 +155,162 @@ export default function Navigation() {
     <nav className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/95 shadow-sm backdrop-blur-sm">
       <div className="container mx-auto px-6">
         <div className="flex h-20 items-center justify-between">
-          {/* Left: Logo and Desktop Navigation */}
-          <div className="flex items-center gap-12">
+          {/* Left: Logo */}
+          <div className="flex items-center gap-3">
             <Link
               href="/"
               className="text-2xl font-semibold tracking-tight text-gray-900 transition-colors hover:text-primary"
             >
               MediPact
             </Link>
-            {/* Desktop Navigation */}
-            <div className="hidden items-center gap-1 xl:flex">
-              {
-                publicNavigation.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={cn(
-                        'relative px-3 py-2 text-sm font-medium transition-colors',
-                        isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
-                      )}
-                    >
-                      {item.name}
-                      {isActive && (
-                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                      )}
-                    </Link>
-                  );
-                });
-              }
-
-              {
-                /* Solutions Dropdown */
-              }
-              {
-                !isAnyAuthenticated && (
-                  <div className="relative" ref={solutionsDropdownRef}>
-                    <button
-                      onClick={() => {
-                        setSolutionsDropdownOpen(!solutionsDropdownOpen);
-                        setResourcesDropdownOpen(false);
-                      }}
-                      className={cn(
-                        'flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors',
-                        pathname?.startsWith('/solutions')
-                          ? 'text-gray-900'
-                          : 'text-gray-600 hover:text-gray-900'
-                      )}
-                    >
-                      Solutions
-                      <ChevronDown
-                        className={cn(
-                          'h-3.5 w-3.5 transition-transform duration-200',
-                          solutionsDropdownOpen && 'rotate-180'
-                        )}
-                      />
-                    </button>
-                    {solutionsDropdownOpen && (
-                      <div className="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-lg border border-gray-200 bg-white py-1.5 shadow-xl">
-                        {solutionsNavigation.map((item) => {
-                          const isActive = pathname === item.href;
-                          return (
-                            <Link
-                              key={item.name}
-                              href={item.href}
-                              onClick={() => setSolutionsDropdownOpen(false)}
-                              className={cn(
-                                'flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors',
-                                isActive
-                                  ? 'bg-gray-50 font-medium text-gray-900'
-                                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                              )}
-                            >
-                              <item.icon className="h-4 w-4 text-gray-400" />
-                              {item.name}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-
-              {/* Resources Dropdown */}
-              {
-                !isAnyAuthenticated && (
-                  <div className="relative" ref={resourcesDropdownRef}>
-                    <button
-                      onClick={() => {
-                        setResourcesDropdownOpen(!resourcesDropdownOpen);
-                        setSolutionsDropdownOpen(false);
-                      }}
-                      className={cn(
-                        'flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors',
-                        pathname?.startsWith('/docs') ||
-                          pathname === '/pricing' ||
-                          pathname === '/about'
-                          ? 'text-gray-900'
-                          : 'text-gray-600 hover:text-gray-900'
-                      )}
-                    >
-                      Resources
-                      <ChevronDown
-                        className={cn(
-                          'h-3.5 w-3.5 transition-transform duration-200',
-                          resourcesDropdownOpen && 'rotate-180'
-                        )}
-                      />
-                    </button>
-                    {resourcesDropdownOpen && (
-                      <div className="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-lg border border-gray-200 bg-white py-1.5 shadow-xl">
-                        {resourcesNavigation.map((item) => {
-                          const isActive = pathname === item.href;
-                          return (
-                            <Link
-                              key={item.name}
-                              href={item.href}
-                              onClick={() => setResourcesDropdownOpen(false)}
-                              className={cn(
-                                'flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors',
-                                isActive
-                                  ? 'bg-gray-50 font-medium text-gray-900'
-                                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                              )}
-                            >
-                              <item.icon className="h-4 w-4 text-gray-400" />
-                              {item.name}
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-
-              {
-                /* Auth Navigation Items */
-              }
-              {
-                visibleAuthNavItems.map((item) => {
-                  const isActive = pathname?.startsWith(item.href);
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={cn(
-                        'relative px-3 py-2 text-sm font-medium transition-colors',
-                        isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
-                      )}
-                    >
-                      {item.name}
-                      {isActive && (
-                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                      )}
-                    </Link>
-                  );
-                });
-              }
-            </div>
+            <span className="hidden text-sm font-normal text-gray-500 lg:block">
+              True Healthcare Data Ownership
+            </span>
           </div>
 
-          {/* Right: User Context and Mobile Menu Button */}
+          {/* Right: Desktop Navigation, User Context, and Mobile Menu */}
           <div className="flex items-center gap-6">
+            {/* Desktop Navigation */}
+            <div className="hidden items-center gap-1 xl:flex">
+              {publicNavigation.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={cn(
+                      'relative px-3 py-2 text-sm font-medium transition-colors',
+                      isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                    )}
+                  >
+                    {item.name}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                    )}
+                  </Link>
+                );
+              })}
+
+              {/* Solutions Dropdown */}
+              {!isAnyAuthenticated && (
+                <div className="relative" ref={solutionsDropdownRef}>
+                  <button
+                    onClick={() => {
+                      setSolutionsDropdownOpen(!solutionsDropdownOpen);
+                      setResourcesDropdownOpen(false);
+                    }}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors',
+                      pathname?.startsWith('/solutions')
+                        ? 'text-gray-900'
+                        : 'text-gray-600 hover:text-gray-900'
+                    )}
+                  >
+                    Solutions
+                    <ChevronDown
+                      className={cn(
+                        'h-3.5 w-3.5 transition-transform duration-200',
+                        solutionsDropdownOpen && 'rotate-180'
+                      )}
+                    />
+                  </button>
+                  {solutionsDropdownOpen && (
+                    <div className="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-lg border border-gray-200 bg-white py-1.5 shadow-xl">
+                      {solutionsNavigation.map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            onClick={() => setSolutionsDropdownOpen(false)}
+                            className={cn(
+                              'flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors',
+                              isActive
+                                ? 'bg-gray-50 font-medium text-gray-900'
+                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            )}
+                          >
+                            <item.icon className="h-4 w-4 text-gray-400" />
+                            {item.name}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Resources Dropdown */}
+              {!isAnyAuthenticated && (
+                <div className="relative" ref={resourcesDropdownRef}>
+                  <button
+                    onClick={() => {
+                      setResourcesDropdownOpen(!resourcesDropdownOpen);
+                      setSolutionsDropdownOpen(false);
+                    }}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors',
+                      pathname?.startsWith('/docs') ||
+                        pathname === '/pricing' ||
+                        pathname === '/about'
+                        ? 'text-gray-900'
+                        : 'text-gray-600 hover:text-gray-900'
+                    )}
+                  >
+                    Resources
+                    <ChevronDown
+                      className={cn(
+                        'h-3.5 w-3.5 transition-transform duration-200',
+                        resourcesDropdownOpen && 'rotate-180'
+                      )}
+                    />
+                  </button>
+                  {resourcesDropdownOpen && (
+                    <div className="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-lg border border-gray-200 bg-white py-1.5 shadow-xl">
+                      {resourcesNavigation.map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            onClick={() => setResourcesDropdownOpen(false)}
+                            className={cn(
+                              'flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors',
+                              isActive
+                                ? 'bg-gray-50 font-medium text-gray-900'
+                                : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                            )}
+                          >
+                            <item.icon className="h-4 w-4 text-gray-400" />
+                            {item.name}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Auth Navigation Items */}
+              {visibleAuthNavItems.map((item) => {
+                const isActive = pathname?.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={cn(
+                      'relative px-3 py-2 text-sm font-medium transition-colors',
+                      isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                    )}
+                  >
+                    {item.name}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
             {/* User Context */}
             {isAnyAuthenticated && (
               <div className="hidden items-center gap-3 md:flex">
