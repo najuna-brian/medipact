@@ -2,9 +2,19 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, CheckCircle2, Mail, Phone, User, Key, ArrowRight } from 'lucide-react';
+import {
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  Mail,
+  Phone,
+  User,
+  Key,
+  ArrowRight,
+} from 'lucide-react';
 import { useRetrieveUPI, useRegisterPatient } from '@/hooks/usePatientIdentity';
 import { usePatientSession } from '@/hooks/usePatientSession';
 
@@ -119,8 +129,16 @@ export default function PatientLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="w-full max-w-2xl">
+    <div className="min-h-screen bg-gray-50 px-4 py-12">
+      <div className="mx-auto max-w-2xl">
+        <Breadcrumbs
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Solutions', href: '/solutions/patients' },
+            { label: 'Patient Login', href: '/patient/login' },
+          ]}
+          className="mb-6"
+        />
         <div className="mb-8 text-center">
           <h1 className="mb-2 text-4xl font-bold">Patient Portal</h1>
           <p className="text-muted-foreground">Access your medical records and health data</p>

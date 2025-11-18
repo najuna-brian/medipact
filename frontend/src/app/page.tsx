@@ -35,84 +35,46 @@ export default function HomePage() {
             <div className="mb-6 flex items-center justify-center gap-2">
               <Shield className="h-5 w-5 text-teal-400" />
               <span className="text-sm font-medium text-teal-200">
-                HIPAA Compliant • Blockchain Secured • Enterprise Grade
+                HIPAA Compliant • Hedera Secured • Enterprise Grade
               </span>
             </div>
 
             <div className="mb-12 text-center">
-              <h1 className="mb-6 text-4xl font-bold leading-tight md:text-6xl lg:text-7xl">MediPact</h1>
+              <h1 className="mb-6 text-4xl font-bold leading-tight md:text-6xl lg:text-7xl">
+                MediPact
+              </h1>
               <p className="mb-4 text-xl font-light text-blue-100 md:text-2xl lg:text-3xl">
                 Enterprise Healthcare Data Platform
               </p>
               <p className="mx-auto mb-8 max-w-3xl text-base leading-relaxed text-blue-200 md:text-lg lg:text-xl">
                 Secure medical records storage meets ethical data marketplace. Patients control
                 their health data, researchers access quality datasets, and healthcare institutions
-                streamline operations—all on blockchain.
+                streamline operations—all on Hedera.
               </p>
             </div>
 
-            {/* Dual Value Proposition Cards - Marketplace Primary, Health Vault Secondary */}
-            <div className="mx-auto mb-12 grid max-w-5xl gap-6 md:grid-cols-2">
-              {/* Research Data Marketplace - PRIMARY */}
-              <div className="rounded-xl border border-white/20 bg-white/10 p-6 backdrop-blur-lg transition-all hover:bg-white/15">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="rounded-lg bg-teal-500 p-3">
-                    <TrendingUp className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold">Research Data Marketplace</h3>
-                </div>
-                <p className="mb-4 text-blue-100">
-                  Access verified, anonymized medical datasets for research. Patients earn,
-                  researchers discover, healthcare advances.
-                </p>
-                <Link
-                  href="/marketplace"
-                  className="inline-flex items-center gap-2 font-medium text-white transition hover:text-teal-300"
-                >
-                  Browse Marketplace <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-
-              {/* Personal Health Vault - SECONDARY */}
-              <div className="rounded-xl border border-white/20 bg-white/10 p-6 backdrop-blur-lg transition-all hover:bg-white/15">
-                <div className="mb-4 flex items-center gap-3">
-                  <div className="rounded-lg bg-blue-500 p-3">
-                    <FileText className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-semibold">Your Personal Health Vault</h3>
-                </div>
-                <p className="mb-4 text-blue-100">
-                  Store, access, and manage your complete medical history from anywhere. Your
-                  records, your control, always available.
-                </p>
-                <Link
-                  href="/for-patients"
-                  className="inline-flex items-center gap-2 font-medium text-white transition hover:text-teal-300"
-                >
-                  Learn More <ArrowRight className="h-4 w-4" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Quick Access Buttons */}
+            {/* Primary CTA */}
             <div className="flex flex-wrap justify-center gap-4">
               <Link
-                href="/for-patients"
-                className="rounded-lg bg-white px-8 py-4 font-semibold text-slate-900 shadow-lg transition hover:bg-blue-50 hover:shadow-xl"
+                href="/solutions/patients"
+                className="rounded-lg bg-white px-8 py-4 font-semibold text-blue-600 shadow-lg transition hover:bg-blue-50 hover:shadow-xl"
               >
-                For Patients
+                Start as Patient
+                <ArrowRight className="ml-2 inline h-5 w-5" />
               </Link>
               <Link
-                href="/for-hospitals"
+                href="/solutions/hospitals"
                 className="rounded-lg bg-blue-600 px-8 py-4 font-semibold text-white shadow-lg transition hover:bg-blue-700 hover:shadow-xl"
               >
-                For Hospitals
+                Hospital Portal
+                <ArrowRight className="ml-2 inline h-5 w-5" />
               </Link>
               <Link
-                href="/for-researchers"
+                href="/solutions/researchers"
                 className="rounded-lg bg-teal-600 px-8 py-4 font-semibold text-white shadow-lg transition hover:bg-teal-700 hover:shadow-xl"
               >
-                For Researchers
+                Researcher Access
+                <ArrowRight className="ml-2 inline h-5 w-5" />
               </Link>
             </div>
           </div>
@@ -144,7 +106,7 @@ export default function HomePage() {
                 use your anonymized data.
               </p>
               <Link
-                href="/for-patients"
+                href="/solutions/patients"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
               >
                 Learn More <ArrowRight className="h-4 w-4" />
@@ -162,7 +124,7 @@ export default function HomePage() {
                 patients when data is used for research.
               </p>
               <Link
-                href="/for-hospitals"
+                href="/solutions/hospitals"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-green-600 hover:text-green-700"
               >
                 Learn More <ArrowRight className="h-4 w-4" />
@@ -180,7 +142,7 @@ export default function HomePage() {
                 development.
               </p>
               <Link
-                href="/for-researchers"
+                href="/solutions/researchers"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-purple-600 hover:text-purple-700"
               >
                 Learn More <ArrowRight className="h-4 w-4" />
@@ -207,7 +169,7 @@ export default function HomePage() {
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
                 <Shield className="h-8 w-8 text-blue-600" />
               </div>
-              <h3 className="mb-2 text-lg font-bold text-gray-900">Blockchain Secured</h3>
+              <h3 className="mb-2 text-lg font-bold text-gray-900">Hedera Secured</h3>
               <p className="text-sm text-gray-600">
                 Immutable proof of consent and data authenticity via Hedera Consensus Service
               </p>
@@ -274,7 +236,7 @@ export default function HomePage() {
               </div>
               <h3 className="mb-3 text-xl font-bold text-gray-900">Anonymize & Verify</h3>
               <p className="leading-relaxed text-gray-600">
-                Advanced anonymization removes PII while preserving research value. Blockchain
+                Advanced anonymization removes PII while preserving research value. Hedera
                 verification ensures authenticity.
               </p>
             </div>
@@ -327,19 +289,19 @@ export default function HomePage() {
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
-              href="/for-patients"
+              href="/solutions/patients"
               className="inline-flex items-center gap-2 rounded-lg bg-white px-8 py-4 font-semibold text-blue-600 shadow-lg transition hover:bg-blue-50 hover:shadow-xl"
             >
               Start as Patient <ArrowRight className="h-5 w-5" />
             </Link>
             <Link
-              href="/for-hospitals"
+              href="/solutions/hospitals"
               className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-8 py-4 font-semibold text-white shadow-lg transition hover:bg-blue-800 hover:shadow-xl"
             >
               Hospital Portal <ArrowRight className="h-5 w-5" />
             </Link>
             <Link
-              href="/for-researchers"
+              href="/solutions/researchers"
               className="inline-flex items-center gap-2 rounded-lg bg-teal-700 px-8 py-4 font-semibold text-white shadow-lg transition hover:bg-teal-800 hover:shadow-xl"
             >
               Researcher Access <ArrowRight className="h-5 w-5" />

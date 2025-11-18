@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Breadcrumbs from '@/components/Breadcrumbs/Breadcrumbs';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertCircle, Building2, Key, ArrowRight } from 'lucide-react';
@@ -40,10 +41,18 @@ export default function HospitalLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gray-50 px-4 py-12">
+      <div className="container mx-auto max-w-md">
+        <Breadcrumbs
+          items={[
+            { label: 'Home', href: '/' },
+            { label: 'Solutions', href: '/solutions/hospitals' },
+            { label: 'Hospital Login', href: '/hospital/login' },
+          ]}
+          className="mb-6"
+        />
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold mb-2">Hospital Portal</h1>
+          <h1 className="mb-2 text-4xl font-bold">Hospital Portal</h1>
           <p className="text-muted-foreground">Access your hospital management dashboard</p>
         </div>
 
@@ -61,7 +70,7 @@ export default function HospitalLoginPage() {
             {error && (
               <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-4">
                 <AlertCircle className="h-5 w-5 text-red-600" />
-                <span className="text-red-800 flex-1">{error}</span>
+                <span className="flex-1 text-red-800">{error}</span>
               </div>
             )}
 
@@ -69,13 +78,13 @@ export default function HospitalLoginPage() {
               <div>
                 <label className="mb-2 block text-sm font-medium">Hospital ID</label>
                 <div className="relative">
-                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Building2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="text"
                     value={formData.hospitalId}
                     onChange={(e) => setFormData({ ...formData, hospitalId: e.target.value })}
                     placeholder="HOSP-XXXXXXXX"
-                    className="w-full rounded-lg border pl-10 pr-3 py-2 font-mono"
+                    className="w-full rounded-lg border py-2 pl-10 pr-3 font-mono"
                     required
                   />
                 </div>
@@ -84,13 +93,13 @@ export default function HospitalLoginPage() {
               <div>
                 <label className="mb-2 block text-sm font-medium">API Key</label>
                 <div className="relative">
-                  <Key className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Key className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="password"
                     value={formData.apiKey}
                     onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
                     placeholder="Enter your API key"
-                    className="w-full rounded-lg border pl-10 pr-3 py-2 font-mono"
+                    className="w-full rounded-lg border py-2 pl-10 pr-3 font-mono"
                     required
                   />
                 </div>

@@ -13,13 +13,15 @@ import {
   User,
   ShoppingBag,
   BookOpen,
-  LogIn,
+  Menu,
+  X,
+  ChevronDown,
 } from 'lucide-react';
 import { usePatientSession } from '@/hooks/usePatientSession';
 import { useHospitalSession } from '@/hooks/useHospitalSession';
 import { useAdminSession } from '@/hooks/useAdminSession';
 import { Button } from '@/components/ui/button';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface NavItem {
   name: string;
@@ -28,12 +30,24 @@ interface NavItem {
   requiresAuth?: 'patient' | 'hospital' | 'researcher' | 'admin';
 }
 
-const navigation: NavItem[] = [
+const publicNavigation: NavItem[] = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Marketplace', href: '/marketplace', icon: ShoppingBag },
-  { name: 'For Patients', href: '/for-patients', icon: Users },
-  { name: 'For Hospitals', href: '/for-hospitals', icon: Building2 },
-  { name: 'For Researchers', href: '/for-researchers', icon: Database },
+];
+
+const solutionsNavigation = [
+  { name: 'For Patients', href: '/solutions/patients', icon: Users },
+  { name: 'For Hospitals', href: '/solutions/hospitals', icon: Building2 },
+  { name: 'For Researchers', href: '/solutions/researchers', icon: Database },
+];
+
+const resourcesNavigation = [
+  { name: 'Documentation', href: '/docs', icon: BookOpen },
+  { name: 'Pricing', href: '/pricing', icon: ShoppingBag },
+  { name: 'About', href: '/about', icon: Home },
+];
+
+const authNavigation: NavItem[] = [
   { name: 'Patients', href: '/patient/dashboard', icon: Users, requiresAuth: 'patient' },
   { name: 'Hospitals', href: '/hospital/dashboard', icon: Building2, requiresAuth: 'hospital' },
   {
@@ -62,12 +76,38 @@ export default function Navigation() {
 
   // Check researcher authentication
   const [isResearcherAuthenticated, setIsResearcherAuthenticated] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [solutionsDropdownOpen, setSolutionsDropdownOpen] = useState(false);
+  const [resourcesDropdownOpen, setResourcesDropdownOpen] = useState(false);
+  const solutionsDropdownRef = useRef<HTMLDivElement>(null);
+  const resourcesDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Check if researcher is authenticated
     const researcherId = sessionStorage.getItem('researcherId');
     setIsResearcherAuthenticated(!!researcherId);
   }, [pathname]); // Re-check when pathname changes
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        solutionsDropdownRef.current &&
+        !solutionsDropdownRef.current.contains(event.target as Node)
+      ) {
+        setSolutionsDropdownOpen(false);
+      }
+      if (
+        resourcesDropdownRef.current &&
+        !resourcesDropdownRef.current.contains(event.target as Node)
+      ) {
+        setResourcesDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
     if (isPatientAuthenticated) {
@@ -91,17 +131,12 @@ export default function Navigation() {
     }
   };
 
-  // Filter navigation items based on authentication
-  const visibleNavItems = navigation.filter((item) => {
-    // Always show public items
-    if (!item.requiresAuth) return true;
-
-    // Show role-specific items only if user is authenticated for that role
+  // Filter auth navigation items based on authentication
+  const visibleAuthNavItems = authNavigation.filter((item) => {
     if (item.requiresAuth === 'patient') return isPatientAuthenticated;
     if (item.requiresAuth === 'hospital') return isHospitalAuthenticated;
     if (item.requiresAuth === 'researcher') return isResearcherAuthenticated;
     if (item.requiresAuth === 'admin') return isAdminAuthenticated;
-
     return false;
   });
 
@@ -117,112 +152,320 @@ export default function Navigation() {
     isAdminAuthenticated;
 
   return (
-    <nav className="border-b bg-white">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link href="/" className="text-xl font-bold text-primary">
+    <nav className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/95 shadow-sm backdrop-blur-sm">
+      <div className="container mx-auto px-6">
+        <div className="flex h-20 items-center justify-between">
+          {/* Left: Logo and Desktop Navigation */}
+          <div className="flex items-center gap-12">
+            <Link
+              href="/"
+              className="text-2xl font-semibold tracking-tight text-gray-900 transition-colors hover:text-primary"
+            >
               MediPact
             </Link>
-            <div className="hidden items-center gap-1 md:flex">
-              {visibleNavItems.map((item) => {
+            {/* Desktop Navigation */}
+            <div className="hidden items-center gap-1 xl:flex">
+              {
+                publicNavigation.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        'relative px-3 py-2 text-sm font-medium transition-colors',
+                        isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                      )}
+                    >
+                      {item.name}
+                      {isActive && (
+                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                      )}
+                    </Link>
+                  );
+                });
+              }
+
+              {
+                /* Solutions Dropdown */
+              }
+              {
+                !isAnyAuthenticated && (
+                  <div className="relative" ref={solutionsDropdownRef}>
+                    <button
+                      onClick={() => {
+                        setSolutionsDropdownOpen(!solutionsDropdownOpen);
+                        setResourcesDropdownOpen(false);
+                      }}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors',
+                        pathname?.startsWith('/solutions')
+                          ? 'text-gray-900'
+                          : 'text-gray-600 hover:text-gray-900'
+                      )}
+                    >
+                      Solutions
+                      <ChevronDown
+                        className={cn(
+                          'h-3.5 w-3.5 transition-transform duration-200',
+                          solutionsDropdownOpen && 'rotate-180'
+                        )}
+                      />
+                    </button>
+                    {solutionsDropdownOpen && (
+                      <div className="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-lg border border-gray-200 bg-white py-1.5 shadow-xl">
+                        {solutionsNavigation.map((item) => {
+                          const isActive = pathname === item.href;
+                          return (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              onClick={() => setSolutionsDropdownOpen(false)}
+                              className={cn(
+                                'flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors',
+                                isActive
+                                  ? 'bg-gray-50 font-medium text-gray-900'
+                                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                              )}
+                            >
+                              <item.icon className="h-4 w-4 text-gray-400" />
+                              {item.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              {/* Resources Dropdown */}
+              {
+                !isAnyAuthenticated && (
+                  <div className="relative" ref={resourcesDropdownRef}>
+                    <button
+                      onClick={() => {
+                        setResourcesDropdownOpen(!resourcesDropdownOpen);
+                        setSolutionsDropdownOpen(false);
+                      }}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors',
+                        pathname?.startsWith('/docs') ||
+                          pathname === '/pricing' ||
+                          pathname === '/about'
+                          ? 'text-gray-900'
+                          : 'text-gray-600 hover:text-gray-900'
+                      )}
+                    >
+                      Resources
+                      <ChevronDown
+                        className={cn(
+                          'h-3.5 w-3.5 transition-transform duration-200',
+                          resourcesDropdownOpen && 'rotate-180'
+                        )}
+                      />
+                    </button>
+                    {resourcesDropdownOpen && (
+                      <div className="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-lg border border-gray-200 bg-white py-1.5 shadow-xl">
+                        {resourcesNavigation.map((item) => {
+                          const isActive = pathname === item.href;
+                          return (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              onClick={() => setResourcesDropdownOpen(false)}
+                              className={cn(
+                                'flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors',
+                                isActive
+                                  ? 'bg-gray-50 font-medium text-gray-900'
+                                  : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                              )}
+                            >
+                              <item.icon className="h-4 w-4 text-gray-400" />
+                              {item.name}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              {
+                /* Auth Navigation Items */
+              }
+              {
+                visibleAuthNavItems.map((item) => {
+                  const isActive = pathname?.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        'relative px-3 py-2 text-sm font-medium transition-colors',
+                        isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                      )}
+                    >
+                      {item.name}
+                      {isActive && (
+                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                      )}
+                    </Link>
+                  );
+                });
+              }
+            </div>
+          </div>
+
+          {/* Right: User Context and Mobile Menu Button */}
+          <div className="flex items-center gap-6">
+            {/* User Context */}
+            {isAnyAuthenticated && (
+              <div className="hidden items-center gap-3 md:flex">
+                {isPatientAuthenticated && upi && (
+                  <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5">
+                    <User className="h-3.5 w-3.5 text-gray-500" />
+                    <span className="text-xs font-medium text-gray-700">{upi}</span>
+                  </div>
+                )}
+                {isHospitalAuthenticated && hospitalId && (
+                  <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-gray-500" />
+                    <span className="text-xs font-medium text-gray-700">{hospitalId}</span>
+                  </div>
+                )}
+                {isResearcherAuthenticated && (
+                  <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5">
+                    <Database className="h-3.5 w-3.5 text-gray-500" />
+                    <span className="text-xs font-medium text-gray-700">Researcher</span>
+                  </div>
+                )}
+                {isAdminAuthenticated && (
+                  <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5">
+                    <Settings className="h-3.5 w-3.5 text-gray-500" />
+                    <span className="text-xs font-medium text-gray-700">Admin</span>
+                  </div>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="border-gray-200 text-gray-700 hover:bg-gray-50"
+                >
+                  <LogOut className="mr-1.5 h-3.5 w-3.5" />
+                  Logout
+                </Button>
+              </div>
+            )}
+
+            {/* Mobile Menu Button */}
+            <button
+              className="flex items-center justify-center rounded-lg p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 xl:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="border-t border-gray-200 bg-white xl:hidden">
+            <div className="space-y-1 px-4 py-3">
+              {publicNavigation.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-gray-50 text-gray-900'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 text-gray-400" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+
+              {!isAnyAuthenticated && (
+                <>
+                  <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Solutions
+                  </div>
+                  {solutionsNavigation.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={cn(
+                          'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+
+                  <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Resources
+                  </div>
+                  {resourcesNavigation.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={cn(
+                          'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
+
+              {visibleAuthNavItems.map((item) => {
                 const isActive = pathname?.startsWith(item.href);
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
                     className={cn(
-                      'flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        ? 'bg-gray-50 text-gray-900'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     )}
                   >
-                    <item.icon className="h-4 w-4" />
+                    <item.icon className="h-4 w-4 text-gray-400" />
                     {item.name}
                   </Link>
                 );
               })}
             </div>
           </div>
-
-          {/* User Context */}
-          <div className="flex items-center gap-4">
-            {/* Documentation link - only show when NOT authenticated */}
-            {!isAnyAuthenticated && (
-              <Link
-                href="/docs"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                title="Documentation"
-              >
-                <BookOpen className="h-4 w-4" />
-                <span className="hidden md:inline">Docs</span>
-              </Link>
-            )}
-
-            {/* Context-aware login/signup icon - only show when NOT authenticated */}
-            {!isAnyAuthenticated && (
-              <Link
-                href={
-                  isPatientPage
-                    ? '/patient/login'
-                    : isHospitalPage
-                      ? '/hospital/login'
-                      : isResearcherPage
-                        ? '/researcher/register'
-                        : isAdminPage
-                          ? '/admin/login'
-                          : '/patient/login' // default
-                }
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                title={
-                  isPatientPage
-                    ? 'Patient Login'
-                    : isHospitalPage
-                      ? 'Hospital Login'
-                      : isResearcherPage
-                        ? 'Register as Researcher'
-                        : isAdminPage
-                          ? 'Admin Login'
-                          : 'Login'
-                }
-              >
-                <LogIn className="h-4 w-4" />
-                <span className="hidden md:inline">{isResearcherPage ? 'Register' : 'Login'}</span>
-              </Link>
-            )}
-            {isPatientAuthenticated && upi && (
-              <div className="hidden items-center gap-2 text-sm md:flex">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="font-mono text-xs">{upi}</span>
-              </div>
-            )}
-            {isHospitalAuthenticated && hospitalId && (
-              <div className="hidden items-center gap-2 text-sm md:flex">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                <span className="font-mono text-xs">{hospitalId}</span>
-              </div>
-            )}
-            {isResearcherAuthenticated && (
-              <div className="hidden items-center gap-2 text-sm md:flex">
-                <Database className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs">Researcher</span>
-              </div>
-            )}
-            {isAdminAuthenticated && (
-              <div className="hidden items-center gap-2 text-sm md:flex">
-                <Settings className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs">Admin</span>
-              </div>
-            )}
-            {isAnyAuthenticated && (
-              <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
-            )}
-          </div>
-        </div>
+        )}
       </div>
     </nav>
   );

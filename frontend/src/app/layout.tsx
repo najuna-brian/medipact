@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 import Navigation from '@/components/Navigation/Navigation';
+import Footer from '@/components/Footer/Footer';
 import { ErrorBoundary } from '@/components/ErrorBoundary/ErrorBoundary';
 import { ToastContainer } from '@/components/Toast/Toast';
 
@@ -24,11 +25,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.variable}>
@@ -36,6 +33,7 @@ export default function RootLayout({
           <ErrorBoundary>
             <Navigation />
             {children}
+            <Footer />
             <ToastContainer />
           </ErrorBoundary>
         </Providers>
