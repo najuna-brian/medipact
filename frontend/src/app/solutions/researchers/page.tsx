@@ -17,10 +17,19 @@ export default function ForResearchersPage() {
               treatments, access high-quality, ethically-sourced medical data on MediPact.
             </p>
             <div className="flex justify-center gap-4">
-              <Link href="/researcher/register">
+              <Link href="/researcher/login">
                 <Button
                   size="lg"
                   className="bg-white font-semibold text-purple-600 shadow-lg transition-all hover:bg-purple-50 hover:shadow-xl"
+                >
+                  Login
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+              <Link href="/researcher/register">
+                <Button
+                  size="lg"
+                  className="border-2 border-white bg-purple-500 font-semibold text-white shadow-lg transition-all hover:bg-purple-600 hover:shadow-xl"
                 >
                   Register as Researcher
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -29,7 +38,8 @@ export default function ForResearchersPage() {
               <Link href="/marketplace">
                 <Button
                   size="lg"
-                  className="border-2 border-white bg-purple-500 font-semibold text-white shadow-lg transition-all hover:bg-purple-600 hover:shadow-xl"
+                  variant="outline"
+                  className="border-2 border-white font-semibold text-white shadow-lg transition-all hover:bg-white/10 hover:shadow-xl"
                 >
                   Browse Catalog
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -348,8 +358,18 @@ export default function ForResearchersPage() {
             Join leading researchers, AI companies, and institutions worldwide
           </p>
           <div className="flex justify-center gap-4">
-            <Link href="/researcher/register">
+            <Link href="/researcher/login">
               <Button size="lg" className="bg-white text-purple-600 hover:bg-purple-50">
+                Login
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Link href="/researcher/register">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white text-white hover:bg-white/10"
+              >
                 Register Now
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>

@@ -127,7 +127,7 @@ export default function Navigation() {
       sessionStorage.removeItem('researcherId');
       sessionStorage.removeItem('researcherEmail');
       setIsResearcherAuthenticated(false);
-      router.push('/researcher/register');
+      router.push('/researcher/login');
     }
   };
 
