@@ -36,6 +36,7 @@ import {
 } from './hedera/evm-client.js';
 import { distributeRevenueAfterProcessing } from './services/revenue-integration.js';
 import { csvToFHIRBundle } from './transformers/csv-to-fhir-transformer.js';
+import axios from 'axios';
 import { processFHIRResource } from './handlers/resource-handler.js';
 import { storeFHIRResources } from './storage/fhir-storage.js';
 
@@ -241,7 +242,6 @@ async function main() {
     // Lookup UPIs by email/phone for automatic linking
     if (backendApiUrl) {
       console.log('   Looking up UPIs by email/phone for automatic linking...');
-      const axios = (await import('axios')).default;
       
       for (const entry of patientResources) {
         const patient = entry.resource;
@@ -495,7 +495,6 @@ async function main() {
         // First, create/update patient contacts with latest info (merge to latest)
         if (storageBackendApiUrl && upiMapping.size > 0) {
           console.log('   Creating/updating patient contacts with latest info...');
-          const axios = (await import('axios')).default;
           
           for (const [originalId, upi] of upiMapping) {
             // Find the original record to get email/phone
