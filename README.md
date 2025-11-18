@@ -12,13 +12,13 @@
 
 ---
 
-## 🎯 What Medipact is
+## 🎯 What is MediPact?
 
 **MediPact** is a verifiable medical data marketplace that empowers patients to control and monetize their anonymized medical data for research. Built on Hedera Hashgraph, we solve the multi-billion dollar patient data black market problem by creating a transparent, ethical platform using the Hedera Consensus Service for immutable proof and HBAR for instant micropayments.
 
-The **healthcare ecosystem** holds vast amounts of valuable patient data stored across hospitals and clinics, yet much of it remains **inaccessible** which slows innovation and research. Even when accessed, Patients **lack control(consent) and fair compensation** for their own health information, while data sharing is limited by privacy and regulatory concerns.
+The healthcare ecosystem holds vast amounts of valuable patient data stored across hospitals and clinics, yet much of it remains inaccessible, slowing innovation and research. Even when accessed, patients lack control (consent) and fair compensation for their own health information, while data sharing is limited by privacy and regulatory concerns.
 
-**MediPact** addresses this by providing a **secure, ethical, and scalable data marketplace** that enables compliant medical data sharing, ensures patient privacy through anonymization and consent management, and supports fair value exchange between data owners and researchers.
+**MediPact** addresses this by providing a secure, ethical, and scalable data marketplace that enables compliant medical data sharing, ensures patient privacy through anonymization and consent management, and supports fair value exchange between data owners and researchers.
 
 ---
 
@@ -63,12 +63,10 @@ graph LR
     style G fill:#FFD700,color:#000,stroke:#FFA500,stroke-width:2px
 ```
 
-### Hedera Account Creation:
+### Hedera Account Creation
 
 - **Hospitals & Researchers:** Accounts are created during registration. The platform generates an ECDSA key pair, creates a Hedera account (0.0.xxxxx) with EVM compatibility, and stores the encrypted private key.
-
 - **Patients:** Accounts are created lazily on first payment. The platform creates the account only when revenue is distributed, reducing upfront costs.
-
 - **Process:** Platform generates keys → creates Hedera account (operator pays ~$0.05) → encrypts private key → stores account ID and EVM address in database. All accounts are EVM-compatible for smart contract interactions.
 
 ### Why Hedera?
@@ -79,125 +77,6 @@ graph LR
 ✅ **Carbon negative** - Environmentally sustainable  
 ✅ **Native accounts** - Seamless UX without complex wallet management  
 ✅ **EVM compatible** - Smart contracts with low gas costs
-
----
-
-## 🏥 Hedera Ecosystem for Healthcare Data
-
-MediPact leverages the complete Hedera ecosystem to solve healthcare data challenges:
-
-```mermaid
-graph TB
-    subgraph "Healthcare Data Sources"
-        EHR[🏥 Hospital EHR Systems<br/>CSV/FHIR Export]
-        PATIENT[👤 Patient Records<br/>Demographics, Conditions, Observations]
-    end
-    
-    subgraph "MediPact Processing"
-        ADAPTER[Adapter<br/>Anonymization & FHIR Conversion]
-        BACKEND[Backend<br/>Database & API]
-    end
-    
-    subgraph "Hedera HCS - Immutable Proofs"
-        CONSENT_TOPIC[Consent Topic<br/>Patient Consent Records]
-        DATA_TOPIC[Data Topic<br/>Provenance Hashes H1 + H2]
-        HASHSCAN[HashScan<br/>Public Verification]
-    end
-    
-    subgraph "Hedera EVM - Smart Contracts"
-        CONSENT_MGR[ConsentManager<br/>On-Chain Consent Registry]
-        REVENUE[RevenueSplitter<br/>60/25/15 Auto-Distribution]
-    end
-    
-    subgraph "Hedera Accounts - Native Wallets"
-        PAT_ACCT[Patient Accounts<br/>0.0.xxxxx]
-        HOSP_ACCT[Hospital Accounts<br/>0.0.xxxxx]
-        RES_ACCT[Researcher Accounts<br/>0.0.xxxxx]
-        PLATFORM[Platform Account<br/>0.0.xxxxx]
-    end
-    
-    subgraph "HBAR - Micropayments"
-        PAYMENT[Researcher Payment<br/>USD → HBAR]
-        DISTRIBUTION[Revenue Distribution<br/>60% Patient, 25% Hospital, 15% Platform]
-    end
-    
-    subgraph "Data Consumers"
-        RESEARCHER[🔬 Researchers<br/>Query & Purchase Datasets]
-    end
-    
-    %% Data Flow
-    EHR --> ADAPTER
-    PATIENT --> ADAPTER
-    ADAPTER --> BACKEND
-    
-    %% HCS Flow - Immutable Proofs
-    ADAPTER -->|Submit Consent Proof| CONSENT_TOPIC
-    ADAPTER -->|Submit Data Hash| DATA_TOPIC
-    CONSENT_TOPIC --> HASHSCAN
-    DATA_TOPIC --> HASHSCAN
-    
-    %% Smart Contract Flow
-    ADAPTER -->|Record Consent| CONSENT_MGR
-    BACKEND -->|Verify Consent| CONSENT_MGR
-    BACKEND -->|Trigger Distribution| REVENUE
-    
-    %% Account Creation
-    BACKEND -->|Create on Registration| HOSP_ACCT
-    BACKEND -->|Create on Registration| RES_ACCT
-    BACKEND -->|Create on First Payment| PAT_ACCT
-    
-    %% Payment Flow
-    RESEARCHER -->|Purchase Dataset| PAYMENT
-    PAYMENT -->|HBAR Transfer| PLATFORM
-    PLATFORM -->|Verify Payment| REVENUE
-    REVENUE -->|Auto-Distribute| DISTRIBUTION
-    
-    %% Revenue Distribution
-    DISTRIBUTION -->|60% HBAR| PAT_ACCT
-    DISTRIBUTION -->|25% HBAR| HOSP_ACCT
-    DISTRIBUTION -->|15% HBAR| PLATFORM
-    
-    %% Researcher Access
-    RESEARCHER -->|Query with Filters| BACKEND
-    BACKEND -->|Validate Consent| CONSENT_MGR
-    BACKEND -->|Grant Access| RESEARCHER
-    
-    style CONSENT_TOPIC fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style DATA_TOPIC fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style CONSENT_MGR fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style REVENUE fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style PAT_ACCT fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style HOSP_ACCT fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style RES_ACCT fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style PLATFORM fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style HASHSCAN fill:#FFD700,color:#000,stroke:#FFA500,stroke-width:2px
-    style EHR fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
-    style PATIENT fill:#E3F2FD,stroke:#1976D2,stroke-width:2px
-    style RESEARCHER fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
-```
-
-### How Hedera Solves Healthcare Data Challenges
-
-| Healthcare Challenge | Hedera Solution | Service Used | Impact |
-|---------------------|-----------------|--------------|--------|
-| **Consent Audit Trail** | Immutable consent records | HCS Topics | Legal compliance, unchangeable proof |
-| **Data Provenance** | Cryptographic hashes on-chain | HCS Topics | Researchers verify data authenticity |
-| **Automated Revenue Sharing** | Smart contract auto-distribution | Hedera EVM | Trustless, transparent 60/25/15 split |
-| **Patient Compensation** | Direct HBAR micropayments | HBAR + Accounts | Instant, low-cost payments to patients |
-| **Hospital Attribution** | Fair revenue to original collector | RevenueSplitter Contract | Ensures data collectors are rewarded |
-| **Regulatory Compliance** | Public verification on HashScan | All Services | Transparent, auditable transactions |
-| **Scalability** | High throughput (10,000+ TPS) | Hedera Network | Handles thousands of daily queries |
-| **Cost Efficiency** | Low fees (~$0.0001/message) | HCS | Enables micropayments at scale |
-
-### Why Hedera for Healthcare?
-
-✅ **HCS is Unique**: No other blockchain offers immutable message logging - perfect for consent and audit trails  
-✅ **Regulatory Ready**: Public verification on HashScan meets healthcare compliance requirements  
-✅ **Patient-Centric**: Native accounts (0.0.xxxxx) mean patients don't need crypto wallets  
-✅ **Fair Compensation**: Low fees enable micropayments to individual patients  
-✅ **Trustless**: Smart contracts ensure automatic, transparent revenue distribution  
-✅ **Carbon Negative**: Environmentally sustainable for healthcare organizations  
-✅ **EVM Compatible**: Leverage existing Solidity smart contracts with low gas costs
 
 ---
 
@@ -322,29 +201,6 @@ sequenceDiagram
     Note over HCS,HA: All Hedera Transactions<br/>Verifiable on HashScan
 ```
 
-### Processing Pipeline
-
-```mermaid
-flowchart LR
-    A[Raw EHR Data] --> B[Parse & Validate]
-    B --> C[Anonymize PII]
-    C --> D[Preserve Demographics]
-    D --> E[Generate Anonymous IDs]
-    E --> F[Enforce K-Anonymity]
-    F --> G[Generate Hashes]
-    G --> H[Submit to HCS]
-    H --> I[Record on Contract]
-    I --> J[Store in Backend]
-    J --> K[Marketplace Ready]
-    
-    style A fill:#FFCDD2,stroke:#D32F2F,stroke-width:2px
-    style C fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
-    style D fill:#C8E6C9,stroke:#388E3C,stroke-width:2px
-    style H fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style I fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
-    style K fill:#BBDEFB,stroke:#1976D2,stroke-width:2px
-```
-
 ---
 
 ## 💰 Revenue Distribution
@@ -404,18 +260,6 @@ MediPact implements **6 layers of security**:
 | ❌ DOB: "1990-01-15" | ✅ Age Range: "35-39" |
 | ✅ Medical Data | ✅ Medical Data: Preserved |
 | ✅ Demographics | ✅ Demographics: Preserved |
-
-### Double Anonymization Process
-
-- **Stage 1 (Storage)**: Removes PII, preserves 5-year age ranges, exact dates
-- **Stage 2 (Chain)**: Further generalizes to 10-year ranges, month/year dates
-- **Provenance Tracking**: Both hashes (H1 + H2) stored on Hedera with transformation proof
-
-### K-Anonymity Protection
-
-- **Minimum 5 records** per demographic group
-- Groups: Country, Age Range, Gender, Occupation
-- Records with <5 are **suppressed**
 
 ### Privacy Guarantees
 
@@ -479,35 +323,22 @@ graph LR
 # 1. Clone & install 
 git clone git@github.com:najuna-brian/medipact.git && cd medipact
 cd adapter && npm install
-```
-```bash
-# install backend
 cd ../backend && npm install  
-```
-```bash
-# Install frontend
 cd ../frontend && npm install
-```
-```bash
-# Install conracts
 cd ../contracts && npm install
 ```
+
 ```bash
 # 2. Configure .env files (see Environment Variables section)
 # 3. Start services
 cd backend && npm start      # Port 8080
-```
-```bash
 cd frontend && npm run dev   # Port 3000
-```
-```bash
 cd adapter && npm start      # Process data
 ```
+
 ---
 
 ## 🔧 Environment Variables
-
-### Check the environment variables in (`../.env`) of `../backend` `../frontend` `../adapter`
 
 ### Frontend (`frontend/.env.local`)
 
@@ -535,6 +366,8 @@ OPERATOR_ID=0.0.xxxxx
 OPERATOR_KEY=your_private_key
 ```
 
+See `env.example` for complete configuration options.
+
 ---
 
 ## 📡 Documentation
@@ -544,7 +377,7 @@ OPERATOR_KEY=your_private_key
 - **🌐 Frontend Documentation**: [http://localhost:3000/docs](http://localhost:3000/docs) - Complete interactive documentation with diagrams
 - **📋 API Swagger UI**: [http://localhost:8080/api-docs](http://localhost:8080/api-docs) - Interactive API reference
 
-### Frontend Documentation Pages
+### Key Documentation Pages
 
 - [Overview](/docs) - Main documentation hub
 - [Quick Start](/docs/quick-start) - Getting started guide
@@ -554,16 +387,6 @@ OPERATOR_KEY=your_private_key
 - [Privacy & Security](/docs/privacy) - Security architecture
 - [Smart Contracts](/docs/smart-contracts) - Contract documentation
 - [API Reference](/docs/api) - Full API reference
-- [Architecture](/docs/architecture) - System architecture
-- [Database Schema](/docs/database) - Database structure
-- [Pricing](/docs/pricing) - Pricing model
-- [Wallet System](/docs/wallet) - Wallet and payments
-
-### User Guides
-
-- [For Patients](/docs/for-patients) - Patient guide
-- [For Hospitals](/docs/for-hospitals) - Hospital guide
-- [For Researchers](/docs/for-researchers) - Researcher guide
 
 ### Markdown Documentation
 
@@ -574,45 +397,60 @@ OPERATOR_KEY=your_private_key
 
 ---
 
-## 🗄️ Database Schema
+## ✨ Key Features
 
-```mermaid
-erDiagram
-    PATIENTS ||--o{ PATIENT_CONTACTS : has
-    PATIENTS ||--o{ HOSPITAL_LINKAGES : linked_to
-    PATIENTS ||--o{ FHIR_PATIENTS : has
-    PATIENTS ||--o{ CONSENTS : has
-    HOSPITALS ||--o{ HOSPITAL_LINKAGES : links
-    HOSPITALS ||--o{ DATASETS : creates
-    RESEARCHERS ||--o{ DATASETS : purchases
-    FHIR_PATIENTS ||--o{ FHIR_CONDITIONS : has
-    FHIR_PATIENTS ||--o{ FHIR_OBSERVATIONS : has
-    
-    PATIENTS {
-        string upi PK
-        string hedera_account_id
-        string name
-    }
-    HOSPITALS {
-        string hospital_id PK
-        string hedera_account_id
-        string name
-        boolean verified
-    }
-    CONSENTS {
-        string consent_id PK
-        string upi FK
-        string anonymous_patient_id
-        string hcs_topic_id
-        string data_hash
-    }
-    DATASETS {
-        string dataset_id PK
-        string hospital_id FK
-        string consent_topic_id
-        string data_topic_id
-    }
+| Feature | Description |
+|--------|-------------|
+| **FHIR R4 Compliant** | Interoperable with global medical record systems |
+| **K-Anonymity Enforcement** | Privacy by design (minimum 5 records per group) |
+| **HCS Immutable Proof Storage** | Unchangeable audit trail on Hedera Consensus Service |
+| **Double Anonymization** | Two-stage anonymization with provenance tracking on Hedera |
+| **Multi-Layered Security** | 6-layer security architecture |
+| **Patient Identity System (UPI)** | Cross-hospital identity linking |
+| **Automatic Wallet Creation** | Hedera accounts created automatically, users never manage private keys |
+| **Automated HBAR Revenue Distribution** | 60/25/15 split managed by smart contract |
+| **Fair Revenue Model** | Original collecting hospital is sole beneficiary of their data |
+| **Category-Based Pricing** | 6 pricing tiers, 40% of market rates, volume discounts |
+| **Multi-Dimensional Query Engine** | Filter by country, date, condition, demographics, all 10 FHIR domains |
+| **Patient-Centric Data Control** | Global opt-in/out, researcher approvals, granular preferences |
+| **HashScan Verification** | Publicly verifiable transactions on HashScan |
+
+---
+
+## 🧪 Testing
+
+### Test Scripts
+
+```bash
+# Test complete data flow (upload → processing → researcher access)
+node scripts/test-complete-data-flow.js
+
+# Test revenue flow (USD → HBAR → distribution → wallets)
+node scripts/test-revenue-flow.js
+
+# Verify system integration (frontend ↔ backend)
+node scripts/verify-system-integration.js
 ```
+
+### Unit & Integration Tests
+
+```bash
+# Run adapter tests
+cd backend/adapter && npm test
+
+# Run backend tests
+cd backend && npm test
+
+# Run contract tests
+cd contracts && npm test
+```
+
+### Documentation
+
+- [Data Flow Test Guide](./scripts/DATA_FLOW_TEST_README.md)
+- [Revenue Flow Test Guide](./scripts/REVENUE_FLOW_TEST_README.md)
+- [System Integration Status](./docs/SYSTEM_INTEGRATION_STATUS.md)
+
 ---
 
 ## 🛠️ Technology Stack
@@ -653,112 +491,6 @@ graph TB
     style H3 fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
     style H4 fill:#00A9CE,color:#fff,stroke:#007A99,stroke-width:3px
 ```
-## ✨ Key Features
-
-| Feature | Description |
-|--------|-------------|
-| **FHIR R4 Compliant** | Interoperable with global medical record systems |
-| **K-Anonymity Enforcement** | Privacy by design (minimum 5 records per group) |
-| **HCS Immutable Proof Storage** | Unchangeable audit trail on Hedera Consensus Service |
-| **End-to-End Encryption** | Field-level AES-256-GCM encryption with zero-knowledge architecture |
-| **Patient-Centric Data Control** | Global opt-in/out, researcher approvals, granular preferences |
-| **Automated HBAR Revenue Distribution** | 60/25/15 split managed by smart contract |
-| **Fair Revenue Model** | Original collecting hospital is sole beneficiary of their data |
-| **Category-Based Pricing** | 6 pricing tiers, 40% of market rates, volume discounts, USD display |
-| **Double Anonymization** | Two-stage anonymization with provenance tracking on Hedera |
-| **Multi-Layered Security** | 6-layer security architecture (anonymization, K-anonymity, consent, blockchain, encryption, access control) |
-| **Patient Identity System (UPI)** | Cross-hospital identity linking |
-| **Automatic Wallet Creation** | Hedera accounts created automatically, users never manage private keys |
-| **USD-First Display** | All balances shown in USD with HBAR below, dynamic exchange rates |
-| **Bank & Mobile Money Withdrawals** | Direct withdrawals to bank accounts or mobile money providers |
-| **Auto-Withdrawals** | Automatic withdrawals when balance reaches user-defined threshold |
-| **Temporary Hospital Access** | Time-limited, patient-approved data sharing for telemedicine |
-| **Consent Validation** | Enforced at the database and smart-contract levels |
-| **Multi-Dimensional Query Engine** | Filter by country, date, condition, demographics, all 10 FHIR domains |
-| **Smart Contract Integration** | On-chain consent registry and revenue sharing |
-| **Rate Limiting** | Protection against abuse and DDoS attacks |
-| **Bcrypt Security** | Secure password and API key hashing |
-| **Role-Based Dashboards** | Patient, Hospital, Researcher, and Admin portals |
-| **HashScan Verification** | Publicly verifiable transactions on HashScan |
-| **Complete Test Suite** | Data flow, revenue flow, and system integration tests |
-
----
-
-## 🧪 Testing
-
-### Test Scripts
-
-MediPact includes comprehensive test scripts for verification:
-
-```bash
-# Test complete data flow (upload → processing → researcher access)
-node scripts/test-complete-data-flow.js
-# or
-./scripts/test-complete-data-flow.sh
-```
-
-```bash
-# Test revenue flow (USD → HBAR → distribution → wallets)
-node scripts/test-revenue-flow.js
-```
-
-```bash
-# Test revenue flow with wallet verification (requires test accounts)
-export RESEARCHER_ID=your_researcher_id
-export TEST_PATIENT_UPI=patient_upi
-export TEST_HOSPITAL_ID=hospital_id
-node scripts/test-revenue-flow-detailed.js
-```
-
-```bash
-# Verify system integration (frontend ↔ backend)
-node scripts/verify-system-integration.js
-```
-
-### Unit & Integration Tests
-
-```bash
-# Run adapter tests
-cd backend/adapter && npm test
-
-# Run backend tests
-cd backend && npm test
-
-# Run contract tests
-cd contracts && npm test
-```
-
-### Documentation
-
-- [Data Flow Test Guide](./scripts/DATA_FLOW_TEST_README.md)
-- [Revenue Flow Test Guide](./scripts/REVENUE_FLOW_TEST_README.md)
-- [System Integration Status](./docs/SYSTEM_INTEGRATION_STATUS.md)
-
-## 🧪 Development
-
-```bash
-# Development mode
-cd backend && npm run dev      # Port 8080
-cd frontend && npm run dev      # Port 3000
-```
-
-```bash
-# Deploy contracts
-cd contracts && npm run deploy:testnet
-```
-
----
-
-**External Links**:
-- [Hedera Portal](https://portal.hedera.com/) - Get testnet account
-- [HashScan Explorer](https://hashscan.io/) - View transactions
-- [FHIR R4 Specification](https://www.hl7.org/fhir/) - Healthcare data standard
-
-### Healthcare marketplace references
-- [A Comprehensive Guide to Healthcare Data Security](https://www.metomic.io/resource-centre/a-comprehensive-guide-to-healthcare-data-security#:~:text=By%20prioritising%20data%20security%2C%20healthcare,availability%20of%20sensitive%20healthcare%20information.) - How to meet the healthcare data security standards
-- [Why is Healthcare Data so Valuable?](https://blog.tbconsulting.com/why-healthcare-data-is-so-valuable-on-the-black-market#:~:text=Sensitive%20information%20from%20medical%20data,cybercriminals%20at%20an%20alarming%20rate.) -
-- [Establishing a Health Data Marketplace: A Framework for Success](https://www.researchgate.net/publication/376532396_Establishing_a_Health_Data_Marketplace_A_Framework_for_Success#:~:text=Abstract,outcomes%2C%20research%2C%20and%20innovation.)
-- [Healthcare Data Marketplaces: All You Need To Know 2025](https://www.monda.ai/blog/healthcare-data-marketplaces#:~:text=%E2%80%8D-,1.,Ensure%20Data%20Privacy%20and%20Compliance)
 
 ---
 
@@ -773,20 +505,16 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for development workflow and guidelines
 [To be determined - Apache 2.0 or MIT]
 
 ---
+
 <div align="center">
 
 ## Hackathon Information
 ### Hedera Hello Future: Ascension 2025  
 ### Open Track - Verifiable Healthcare Systems  
 ### Team Medipact
-</div>
-
----
-
-<div align="center">
 
 [![Hedera](https://img.shields.io/badge/Built%20on-Hedera-00A9CE?style=for-the-badge&logo=hedera)](https://hedera.com)
 
-[GitHub](https://github.com/najuna-brian/medipact) • [Issues](https://github.com/najuna-brian/medipact/issues) 
+[GitHub](https://github.com/najuna-brian/medipact) • [Issues](https://github.com/najuna-brian/medipact/issues)
 
 </div>
