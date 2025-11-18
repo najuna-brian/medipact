@@ -79,7 +79,7 @@ export default function ForResearchersPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-purple-600" />
-                    <span>CSV and FHIR Bundle formats</span>
+                    <span>Flattened CSV format - one row per patient with all data</span>
                   </li>
                 </ul>
               </CardContent>
@@ -270,11 +270,11 @@ export default function ForResearchersPage() {
             <Card>
               <CardHeader>
                 <FileDown className="mb-2 h-10 w-10 text-teal-600" />
-                <CardTitle>Multiple Formats</CardTitle>
+                <CardTitle>Easy Search & Export</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600">
-                  CSV and FHIR Bundle formats available for immediate use
+                  Search by disease, country, and patient count. Export as flattened CSV (one row per patient) or FHIR Bundle
                 </p>
               </CardContent>
             </Card>

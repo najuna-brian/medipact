@@ -138,8 +138,7 @@ export default function HomePage() {
               </div>
               <h3 className="mb-2 text-xl font-bold text-gray-900">For Researchers & Buyers</h3>
               <p className="mb-4 text-sm leading-relaxed text-gray-600">
-                Access verified, anonymized medical datasets for AI, clinical research, and drug
-                development.
+                Search by disease, country, and patient count. Export as flattened CSV (one row per patient) for easy analysis. Perfect for AI, clinical research, and drug development.
               </p>
               <Link
                 href="/solutions/researchers"
