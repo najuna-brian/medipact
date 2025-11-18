@@ -152,18 +152,18 @@ export default function Navigation() {
     isAdminAuthenticated;
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/95 shadow-sm backdrop-blur-sm">
+    <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white">
       <div className="container mx-auto px-6">
-        <div className="flex h-20 items-center justify-between">
+        <div className="flex h-16 items-center justify-between">
           {/* Left: Logo */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-0.5">
             <Link
               href="/"
-              className="text-2xl font-semibold tracking-tight text-gray-900 transition-colors hover:text-primary"
+              className="text-2xl font-bold tracking-tight text-blue-600 transition-colors hover:text-blue-700"
             >
               MediPact
             </Link>
-            <span className="hidden text-sm font-normal text-gray-500 lg:block">
+            <span className="hidden text-xs font-normal text-gray-600 lg:block">
               True Healthcare Data Ownership
             </span>
           </div>
@@ -171,7 +171,7 @@ export default function Navigation() {
           {/* Right: Desktop Navigation, User Context, and Mobile Menu */}
           <div className="flex items-center gap-6">
             {/* Desktop Navigation */}
-            <div className="hidden items-center gap-1 xl:flex">
+            <div className="hidden items-center gap-0.5 xl:flex">
               {publicNavigation.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -179,13 +179,13 @@ export default function Navigation() {
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      'relative px-3 py-2 text-sm font-medium transition-colors',
-                      isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                      'relative px-4 py-2 text-sm font-medium transition-colors',
+                      isActive ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'
                     )}
                   >
                     {item.name}
                     {isActive && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
                     )}
                   </Link>
                 );
@@ -200,10 +200,10 @@ export default function Navigation() {
                       setResourcesDropdownOpen(false);
                     }}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors',
+                      'flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors',
                       pathname?.startsWith('/solutions')
-                        ? 'text-gray-900'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'text-blue-600'
+                        : 'text-gray-700 hover:text-blue-600'
                     )}
                   >
                     Solutions
@@ -249,12 +249,12 @@ export default function Navigation() {
                       setSolutionsDropdownOpen(false);
                     }}
                     className={cn(
-                      'flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors',
+                      'flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors',
                       pathname?.startsWith('/docs') ||
                         pathname === '/pricing' ||
                         pathname === '/about'
-                        ? 'text-gray-900'
-                        : 'text-gray-600 hover:text-gray-900'
+                        ? 'text-blue-600'
+                        : 'text-gray-700 hover:text-blue-600'
                     )}
                   >
                     Resources
@@ -299,13 +299,13 @@ export default function Navigation() {
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      'relative px-3 py-2 text-sm font-medium transition-colors',
-                      isActive ? 'text-gray-900' : 'text-gray-600 hover:text-gray-900'
+                      'relative px-4 py-2 text-sm font-medium transition-colors',
+                      isActive ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'
                     )}
                   >
                     {item.name}
                     {isActive && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
                     )}
                   </Link>
                 );
