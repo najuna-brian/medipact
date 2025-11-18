@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward the request to the backend API
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
+    // Use NEXT_PUBLIC_BACKEND_API_URL for the backend URL (not NEXT_PUBLIC_API_URL which is for Next.js routes)
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || `http://localhost:${process.env.NEXT_PUBLIC_BACKEND_PORT || 8080}`;
     
     // Create a new FormData to forward to backend
     const backendFormData = new FormData();
