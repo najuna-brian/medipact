@@ -13,6 +13,7 @@ import {
   Settings,
   FileCheck,
   CheckCircle2,
+  Wallet,
   Menu,
   X,
   ChevronLeft,
@@ -27,6 +28,7 @@ const hospitalNavItems = [
   { name: 'Patient Enrollment', href: '/hospital/patients/register', icon: Users },
   { name: 'Processing', href: '/hospital/processing', icon: FileCheck },
   { name: 'Revenue', href: '/hospital/revenue', icon: DollarSign },
+  { name: 'Wallet', href: '/hospital/wallet', icon: Wallet },
   { name: 'Verification', href: '/hospital/verification', icon: CheckCircle2 },
   { name: 'Settings', href: '/hospital/settings', icon: Settings },
 ];

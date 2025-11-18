@@ -11,6 +11,7 @@ import {
   FileDown,
   BarChart3,
   Settings,
+  Wallet,
   Menu,
   X,
   ChevronLeft,
@@ -23,6 +24,7 @@ const researcherNavItems = [
   { name: 'Browse Catalog', href: '/researcher/catalog', icon: Database },
   { name: 'My Projects', href: '/researcher/projects', icon: TrendingUp },
   { name: 'Purchase History', href: '/researcher/purchases', icon: FileDown },
+  { name: 'Wallet', href: '/researcher/wallet', icon: Wallet },
   { name: 'Analytics', href: '/researcher/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/researcher/settings', icon: Settings },
 ];

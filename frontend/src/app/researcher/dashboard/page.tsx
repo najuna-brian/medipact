@@ -3,28 +3,64 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Database, DollarSign, FileDown, TrendingUp, Shield, AlertCircle } from 'lucide-react';
+import {
+  Database,
+  DollarSign,
+  FileDown,
+  TrendingUp,
+  Shield,
+  AlertCircle,
+  Wallet,
+  Coins,
+  ExternalLink,
+} from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { VerificationPrompt } from '@/components/VerificationPrompt/VerificationPrompt';
 import { useResearcher, useResearcherStatus } from '@/hooks/useResearcher';
 import { HederaAccountId } from '@/components/HederaAccountId/HederaAccountId';
 import { ResearcherSidebar } from '@/components/Sidebar/ResearcherSidebar';
+import { getResearcherBalance } from '@/lib/api/wallet';
+import type { WalletBalance } from '@/lib/api/wallet';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function ResearcherDashboardPage() {
   const router = useRouter();
   const [researcherId, setResearcherId] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
+  const [walletLoading, setWalletLoading] = useState(false);
 
   useEffect(() => {
     // Get researcher ID from sessionStorage
     const id = sessionStorage.getItem('researcherId');
     if (id) {
       setResearcherId(id);
+      fetchWalletBalance(id);
     } else {
       // Redirect to registration if no ID
       router.push('/researcher/register');
     }
   }, [router]);
+
+  const fetchWalletBalance = async (id: string) => {
+    try {
+      setWalletLoading(true);
+      const balance = await getResearcherBalance(id);
+      setWalletBalance(balance);
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error);
+      // Don't show error, just leave balance as null
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  const openFaucet = () => {
+    if (walletBalance?.hederaAccountId) {
+      const faucetUrl = `https://portal.hedera.com/faucet?account=${walletBalance.hederaAccountId}`;
+      window.open(faucetUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
 
   const researcher = useResearcher(researcherId);
   const researcherStatus = useResearcherStatus(researcherId);
@@ -96,6 +132,60 @@ export default function ResearcherDashboardPage() {
                 isLoading={researcherStatus.isLoading}
               />
             </div>
+          )}
+
+          {/* Wallet Balance Card - Prominent Display */}
+          {walletBalance && (
+            <Card className="mb-6 border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Wallet className="h-5 w-5 text-blue-600" />
+                    Wallet Balance
+                  </CardTitle>
+                  <Link href="/researcher/wallet">
+                    <Button variant="outline" size="sm">
+                      View Details
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Balance (USD)</p>
+                    <p className="text-3xl font-bold text-gray-900">
+                      ${walletBalance.balanceUSD.toFixed(2)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Balance (HBAR)</p>
+                    <p className="text-2xl font-semibold text-gray-700">
+                      {walletBalance.balanceHBAR.toFixed(4)} HBAR
+                    </p>
+                  </div>
+                  {(process.env.NEXT_PUBLIC_HEDERA_NETWORK || 'testnet') === 'testnet' &&
+                    walletBalance.hederaAccountId && (
+                      <div className="flex items-end">
+                        <Button onClick={openFaucet} variant="outline" className="w-full">
+                          <Coins className="mr-2 h-4 w-4" />
+                          Get Test HBAR
+                          <ExternalLink className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                </div>
+                {walletBalance.balanceHBAR < 10 &&
+                  (process.env.NEXT_PUBLIC_HEDERA_NETWORK || 'testnet') === 'testnet' && (
+                    <Alert className="mt-4 border-yellow-200 bg-yellow-50">
+                      <AlertCircle className="h-4 w-4 text-yellow-600" />
+                      <AlertDescription className="text-yellow-800">
+                        Low balance. Get free testnet HBAR to continue testing purchases.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+              </CardContent>
+            </Card>
           )}
 
           {/* Researcher Info Card */}

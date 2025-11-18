@@ -14,6 +14,7 @@ import {
   AlertCircle,
   ExternalLink,
   RefreshCw,
+  Coins,
 } from 'lucide-react';
 import { HederaAccountId } from '@/components/HederaAccountId/HederaAccountId';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -72,6 +73,14 @@ export default function ResearcherWalletPage() {
     return `https://hashscan.io/${networkPath}account/${accountId}`;
   };
 
+  const openFaucet = () => {
+    if (balance?.hederaAccountId) {
+      // Open Hedera faucet in new tab with account ID pre-filled
+      const faucetUrl = `https://portal.hedera.com/faucet?account=${balance.hederaAccountId}`;
+      window.open(faucetUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -109,6 +118,27 @@ export default function ResearcherWalletPage() {
             <AlertDescription className="text-red-800">{error}</AlertDescription>
           </Alert>
         )}
+
+        {/* Low Balance Warning */}
+        {balance &&
+          balance.balanceHBAR < 10 &&
+          (process.env.NEXT_PUBLIC_HEDERA_NETWORK || 'testnet') === 'testnet' &&
+          balance?.hederaAccountId && (
+            <Alert className="mb-6 border-yellow-200 bg-yellow-50">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="text-yellow-800">
+                <div className="flex items-center justify-between">
+                  <span>
+                    Low balance detected. Get free testnet HBAR from the faucet to continue testing.
+                  </span>
+                  <Button size="sm" onClick={openFaucet} className="ml-4">
+                    <Coins className="mr-2 h-4 w-4" />
+                    Get Test HBAR
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Balance Card */}
@@ -150,6 +180,21 @@ export default function ResearcherWalletPage() {
                   </div>
                 </div>
 
+                {/* Get Test HBAR Button (Testnet only) */}
+                {(process.env.NEXT_PUBLIC_HEDERA_NETWORK || 'testnet') === 'testnet' &&
+                  balance?.hederaAccountId && (
+                    <div className="mt-4">
+                      <Button onClick={openFaucet} variant="outline" className="w-full">
+                        <Coins className="mr-2 h-4 w-4" />
+                        Get Free Test HBAR from Faucet
+                        <ExternalLink className="ml-2 h-4 w-4" />
+                      </Button>
+                      <p className="mt-2 text-center text-xs text-muted-foreground">
+                        Opens Hedera Portal Faucet. Request up to 10,000 HBAR per request.
+                      </p>
+                    </div>
+                  )}
+
                 {/* Hedera Account Details */}
                 {balance?.hederaAccountId && (
                   <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
@@ -187,7 +232,7 @@ export default function ResearcherWalletPage() {
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-muted-foreground">EVM Address:</span>
                           <div className="flex items-center gap-2">
-                            <code className="text-sm font-mono">{balance.evmAddress}</code>
+                            <code className="font-mono text-sm">{balance.evmAddress}</code>
                             <Button
                               variant="ghost"
                               size="sm"
@@ -211,7 +256,8 @@ export default function ResearcherWalletPage() {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      No Hedera account found. Your account will be created automatically when you make your first purchase.
+                      No Hedera account found. Your account will be created automatically when you
+                      make your first purchase.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -229,25 +275,38 @@ export default function ResearcherWalletPage() {
                 <div>
                   <p className="mb-1 font-medium">How It Works</p>
                   <p className="text-muted-foreground">
-                    Your wallet is automatically created when you register. You can fund it to purchase datasets.
+                    Your wallet is automatically created when you register. You can fund it to
+                    purchase datasets.
                   </p>
                 </div>
+                {(process.env.NEXT_PUBLIC_HEDERA_NETWORK || 'testnet') === 'testnet' && (
+                  <div>
+                    <p className="mb-1 font-medium">Testnet Funding</p>
+                    <p className="text-muted-foreground">
+                      On testnet, you can get free HBAR from the Hedera faucet. Click the "Get Free
+                      Test HBAR" button above to open the faucet.
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="mb-1 font-medium">Funding Your Wallet</p>
                   <p className="text-muted-foreground">
-                    Transfer HBAR to your Hedera Account ID to fund your wallet. You can use HashPack, Blade, or any Hedera-compatible wallet.
+                    Transfer HBAR to your Hedera Account ID to fund your wallet. You can use
+                    HashPack, Blade, or any Hedera-compatible wallet.
                   </p>
                 </div>
                 <div>
                   <p className="mb-1 font-medium">Making Purchases</p>
                   <p className="text-muted-foreground">
-                    When you purchase a dataset, the payment is automatically deducted from your wallet balance.
+                    When you purchase a dataset, the payment is automatically deducted from your
+                    wallet balance.
                   </p>
                 </div>
                 <div>
                   <p className="mb-1 font-medium">View on HashScan</p>
                   <p className="text-muted-foreground">
-                    Click the external link icon to view your account on HashScan, the Hedera network explorer.
+                    Click the external link icon to view your account on HashScan, the Hedera
+                    network explorer.
                   </p>
                 </div>
               </CardContent>
