@@ -306,7 +306,7 @@ router.get('/filter-options', async (req, res) => {
 router.post('/datasets/:datasetId/export', async (req, res) => {
   try {
     const { datasetId } = req.params;
-    const { format = 'fhir', researcherId, multiFile, zip } = req.body;
+    const { format = 'fhir', researcherId, multiFile, zip, limit, csvSchema } = req.body;
     
     if (!researcherId) {
       return res.status(400).json({ error: 'Researcher ID required' });
@@ -321,13 +321,23 @@ router.post('/datasets/:datasetId/export', async (req, res) => {
       });
     }
     
-    const exportOptions = { multiFile, zip };
+    const exportOptions = { 
+      multiFile, 
+      zip,
+      limit, // Support count-based queries (e.g., "get me 100 diabetic patients")
+      csvSchema // Support original CSV structure
+    };
     const exportData = await exportDataset(datasetId, format, exportOptions);
     
     // Set appropriate content type and headers
     if (format === 'csv-zip' || (format === 'csv' && zip)) {
       res.setHeader('Content-Type', 'application/zip');
       res.setHeader('Content-Disposition', `attachment; filename="dataset-${datasetId}.zip"`);
+      res.send(exportData.data);
+    } else if (format === 'csv-flattened') {
+      // Flattened CSV: one row per patient
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="dataset-${datasetId}-flattened.csv"`);
       res.send(exportData.data);
     } else if (format === 'csv' && multiFile) {
       // Multi-file CSV as JSON response

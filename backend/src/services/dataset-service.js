@@ -175,11 +175,18 @@ export async function exportDataset(datasetId, format = 'fhir', options = {}) {
     }
   }
   
-  // Query all matching resources
-  filters.limit = 100000; // Large limit for export
+  // Format based on requested format
+  if (format === 'csv-flattened') {
+    // Flattened CSV: one row per patient with all data denormalized
+    // Pass csvSchema from dataset if available
+    const csvSchema = dataset.csvSchema || options.csvSchema;
+    return await formatAsFlattenedCSV(filters, dataset, { ...options, csvSchema });
+  }
+  
+  // For other formats, query all matching resources
+  filters.limit = options.limit || 100000; // Support limit for count-based queries
   const patients = await queryFHIRResources(filters);
   
-  // Format based on requested format
   if (format === 'fhir') {
     return formatAsFHIRBundle(patients, dataset);
   } else if (format === 'csv' || format === 'csv-zip') {
@@ -412,6 +419,197 @@ function generateCSV(headers, rows) {
     headers.join(','),
     ...rows.map(row => row.map(escapeCSV).join(','))
   ].join('\n');
+}
+
+/**
+ * Format data as flattened CSV (one row per patient with all data denormalized)
+ * This maintains the original CSV structure with anonymized fields
+ * 
+ * @param {Object} filters - Query filters
+ * @param {Object} dataset - Dataset metadata
+ * @param {Object} options - Export options (limit, csvSchema)
+ * @returns {Promise<Object>} Flattened CSV export
+ */
+async function formatAsFlattenedCSV(filters, dataset, options = {}) {
+  const { limit, csvSchema } = options;
+  
+  // Import resource query functions
+  const { queryPatients, queryConditions, queryObservations } = await import('../db/fhir-resource-db.js');
+  
+  // Apply limit if specified (e.g., "get me 100 diabetic patients")
+  const queryFilters = { ...filters };
+  if (limit) {
+    queryFilters.limit = limit;
+  } else {
+    queryFilters.limit = 100000; // Large limit for export
+  }
+  
+  // Get all patients matching filters
+  const patientData = await queryPatients(queryFilters);
+  
+  // Get all conditions for these patients
+  const conditionData = await queryConditions(queryFilters);
+  
+  // Get all observations for these patients
+  const observationData = await queryObservations(queryFilters);
+  
+  // Group conditions and observations by patient
+  const conditionsByPatient = new Map();
+  const observationsByPatient = new Map();
+  
+  conditionData.forEach(condition => {
+    if (!conditionsByPatient.has(condition.anonymousPatientId)) {
+      conditionsByPatient.set(condition.anonymousPatientId, []);
+    }
+    conditionsByPatient.get(condition.anonymousPatientId).push(condition);
+  });
+  
+  observationData.forEach(observation => {
+    if (!observationsByPatient.has(observation.anonymousPatientId)) {
+      observationsByPatient.set(observation.anonymousPatientId, []);
+    }
+    observationsByPatient.get(observation.anonymousPatientId).push(observation);
+  });
+  
+  // Build CSV headers - use csvSchema if provided, otherwise use default structure
+  let headers;
+  if (csvSchema && csvSchema.columns && Array.isArray(csvSchema.columns)) {
+    // Use original CSV schema
+    headers = csvSchema.columns;
+  } else {
+    // Default flattened structure
+    headers = [
+      'anonymousPatientId',
+      'ageRange',
+      'gender',
+      'country',
+      'region',
+      'hospitalId',
+      'conditions', // Comma-separated condition names
+      'conditionCodes', // Comma-separated ICD10 codes
+      'diabetesStatus', // Yes/No
+      'diabetesCode', // E11 if diabetic
+      'hypertensionStatus', // Yes/No
+      'hypertensionCode', // I10 if hypertensive
+      'latestHbA1c', // Latest HbA1c value
+      'latestHbA1cDate', // Date of latest HbA1c
+      'latestGlucose', // Latest glucose value
+      'latestGlucoseDate', // Date of latest glucose
+      'latestCholesterol', // Latest cholesterol value
+      'latestCholesterolDate', // Date of latest cholesterol
+      'allObservations', // All observations as JSON string
+      'observationCount' // Number of observations
+    ];
+  }
+  
+  // Build rows - one per patient
+  const rows = patientData.map(patient => {
+    const patientConditions = conditionsByPatient.get(patient.anonymousPatientId) || [];
+    const patientObservations = observationsByPatient.get(patient.anonymousPatientId) || [];
+    
+    // Extract condition information
+    const conditionNames = patientConditions.map(c => c.conditionName).filter(Boolean);
+    const conditionCodes = patientConditions.map(c => c.conditionCode).filter(Boolean);
+    const hasDiabetes = conditionCodes.some(code => code === 'E11' || code.startsWith('E11'));
+    const hasHypertension = conditionCodes.some(code => code === 'I10' || code.startsWith('I10'));
+    
+    // Find latest lab values
+    const hbA1cObs = patientObservations.filter(o => 
+      o.observationCode === '4548-4' || 
+      o.observationName?.toLowerCase().includes('hba1c') ||
+      o.observationName?.toLowerCase().includes('hemoglobin a1c')
+    ).sort((a, b) => new Date(b.effectiveDate) - new Date(a.effectiveDate));
+    
+    const glucoseObs = patientObservations.filter(o => 
+      o.observationCode === '2339-0' || 
+      o.observationName?.toLowerCase().includes('glucose')
+    ).sort((a, b) => new Date(b.effectiveDate) - new Date(a.effectiveDate));
+    
+    const cholesterolObs = patientObservations.filter(o => 
+      o.observationCode === '2093-3' || 
+      o.observationName?.toLowerCase().includes('cholesterol')
+    ).sort((a, b) => new Date(b.effectiveDate) - new Date(a.effectiveDate));
+    
+    const latestHbA1c = hbA1cObs.length > 0 ? hbA1cObs[0] : null;
+    const latestGlucose = glucoseObs.length > 0 ? glucoseObs[0] : null;
+    const latestCholesterol = cholesterolObs.length > 0 ? cholesterolObs[0] : null;
+    
+    // Build row data
+    if (csvSchema && csvSchema.columns) {
+      // Map to original CSV structure
+      const row = {};
+      csvSchema.columns.forEach(col => {
+        // Map common fields
+        if (col.toLowerCase().includes('patient') && col.toLowerCase().includes('id')) {
+          row[col] = patient.anonymousPatientId;
+        } else if (col.toLowerCase().includes('age')) {
+          row[col] = patient.ageRange || '';
+        } else if (col.toLowerCase().includes('gender') || col.toLowerCase().includes('sex')) {
+          row[col] = patient.gender || '';
+        } else if (col.toLowerCase().includes('country')) {
+          row[col] = patient.country || '';
+        } else if (col.toLowerCase().includes('region') || col.toLowerCase().includes('location')) {
+          row[col] = patient.region || '';
+        } else if (col.toLowerCase().includes('condition') && col.toLowerCase().includes('name')) {
+          row[col] = conditionNames.join('; ') || '';
+        } else if (col.toLowerCase().includes('condition') && col.toLowerCase().includes('code')) {
+          row[col] = conditionCodes.join('; ') || '';
+        } else if (col.toLowerCase().includes('diabetes')) {
+          row[col] = hasDiabetes ? 'Yes' : 'No';
+        } else if (col.toLowerCase().includes('hypertension')) {
+          row[col] = hasHypertension ? 'Yes' : 'No';
+        } else {
+          row[col] = ''; // Empty for unmapped fields
+        }
+      });
+      return csvSchema.columns.map(col => row[col] || '');
+    } else {
+      // Default flattened structure
+      return [
+        patient.anonymousPatientId,
+        patient.ageRange || '',
+        patient.gender || '',
+        patient.country || '',
+        patient.region || '',
+        patient.hospitalId || '',
+        conditionNames.join('; ') || '',
+        conditionCodes.join('; ') || '',
+        hasDiabetes ? 'Yes' : 'No',
+        hasDiabetes ? 'E11' : '',
+        hasHypertension ? 'Yes' : 'No',
+        hasHypertension ? 'I10' : '',
+        latestHbA1c?.value || '',
+        latestHbA1c?.effectiveDate || '',
+        latestGlucose?.value || '',
+        latestGlucose?.effectiveDate || '',
+        latestCholesterol?.value || '',
+        latestCholesterol?.effectiveDate || '',
+        JSON.stringify(patientObservations.map(o => ({
+          name: o.observationName,
+          code: o.observationCode,
+          value: o.value,
+          unit: o.unit,
+          date: o.effectiveDate
+        }))),
+        patientObservations.length
+      ];
+    }
+  });
+  
+  // Generate CSV
+  const csv = generateCSV(headers, rows);
+  
+  return {
+    format: 'csv-flattened',
+    data: csv,
+    recordCount: rows.length,
+    datasetId: dataset.id,
+    metadata: {
+      exportedAt: new Date().toISOString(),
+      filters: queryFilters,
+      structure: 'one-row-per-patient'
+    }
+  };
 }
 
 /**
