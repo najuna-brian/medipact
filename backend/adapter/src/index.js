@@ -946,8 +946,11 @@ async function main() {
     // This uses Hedera Account IDs for direct HBAR transfers
     const hospitalId = process.env.HOSPITAL_ID;
     const revenueBackendApiUrl = process.env.BACKEND_API_URL || `http://localhost:${process.env.PORT || 8080}`;
+    const enableUploadPayouts = process.env.ENABLE_UPLOAD_PAYOUTS === 'true';
     
-    if (hospitalId && revenueBackendApiUrl) {
+    if (!enableUploadPayouts) {
+      console.log('⚠️  ENABLE_UPLOAD_PAYOUTS not set. Skipping real revenue distribution after upload (payout will occur when researcher purchases).');
+    } else if (hospitalId && revenueBackendApiUrl) {
       console.log('=== 7. EXECUTE REVENUE DISTRIBUTION ===');
       try {
         // Calculate records per patient for proportional distribution

@@ -23,6 +23,8 @@ HOSPITAL_LOCATION="Kampala, Uganda"  # Optional: Used for country inference if n
 # Backend Integration (Required for Revenue Distribution)
 HOSPITAL_ID="HOSP-XXXXXXXX"  # Your hospital ID from backend registration
 BACKEND_API_URL="http://localhost:3002"  # Backend API URL
+# Set to true ONLY if you want payouts immediately after upload
+ENABLE_UPLOAD_PAYOUTS="false"
 
 # Smart Contract Addresses (Optional - Legacy)
 CONSENT_MANAGER_ADDRESS="0x..."
@@ -72,6 +74,8 @@ The adapter can automatically distribute revenue to patients and hospitals after
 1. **Hospital Registration**: Register your hospital in the backend to get a `HOSPITAL_ID`
 2. **Patient Registration**: Ensure patients are registered in the backend with contact info
 3. **Environment Configuration**: Set `HOSPITAL_ID` and `BACKEND_API_URL` in `.env`
+
+By default the adapter only simulates payouts. To trigger real payouts immediately after a hospital upload, set `ENABLE_UPLOAD_PAYOUTS=true` (not recommended for production). Without that flag, real payouts happen later when a researcher purchase is processed via the marketplace API.
 
 When revenue distribution is enabled, the adapter will:
 - Look up patient UPI from backend using contact info (email, phone, national ID)
@@ -173,6 +177,7 @@ See `TESTING.md` for comprehensive testing guide and test scenarios.
 - `USD_TO_LOCAL_RATE` - Exchange rate (local currency per USD)
 - `CONSENT_MANAGER_ADDRESS` - Deployed ConsentManager contract address (EVM format: 0x...)
 - `REVENUE_SPLITTER_ADDRESS` - Deployed RevenueSplitter contract address (EVM format: 0x...)
+- `ENABLE_UPLOAD_PAYOUTS` - Set to `"true"` to execute payouts right after upload. Defaults to `false` so payouts only occur after researcher payments.
 
 **Hospital Configuration:**
 - `HOSPITAL_COUNTRY` is **required** and used as a fallback when patient location data is missing
