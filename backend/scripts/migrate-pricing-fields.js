@@ -1,13 +1,13 @@
 /**
  * Database Migration: Add Pricing Fields
  * 
- * Adds new pricing-related columns to the datasets table:
- * - price_usd
- * - price_per_record_hbar
- * - price_per_record_usd
- * - pricing_category_id
- * - pricing_category
- * - volume_discount
+ * Adds new pricing-related columns to the datasets table (using camelCase):
+ * - priceUsd
+ * - pricePerRecordHBAR
+ * - pricePerRecordUSD
+ * - pricingCategoryId
+ * - pricingCategory
+ * - volumeDiscount
  * 
  * Also calculates USD prices for existing datasets based on current HBAR price.
  */
@@ -20,14 +20,14 @@ const HBAR_TO_USD = 0.16; // Current exchange rate
 async function migratePostgreSQL(client) {
   console.log('Migrating PostgreSQL database...');
   
-  // Add new columns if they don't exist
+  // Add new columns if they don't exist (using camelCase with quotes for PostgreSQL)
   const alterQueries = [
-    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS price_usd DECIMAL(18, 8)`,
-    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS price_per_record_hbar DECIMAL(18, 8)`,
-    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS price_per_record_usd DECIMAL(18, 8)`,
-    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS pricing_category_id VARCHAR(32)`,
-    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS pricing_category VARCHAR(100)`,
-    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS volume_discount DECIMAL(5, 2) DEFAULT 0`
+    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "priceUsd" DECIMAL(18, 8)`,
+    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "pricePerRecordHBAR" DECIMAL(18, 8)`,
+    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "pricePerRecordUSD" DECIMAL(18, 8)`,
+    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "pricingCategoryId" VARCHAR(32)`,
+    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "pricingCategory" VARCHAR(100)`,
+    `ALTER TABLE datasets ADD COLUMN IF NOT EXISTS "volumeDiscount" DECIMAL(5, 2) DEFAULT 0`
   ];
   
   for (const query of alterQueries) {
@@ -43,16 +43,16 @@ async function migratePostgreSQL(client) {
   const updateQuery = `
     UPDATE datasets
     SET 
-      price_usd = price * $1,
-      price_per_record_hbar = CASE 
+      "priceUsd" = price * $1,
+      "pricePerRecordHBAR" = CASE 
         WHEN record_count > 0 THEN price / record_count 
         ELSE NULL 
       END,
-      price_per_record_usd = CASE 
+      "pricePerRecordUSD" = CASE 
         WHEN record_count > 0 THEN (price * $1) / record_count 
         ELSE NULL 
       END
-    WHERE price_usd IS NULL
+    WHERE "priceUsd" IS NULL
   `;
   
   try {
@@ -73,23 +73,23 @@ async function migrateSQLite(db) {
   const checkColumn = promisify(db.get.bind(db));
   
   const columns = [
-    { name: 'price_usd', type: 'REAL' },
-    { name: 'price_per_record_hbar', type: 'REAL' },
-    { name: 'price_per_record_usd', type: 'REAL' },
-    { name: 'pricing_category_id', type: 'TEXT' },
-    { name: 'pricing_category', type: 'TEXT' },
-    { name: 'volume_discount', type: 'REAL DEFAULT 0' }
+    { name: 'priceUsd', quotedName: '"priceUsd"', type: 'REAL' },
+    { name: 'pricePerRecordHBAR', quotedName: '"pricePerRecordHBAR"', type: 'REAL' },
+    { name: 'pricePerRecordUSD', quotedName: '"pricePerRecordUSD"', type: 'REAL' },
+    { name: 'pricingCategoryId', quotedName: '"pricingCategoryId"', type: 'TEXT' },
+    { name: 'pricingCategory', quotedName: '"pricingCategory"', type: 'TEXT' },
+    { name: 'volumeDiscount', quotedName: '"volumeDiscount"', type: 'REAL DEFAULT 0' }
   ];
   
   for (const col of columns) {
     try {
       // Check if column exists by trying to select it
-      await checkColumn(`SELECT ${col.name} FROM datasets LIMIT 1`);
+      await checkColumn(`SELECT ${col.quotedName} FROM datasets LIMIT 1`);
       console.log(`✓ Column ${col.name} already exists`);
     } catch (error) {
       // Column doesn't exist, add it
       try {
-        await run(`ALTER TABLE datasets ADD COLUMN ${col.name} ${col.type}`);
+        await run(`ALTER TABLE datasets ADD COLUMN ${col.quotedName} ${col.type}`);
         console.log(`✓ Added column: ${col.name}`);
       } catch (addError) {
         console.error(`Error adding column ${col.name}: ${addError.message}`);
@@ -101,16 +101,16 @@ async function migrateSQLite(db) {
   const updateQuery = `
     UPDATE datasets
     SET 
-      price_usd = price * ?,
-      price_per_record_hbar = CASE 
+      "priceUsd" = price * ?,
+      "pricePerRecordHBAR" = CASE 
         WHEN record_count > 0 THEN price / record_count 
         ELSE NULL 
       END,
-      price_per_record_usd = CASE 
+      "pricePerRecordUSD" = CASE 
         WHEN record_count > 0 THEN (price * ?) / record_count 
         ELSE NULL 
       END
-    WHERE price_usd IS NULL
+    WHERE "priceUsd" IS NULL
   `;
   
   try {

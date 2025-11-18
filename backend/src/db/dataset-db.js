@@ -56,9 +56,9 @@ export async function createDataset(datasetData) {
     const result = await db.query(
       `INSERT INTO datasets (
         id, name, description, hospital_id, country, record_count,
-        date_range_start, date_range_end, condition_codes, price, price_usd,
-        price_per_record_hbar, price_per_record_usd, pricing_category_id,
-        pricing_category, volume_discount, currency, format, consent_type,
+        date_range_start, date_range_end, condition_codes, price, "priceUsd",
+        "pricePerRecordHBAR", "pricePerRecordUSD", "pricingCategoryId",
+        "pricingCategory", "volumeDiscount", currency, format, consent_type,
         hcs_topic_id, consent_topic_id, data_topic_id, status
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
       RETURNING *`,
@@ -80,9 +80,9 @@ export async function createDataset(datasetData) {
     await run(
       `INSERT INTO datasets (
         id, name, description, hospital_id, country, record_count,
-        date_range_start, date_range_end, condition_codes, price, price_usd,
-        price_per_record_hbar, price_per_record_usd, pricing_category_id,
-        pricing_category, volume_discount, currency, format, consent_type,
+        date_range_start, date_range_end, condition_codes, price, "priceUsd",
+        "pricePerRecordHBAR", "pricePerRecordUSD", "pricingCategoryId",
+        "pricingCategory", "volumeDiscount", currency, format, consent_type,
         hcs_topic_id, consent_topic_id, data_topic_id, status
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -201,8 +201,8 @@ export async function updateDataset(datasetId, updates) {
   
   const allowedFields = [
     'name', 'description', 'record_count', 'date_range_start', 'date_range_end',
-    'condition_codes', 'price', 'price_usd', 'price_per_record_hbar', 'price_per_record_usd',
-    'pricing_category_id', 'pricing_category', 'volume_discount', 'currency', 'format',
+    'condition_codes', 'price', 'priceUsd', 'pricePerRecordHBAR', 'pricePerRecordUSD',
+    'pricingCategoryId', 'pricingCategory', 'volumeDiscount', 'currency', 'format',
     'status', 'hcs_topic_id', 'consent_topic_id', 'data_topic_id'
   ];
   
@@ -211,8 +211,22 @@ export async function updateDataset(datasetId, updates) {
   let paramIndex = 1;
   
   for (const [key, value] of Object.entries(updates)) {
-    const dbKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-    if (allowedFields.includes(dbKey)) {
+    // Map camelCase to database column names
+    const dbKeyMap = {
+      'conditionCodes': 'condition_codes',
+      'priceUsd': '"priceUsd"',
+      'pricePerRecordHBAR': '"pricePerRecordHBAR"',
+      'pricePerRecordUSD': '"pricePerRecordUSD"',
+      'pricingCategoryId': '"pricingCategoryId"',
+      'pricingCategory': '"pricingCategory"',
+      'volumeDiscount': '"volumeDiscount"',
+      'recordCount': 'record_count',
+      'dateRangeStart': 'date_range_start',
+      'dateRangeEnd': 'date_range_end'
+    };
+    
+    const dbKey = dbKeyMap[key] || (allowedFields.includes(key) ? key : null);
+    if (dbKey) {
       if (key === 'conditionCodes') {
         updateFields.push(`condition_codes = $${paramIndex}`);
         values.push(JSON.stringify(value));
@@ -262,12 +276,12 @@ function mapDatasetRow(row) {
     dateRangeEnd: row.date_range_end,
     conditionCodes: row.condition_codes ? JSON.parse(row.condition_codes) : null,
     price: parseFloat(row.price),
-    priceUSD: row.price_usd ? parseFloat(row.price_usd) : null,
-    pricePerRecordHBAR: row.price_per_record_hbar ? parseFloat(row.price_per_record_hbar) : null,
-    pricePerRecordUSD: row.price_per_record_usd ? parseFloat(row.price_per_record_usd) : null,
-    pricingCategoryId: row.pricing_category_id,
-    pricingCategory: row.pricing_category,
-    volumeDiscount: row.volume_discount ? parseFloat(row.volume_discount) : 0,
+    priceUSD: row.priceUsd ? parseFloat(row.priceUsd) : (row.price_usd ? parseFloat(row.price_usd) : null),
+    pricePerRecordHBAR: row.pricePerRecordHBAR ? parseFloat(row.pricePerRecordHBAR) : (row.price_per_record_hbar ? parseFloat(row.price_per_record_hbar) : null),
+    pricePerRecordUSD: row.pricePerRecordUSD ? parseFloat(row.pricePerRecordUSD) : (row.price_per_record_usd ? parseFloat(row.price_per_record_usd) : null),
+    pricingCategoryId: row.pricingCategoryId || row.pricing_category_id,
+    pricingCategory: row.pricingCategory || row.pricing_category,
+    volumeDiscount: row.volumeDiscount ? parseFloat(row.volumeDiscount) : (row.volume_discount ? parseFloat(row.volume_discount) : 0),
     currency: row.currency,
     format: row.format,
     consentType: row.consent_type,
