@@ -222,6 +222,7 @@ router.post('/query', queryLimiter, async (req, res) => {
   try {
     const filters = req.body;
     const researcherId = req.body.researcherId || req.headers['x-researcher-id'];
+    const format = req.body.format || 'json'; // Default to JSON, support 'csv-flattened'
     
     if (!researcherId) {
       return res.status(400).json({ 
@@ -235,6 +236,47 @@ router.post('/query', queryLimiter, async (req, res) => {
       return res.status(404).json({ error: 'Researcher not found' });
     }
     
+    // If csv-flattened format is requested, return flattened CSV
+    if (format === 'csv-flattened') {
+      const { formatAsFlattenedCSV } = await import('../services/dataset-service.js');
+      
+      // Create a temporary dataset-like object for export
+      const tempDataset = {
+        id: 'QUERY-TEMP',
+        name: 'Query Results',
+        country: filters.country || null,
+        dateRangeStart: filters.startDate || null,
+        dateRangeEnd: filters.endDate || null,
+        conditionCodes: filters.conditionCode ? [filters.conditionCode] : null
+      };
+      
+      // For preview, limit to 20 rows; for full export, use requested limit
+      const previewLimit = filters.preview !== false ? 20 : (filters.limit || 1000);
+      
+      const csvData = await formatAsFlattenedCSV(filters, tempDataset, {
+        limit: previewLimit,
+        csvSchema: filters.csvSchema
+      });
+      
+      // If preview mode, return as JSON with CSV data and metadata
+      if (filters.preview !== false) {
+        return res.json({
+          format: 'csv-flattened',
+          csvData: csvData.data,
+          recordCount: csvData.recordCount,
+          preview: true,
+          filters: filters,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      // Full export: return CSV file
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="query-results-${Date.now()}.csv"`);
+      return res.send(csvData.data);
+    }
+    
+    // Default: return JSON result
     const result = await executeQuery(filters, researcherId, {
       preview: filters.preview !== false, // Default to preview
       limit: filters.limit || 1000

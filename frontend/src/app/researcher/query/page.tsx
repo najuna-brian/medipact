@@ -26,6 +26,7 @@ import { QueryFilters } from '@/lib/api/marketplace';
 import HashScanLink from '@/components/HashScanLink/HashScanLink';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { FlattenedCSVPreview } from '@/components/FlattenedCSVPreview/FlattenedCSVPreview';
 
 function ResearcherQueryPageContent() {
   const router = useRouter();
@@ -168,7 +169,9 @@ function ResearcherQueryPageContent() {
                       Query Results
                     </CardTitle>
                     <CardDescription>
-                      {queryResult.preview
+                      {queryResult.format === 'csv-flattened' 
+                        ? 'Flattened CSV format - One row per patient'
+                        : queryResult.preview
                         ? 'Preview mode - Purchase to view full data'
                         : 'Full data access'}
                     </CardDescription>
@@ -188,12 +191,12 @@ function ResearcherQueryPageContent() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                   <div>
                     <p className="text-sm text-muted-foreground">Records Found</p>
-                    <p className="text-3xl font-bold">{queryResult.count.toLocaleString()}</p>
+                    <p className="text-3xl font-bold">{(queryResult.recordCount || queryResult.count).toLocaleString()}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Query Type</p>
+                    <p className="text-sm text-muted-foreground">Format</p>
                     <p className="text-lg font-semibold">
-                      {queryResult.preview ? 'Preview' : 'Full Access'}
+                      {queryResult.format === 'csv-flattened' ? 'Flattened CSV' : queryResult.preview ? 'Preview' : 'Full Access'}
                     </p>
                   </div>
                   <div>
@@ -252,8 +255,18 @@ function ResearcherQueryPageContent() {
               </CardContent>
             </Card>
 
-            {/* Data Results */}
-            {queryResult.results && queryResult.results.length > 0 && (
+            {/* Data Results - Show Flattened CSV Preview if format is csv-flattened */}
+            {queryResult.format === 'csv-flattened' && queryResult.csvData && (
+              <FlattenedCSVPreview
+                csvData={queryResult.csvData}
+                recordCount={queryResult.recordCount || queryResult.count}
+                filters={queryFilters || {}}
+                researcherId={researcherId}
+              />
+            )}
+
+            {/* Data Results - Show JSON format if format is json */}
+            {queryResult.format !== 'csv-flattened' && queryResult.results && queryResult.results.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Anonymized Patient Data</CardTitle>

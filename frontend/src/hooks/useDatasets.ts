@@ -48,12 +48,12 @@ export function useDataset(datasetId: string | null, includePreview = false) {
 /**
  * Hook to execute a query
  */
-export function useQueryData(filters: QueryFilters, researcherId: string | null, enabled = true) {
+export function useQueryData(filters: QueryFilters, researcherId: string | null, enabled = true, format: 'json' | 'csv-flattened' = 'csv-flattened') {
   return useQuery({
-    queryKey: ['query', filters, researcherId],
+    queryKey: ['query', filters, researcherId, format],
     queryFn: () => {
       if (!researcherId) throw new Error('Researcher ID is required');
-      return executeQuery(filters, researcherId);
+      return executeQuery(filters, researcherId, format);
     },
     enabled: enabled && !!researcherId,
     staleTime: 0, // Queries are always fresh

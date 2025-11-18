@@ -24,7 +24,8 @@ export async function executeQuery(filters, researcherId, options = {}) {
   const {
     preview = false, // If true, only return counts, not full data
     limit = 1000,
-    validateConsent = true
+    validateConsent = true,
+    format = 'json' // Support 'json' or 'csv-flattened'
   } = options;
 
   // Validate filters
@@ -49,11 +50,33 @@ export async function executeQuery(filters, researcherId, options = {}) {
   let results = [];
   let count = 0;
   
-  if (preview) {
-    // Preview mode: only get count
+  if (preview && format === 'json') {
+    // Preview mode: only get count (for JSON format)
     // Note: For preview, we still need to filter by patient preferences
     // This is a simplified count - actual filtering happens in full query
     count = await countFHIRPatients(validatedFilters);
+  } else if (format === 'csv-flattened') {
+    // For flattened CSV, always return data (even in preview mode)
+    // This allows users to see the structure before exporting
+    validatedFilters.limit = limit || 100; // Limit preview to 100 rows
+    results = await queryFHIRResources(validatedFilters);
+    
+    // Filter results based on patient preferences
+    if (researcherId && researcherInfo) {
+      results = await filterByPatientPreferences(
+        results,
+        researcherId,
+        researcherInfo,
+        {
+          recordCount: results.length,
+          isSensitive: checkIfSensitive(validatedFilters)
+        }
+      );
+    }
+    
+    // Limit to requested amount after filtering
+    results = results.slice(0, limit || 100);
+    count = results.length;
   } else {
     // Full query: get actual data
     validatedFilters.limit = limit * 2; // Get more to account for filtering

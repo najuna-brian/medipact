@@ -72,6 +72,10 @@ export interface QueryResult {
   hcsMessageId?: string;
   dataTopicId?: string;
   timestamp: string;
+  // For csv-flattened format
+  format?: 'csv-flattened';
+  csvData?: string;
+  recordCount?: number;
 }
 
 export interface FilterOptions {
@@ -150,7 +154,8 @@ export async function getDataset(datasetId: string, includePreview = false): Pro
  */
 export async function executeQuery(
   filters: QueryFilters,
-  researcherId: string
+  researcherId: string,
+  format: 'json' | 'csv-flattened' = 'json'
 ): Promise<QueryResult> {
   const response = await fetch(`${API_URL}/api/marketplace/query`, {
     method: 'POST',
@@ -161,6 +166,7 @@ export async function executeQuery(
     body: JSON.stringify({
       ...filters,
       researcherId,
+      format, // Support csv-flattened format
     }),
   });
 
@@ -260,9 +266,9 @@ export async function purchaseDataset(request: PurchaseRequest): Promise<Purchas
  */
 export async function exportDataset(
   datasetId: string,
-  format: 'fhir' | 'csv' | 'csv-zip' | 'json',
+  format: 'fhir' | 'csv' | 'csv-zip' | 'csv-flattened' | 'json',
   researcherId: string,
-  options?: { multiFile?: boolean; zip?: boolean }
+  options?: { multiFile?: boolean; zip?: boolean; limit?: number; csvSchema?: any }
 ): Promise<Blob | any> {
   const response = await fetch(`${API_URL}/api/marketplace/datasets/${datasetId}/export`, {
     method: 'POST',
@@ -274,6 +280,8 @@ export async function exportDataset(
       researcherId,
       multiFile: options?.multiFile,
       zip: options?.zip,
+      limit: options?.limit,
+      csvSchema: options?.csvSchema,
     }),
   });
 
@@ -281,11 +289,42 @@ export async function exportDataset(
     throw new Error(`Export failed: ${response.statusText}`);
   }
 
-  if (format === 'csv' || format === 'csv-zip') {
+  if (format === 'csv' || format === 'csv-zip' || format === 'csv-flattened') {
     return response.blob();
   } else {
     return response.json();
   }
+}
+
+/**
+ * Export query results as flattened CSV
+ */
+export async function exportQueryAsFlattenedCSV(
+  filters: QueryFilters,
+  researcherId: string,
+  limit?: number
+): Promise<Blob> {
+  // Export as flattened CSV (preview=false for full export)
+  const response = await fetch(`${API_URL}/api/marketplace/query`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-researcher-id': researcherId,
+    },
+    body: JSON.stringify({
+      ...filters,
+      researcherId,
+      format: 'csv-flattened',
+      preview: false, // Full export, not preview
+      limit: limit || filters.limit,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Export failed: ${response.statusText}`);
+  }
+
+  return response.blob();
 }
 
 /**

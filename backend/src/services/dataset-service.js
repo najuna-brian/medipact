@@ -430,7 +430,7 @@ function generateCSV(headers, rows) {
  * @param {Object} options - Export options (limit, csvSchema)
  * @returns {Promise<Object>} Flattened CSV export
  */
-async function formatAsFlattenedCSV(filters, dataset, options = {}) {
+export async function formatAsFlattenedCSV(filters, dataset, options = {}) {
   const { limit, csvSchema } = options;
   
   // Import resource query functions
