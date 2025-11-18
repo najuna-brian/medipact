@@ -52,7 +52,45 @@ export default function ResearcherLoginPage() {
       router.push('/researcher/dashboard');
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.response?.data?.error || err.message || 'Failed to login. Please check your Researcher ID or Email.');
+
+      // Better error handling
+      let errorMessage = 'Failed to login. Please check your Researcher ID or Email.';
+
+      if (err.response) {
+        // API returned an error response
+        const status = err.response.status;
+        const data = err.response.data;
+
+        if (status === 404) {
+          errorMessage =
+            'Researcher not found. Please verify your Researcher ID or Email is correct.';
+        } else if (status === 500) {
+          errorMessage = 'Server error. Please try again later or contact support.';
+        } else if (data?.error) {
+          errorMessage = data.error;
+        } else if (data?.message) {
+          errorMessage = data.message;
+        }
+      } else if (err.request) {
+        // Request was made but no response received
+        const apiUrl =
+          process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+          process.env.NEXT_PUBLIC_API_URL ||
+          'http://localhost:8080';
+        errorMessage = `Unable to connect to server at ${apiUrl}. Please check your internet connection and ensure the backend is running.`;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      // Log full error for debugging
+      console.error('Full login error:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        config: err.config,
+      });
+
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -110,7 +148,12 @@ export default function ResearcherLoginPage() {
                   />
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Enter your Researcher ID (e.g., RES-XXXXXXXX) or the email address you used during registration
+                  Enter your Researcher ID (e.g., RES-XXXXXXXX) or the email address you used during
+                  registration
+                </p>
+                <p className="mt-2 text-xs text-amber-600">
+                  Note: Demo credentials from DEMO_CREDENTIALS.md only work if demo data has been
+                  populated on this server.
                 </p>
               </div>
 
