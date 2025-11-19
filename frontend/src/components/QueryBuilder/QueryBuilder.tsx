@@ -53,13 +53,15 @@ export function QueryBuilder({ onQuery, onReset, initialFilters = {} }: QueryBui
     (key) => filters[key as keyof QueryFilters] !== undefined && filters[key as keyof QueryFilters] !== ''
   );
 
-  // Common conditions for quick selection
   const commonConditions = [
-    { code: 'E11', name: 'Type 2 Diabetes Mellitus' },
+    { code: 'E11', name: 'Type 2 Diabetes' },
     { code: 'I10', name: 'Essential Hypertension' },
-    { code: 'E78', name: 'Disorders of Lipoprotein Metabolism' },
-    { code: 'K21', name: 'Gastro-esophageal Reflux Disease' },
     { code: 'J44', name: 'Chronic Obstructive Pulmonary Disease' },
+    { code: 'E78', name: 'Disorders of Lipoprotein Metabolism' },
+    { code: 'M79', name: 'Other Soft Tissue Disorders' },
+    { code: 'K21', name: 'Gastroesophageal Reflux Disease' },
+    { code: 'F32', name: 'Major Depressive Disorder' },
+    { code: 'G93', name: 'Other Disorders of Brain' },
   ];
 
   return (

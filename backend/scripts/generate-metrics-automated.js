@@ -155,15 +155,20 @@ async function makeQueries(count = 15) {
   
   const queryFilters = [
     { conditionName: 'Type 2 Diabetes', country: 'Uganda', limit: 10 },
-    { conditionName: 'Hypertension', country: 'Kenya', limit: 10 },
-    { conditionName: 'Malaria', country: 'Tanzania', limit: 10 },
-    { conditionName: 'Pneumonia', country: 'Uganda', limit: 10 },
-    { conditionName: 'Tuberculosis', country: 'Rwanda', limit: 10 },
-    { conditionName: 'HIV', country: 'Kenya', limit: 10 },
-    { conditionName: 'Asthma', country: 'Uganda', limit: 10 },
-    { conditionName: 'Anemia', country: 'Tanzania', limit: 10 },
-    { conditionName: 'Diabetes', country: 'Kenya', limit: 10 },
-    { conditionName: 'Heart Disease', country: 'Uganda', limit: 10 },
+    { conditionName: 'Essential Hypertension', country: 'Kenya', limit: 10 },
+    { conditionName: 'Chronic Obstructive Pulmonary Disease', country: 'Tanzania', limit: 10 },
+    { conditionName: 'Disorders of Lipoprotein Metabolism', country: 'Rwanda', limit: 10 },
+    { conditionName: 'Gastroesophageal Reflux Disease', country: 'Uganda', limit: 10 },
+    { conditionName: 'Type 2 Diabetes', country: 'Kenya', limit: 10 },
+    { conditionName: 'Essential Hypertension', country: 'Tanzania', limit: 10 },
+    { conditionName: 'Major Depressive Disorder', country: 'Uganda', limit: 10 },
+    { conditionName: 'Other Soft Tissue Disorders', country: 'Rwanda', limit: 10 },
+    { conditionName: 'Other Disorders of Brain', country: 'Ghana', limit: 10 },
+    { country: 'Uganda', limit: 10 },
+    { country: 'Kenya', limit: 10 },
+    { country: 'Tanzania', limit: 10 },
+    { country: 'Rwanda', limit: 10 },
+    { country: 'Ghana', limit: 10 },
   ];
   
   let successCount = 0;
@@ -180,7 +185,8 @@ async function makeQueries(count = 15) {
     
     if (result.ok) {
       successCount++;
-      process.stdout.write(`✅ Query ${i + 1}/${count} - Found ${result.data.recordCount || 0} records\r`);
+      const recordCount = result.data.count || result.data.recordCount || 0;
+      process.stdout.write(`✅ Query ${i + 1}/${count} - Found ${recordCount} records\r`);
     } else {
       errorCount++;
       console.log(`\n❌ Query ${i + 1} failed: ${result.error || result.data?.error || 'Unknown error'}`);
