@@ -189,13 +189,39 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
           )}
 
           {purchaseResult.transactionId && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Transaction:</span>
-              <HashScanLink
-                transactionId={purchaseResult.transactionId}
-                label="View on HashScan"
-                variant="link"
-              />
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-sm font-semibold text-blue-900">Payment Transaction ID:</span>
+                {purchaseResult.autoPayment && (
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                    Auto-paid
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded bg-white px-3 py-2 font-mono text-sm text-gray-900">
+                  {purchaseResult.transactionId}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(purchaseResult.transactionId);
+                    alert('Transaction ID copied to clipboard!');
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copy
+                </Button>
+                <HashScanLink
+                  transactionId={purchaseResult.transactionId}
+                  label="View on HashScan"
+                  variant="link"
+                />
+              </div>
+              <p className="mt-2 text-xs text-blue-700">
+                This transaction ID shows your payment from your wallet to the platform. Revenue is automatically distributed to patients (60%) and hospitals (25%).
+              </p>
             </div>
           )}
 

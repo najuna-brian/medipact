@@ -624,21 +624,11 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
             throw new Error('Auto-payment verification failed: ' + (verification.error || 'Unknown error'));
           }
           
-          console.log('[PURCHASE] ✅ Payment verified, returning transaction ID for confirmation');
-          // Return transaction ID for user confirmation instead of auto-completing
-          // User can see the transaction ID, copy it, or confirm to proceed
-          return res.status(202).json({
-            message: 'Payment sent automatically',
-            paymentRequest: {
-              recipientAccountId: platformAccountId,
-              amountHBAR: amountHBAR,
-              autoSent: true
-            },
-            transactionId: autoTransactionId,
-            instructions: 'Payment has been sent automatically. Please review the transaction ID and confirm to complete your purchase.',
-            nextStep: 'Confirm purchase with transactionId',
-            autoPayment: true
-          });
+          console.log('[PURCHASE] ✅ Payment verified, auto-completing purchase with transaction ID:', autoTransactionId);
+          // Auto-complete the purchase since payment is already verified
+          // Set transactionId so the purchase completes automatically
+          transactionId = autoTransactionId;
+          // Continue to revenue distribution below (don't return here)
         } else {
           // No stored private key - return payment request
           console.log('[PURCHASE] ⚠️  No stored private key - manual payment required');
@@ -881,7 +871,8 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
       revenueDistribution: distributionResult,
       accessGranted: true,
       downloadUrl: datasetId ? `/api/marketplace/datasets/${datasetId}/export` : null,
-      verified: true
+      verified: true,
+      autoPayment: transactionId ? true : false // Indicate if this was an auto-payment
     });
   } catch (error) {
     console.error('Error processing purchase:', error);
