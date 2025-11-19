@@ -453,6 +453,35 @@ curl https://medipact-production.up.railway.app/api/patient/UPI-2B462D61C7A3329E
 
 ## 📊 Datasets Available
 
+**Total Datasets**: 12
+
+### Tanzania Datasets (4 datasets, 400 records each)
+- **Diabetes Research Dataset - Tanzania** (DS-AE81EE2B17C7)
+  - Records: 400
+  - Price: 72 HBAR (~$10.85 USD)
+  - Hospital: Dodoma Regional Hospital (HOSP-85A7E05896FE)
+
+- **Hypertension Study Data - Tanzania** (DS-C0C3A5CDBDEC)
+  - Records: 400
+  - Price: 72 HBAR (~$10.85 USD)
+  - Hospital: Dodoma Regional Hospital (HOSP-85A7E05896FE)
+
+- **Chronic Disease Registry - Tanzania** (DS-74B6DB88D019)
+  - Records: 400
+  - Price: 72 HBAR (~$10.85 USD)
+  - Hospital: Dodoma Regional Hospital (HOSP-85A7E05896FE)
+
+- **Cardiovascular Health Data - Tanzania** (DS-7ECE25D0EB8D)
+  - Records: 400
+  - Price: 72 HBAR (~$10.85 USD)
+  - Hospital: Dodoma Regional Hospital (HOSP-85A7E05896FE)
+
+### Kenya & Uganda Datasets (8 datasets, 0 records - pending data upload)
+- Kenya: 4 datasets (Diabetes, Hypertension, Chronic Disease, Cardiovascular)
+- Uganda: 4 datasets (Diabetes, Hypertension, Chronic Disease, Cardiovascular)
+
+**Note**: Tanzania datasets are ready for purchase. Kenya and Uganda datasets will be populated when hospitals upload data.
+
 ## 🎯 Recommended Demo Flow
 
 ### 1. As Researcher (Recommended Starting Point)
