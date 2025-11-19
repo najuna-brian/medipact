@@ -120,6 +120,10 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes with rate limiting
+// IMPORTANT: Register more specific routes BEFORE more general ones
+// Wallet routes must come before /api/researcher to avoid route conflicts
+app.use('/api', walletRoutes); // Wallet routes (balance, withdrawals) - PUBLIC, no auth required
+app.use('/api', paymentMethodRoutes); // Payment method routes
 app.use('/api/admin/auth', authLimiter, adminAuthRoutes); // Admin authentication routes (strict rate limit)
 app.use('/api/patient', patientRoutes);
 app.use('/api/patient', patientPreferencesRoutes); // Patient preferences routes
@@ -133,8 +137,6 @@ app.use('/api/marketplace', apiKeyLimiter, marketplaceRoutes); // Data marketpla
 app.use('/api/revenue', apiKeyLimiter, revenueRoutes); // Revenue distribution routes (API key rate limit)
 app.use('/api/adapter', apiKeyLimiter, adapterRoutes); // Adapter integration routes (API key rate limit)
 app.use('/api/adapter', apiKeyLimiter, fhirStorageRoutes); // FHIR resource storage routes (API key rate limit)
-app.use('/api', walletRoutes); // Wallet routes (balance, withdrawals)
-app.use('/api', paymentMethodRoutes); // Payment method routes
 app.use('/api/public', metricsRoutes); // Public metrics API (no auth required)
 
 // 404 handler
