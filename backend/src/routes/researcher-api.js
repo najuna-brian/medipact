@@ -448,21 +448,6 @@ router.post('/admin/researchers/:researcherId/reject', async (req, res) => {
 });
 
 /**
- * GET /api/researcher/:researcherId/wallet/balance
- * Get researcher wallet balance
- */
-router.get('/:researcherId/wallet/balance', async (req, res) => {
-  try {
-    const { researcherId } = req.params;
-    const balance = await getResearcherBalanceWithDetails(researcherId);
-    res.json(balance);
-  } catch (error) {
-    console.error('Error fetching researcher balance:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
  * POST /api/researcher/:researcherId/api-keys
  * Create a new API key for the researcher
  */
