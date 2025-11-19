@@ -1686,5 +1686,257 @@ router.post('/fund-if-low', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/admin/send-payment-and-purchase
+ * Send HBAR payment and complete purchase programmatically (admin only)
+ * Uses stored encrypted private key to send payment, then completes purchase
+ * Body: { researcherId: "RES-XXX", amountHBAR: 100, queryFilters: {...} }
+ */
+router.post('/send-payment-and-purchase', async (req, res) => {
+  try {
+    const { researcherId, amountHBAR, queryFilters, datasetId } = req.body;
+    
+    if (!researcherId || !amountHBAR) {
+      return res.status(400).json({ 
+        error: 'Researcher ID and amount (HBAR) are required' 
+      });
+    }
+    
+    // Get researcher with private key
+    const { getDatabaseType, get } = await import('../db/database.js');
+    const dbType = getDatabaseType();
+    
+    const sql = dbType === 'postgresql'
+      ? `SELECT 
+          researcher_id as "researcherId",
+          hedera_account_id as "hederaAccountId",
+          encrypted_private_key as "encryptedPrivateKey"
+        FROM researchers 
+        WHERE researcher_id = $1`
+      : `SELECT 
+          researcher_id as researcherId,
+          hedera_account_id as hederaAccountId,
+          encrypted_private_key as encryptedPrivateKey
+        FROM researchers 
+        WHERE researcher_id = ?`;
+    
+    const researcher = await get(sql, [researcherId]);
+    
+    if (!researcher) {
+      return res.status(404).json({ error: 'Researcher not found' });
+    }
+    
+    if (!researcher.hederaAccountId) {
+      return res.status(400).json({ error: 'Researcher does not have a Hedera account' });
+    }
+    
+    if (!researcher.encryptedPrivateKey) {
+      return res.status(400).json({ error: 'Researcher does not have a stored private key' });
+    }
+    
+    // Decrypt private key
+    const { decrypt } = await import('../services/encryption-service.js');
+    const privateKey = decrypt(researcher.encryptedPrivateKey);
+    
+    // Get platform account ID
+    const platformAccountId = process.env.PLATFORM_HEDERA_ACCOUNT_ID || process.env.OPERATOR_ID;
+    if (!platformAccountId) {
+      return res.status(500).json({ 
+        error: 'PLATFORM_HEDERA_ACCOUNT_ID or OPERATOR_ID not configured' 
+      });
+    }
+    
+    // Send HBAR payment
+    const { TransferTransaction, Hbar, Client, AccountId, PrivateKey } = await import('@hashgraph/sdk');
+    const network = process.env.HEDERA_NETWORK || 'testnet';
+    const client = network === 'mainnet' ? Client.forMainnet() : Client.forTestnet();
+    
+    try {
+      const accountId = AccountId.fromString(researcher.hederaAccountId);
+      const privateKeyObj = PrivateKey.fromString(privateKey);
+      
+      client.setOperator(accountId, privateKeyObj);
+      
+      const transaction = await new TransferTransaction()
+        .addHbarTransfer(AccountId.fromString(platformAccountId), Hbar.fromTinybars(amountHBAR * 100000000))
+        .addHbarTransfer(accountId, Hbar.fromTinybars(-amountHBAR * 100000000))
+        .execute(client);
+      
+      const receipt = await transaction.getReceipt(client);
+      
+      if (receipt.status.toString() !== 'SUCCESS') {
+        throw new Error(`Transaction failed with status: ${receipt.status.toString()}`);
+      }
+      
+      const transactionId = transaction.transactionId.toString();
+      
+      // Complete purchase
+      const { distributeRevenue } = await import('../services/revenue-distribution-service.js');
+      const { distributeDatasetRevenue } = await import('../services/adapter-integration-service.js');
+      const { getDataset } = await import('../db/dataset-db.js');
+      const { queryFHIRResources } = await import('../db/fhir-db.js');
+      const { getDatabaseType: getDbType, run } = await import('../db/database.js');
+      
+      const purchaseData = {
+        researcherId,
+        amount: amountHBAR,
+        transactionId,
+      };
+      
+      if (datasetId) {
+        purchaseData.datasetId = datasetId;
+      } else if (queryFilters) {
+        purchaseData.queryFilters = queryFilters;
+      } else {
+        // Default query filters
+        purchaseData.queryFilters = {
+          conditionName: 'Type 2 Diabetes',
+          country: 'Uganda',
+          limit: 100,
+        };
+      }
+      
+      // Get patients for revenue distribution
+      let patientUPIs = [];
+      if (datasetId) {
+        const dataset = await getDataset(datasetId);
+        if (dataset) {
+          const filters = {
+            country: dataset.country,
+            startDate: dataset.dateRangeStart,
+            endDate: dataset.dateRangeEnd,
+            limit: 10000,
+          };
+          if (dataset.conditionCodes) {
+            const codes = typeof dataset.conditionCodes === 'string' 
+              ? JSON.parse(dataset.conditionCodes) 
+              : dataset.conditionCodes;
+            if (codes && codes.length > 0) {
+              filters.conditionCode = codes[0];
+            }
+          }
+          const patients = await queryFHIRResources(filters);
+          patientUPIs = [...new Set(patients.map(p => p.upi))];
+        }
+      } else if (purchaseData.queryFilters) {
+        const filters = { ...purchaseData.queryFilters };
+        filters.limit = 10000;
+        const patients = await queryFHIRResources(filters);
+        patientUPIs = [...new Set(patients.map(p => p.upi))];
+      }
+      
+      // Distribute revenue
+      const totalTinybars = Math.floor(amountHBAR * 100000000);
+      let distributionResult;
+      
+      if (datasetId && patientUPIs.length > 0) {
+        distributionResult = await distributeDatasetRevenue({
+          datasetId,
+          totalAmount: totalTinybars,
+          revenueSplitterAddress: process.env.REVENUE_SPLITTER_ADDRESS || null
+        });
+      } else if (patientUPIs.length > 0) {
+        // Query-based purchase: distribute revenue to all patients
+        const { distributeRevenueFromSale } = await import('../services/adapter-integration-service.js');
+        const distributions = [];
+        
+        for (const upi of patientUPIs) {
+          try {
+            const { getPatient } = await import('../db/patient-db.js');
+            const patient = await getPatient(upi);
+            if (patient && patient.hospitalId) {
+              const result = await distributeRevenueFromSale({
+                patientUPI: upi,
+                hospitalId: patient.hospitalId,
+                totalAmount: Math.floor(totalTinybars / patientUPIs.length),
+                revenueSplitterAddress: process.env.REVENUE_SPLITTER_ADDRESS || null
+              });
+              distributions.push(result);
+            }
+          } catch (error) {
+            console.error(`Error distributing revenue for patient ${upi}:`, error);
+          }
+        }
+        
+        distributionResult = {
+          success: true,
+          method: 'query-based',
+          distributions
+        };
+      }
+      
+      // Record purchase in database
+      const purchaseId = `PUR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      const revenueHash = distributionResult?.distribution?.hash || 
+                         (distributionResult?.distributions && distributionResult.distributions.length > 0
+                           ? distributionResult.distributions[0]?.hash 
+                           : null);
+      
+      const dbType2 = getDbType();
+      if (dbType2 === 'postgresql') {
+        await run(
+          `INSERT INTO purchases (
+            id, researcher_id, dataset_id, amount, currency, hedera_transaction_id, 
+            revenue_distribution_hash, access_type, status, purchased_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+          ON CONFLICT (id) DO NOTHING`,
+          [
+            purchaseId,
+            researcherId,
+            datasetId || null,
+            amountHBAR,
+            'HBAR',
+            transactionId,
+            revenueHash,
+            'download',
+            'completed'
+          ]
+        );
+      } else {
+        await run(
+          `INSERT OR IGNORE INTO purchases (
+            id, researcher_id, dataset_id, amount, currency, hedera_transaction_id, 
+            revenue_distribution_hash, access_type, status, purchased_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+          [
+            purchaseId,
+            researcherId,
+            datasetId || null,
+            amountHBAR,
+            'HBAR',
+            transactionId,
+            revenueHash,
+            'download',
+            'completed'
+          ]
+        );
+      }
+      
+      client.close();
+      
+      res.json({
+        success: true,
+        message: 'Payment sent and purchase completed',
+        purchaseId,
+        transactionId,
+        amountHBAR,
+        revenueDistributed: !!revenueHash,
+        distributionResult
+      });
+      
+    } catch (error) {
+      client.close();
+      console.error('Error sending payment or completing purchase:', error);
+      res.status(500).json({ 
+        error: error.message || 'Failed to send payment or complete purchase' 
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error in send-payment-and-purchase:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
 export default router;
 

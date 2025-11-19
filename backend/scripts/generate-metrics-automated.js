@@ -14,9 +14,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { TransferTransaction, Hbar, Client, AccountId, PrivateKey } from '@hashgraph/sdk';
-import { decrypt } from '../src/services/encryption-service.js';
-import { get } from '../src/db/database.js';
+// No longer need Hedera SDK imports - using API endpoint instead
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,26 +47,7 @@ if (!researcher) {
 const researcherId = researcher.researcherId;
 console.log(`📋 Using researcher: ${researcherId}\n`);
 
-// Helper function to get researcher with private key from database
-async function getResearcherWithPrivateKey(researcherId) {
-  const dbType = process.env.DATABASE_URL ? 'postgresql' : 'sqlite';
-  
-  const sql = dbType === 'postgresql'
-    ? `SELECT 
-        researcher_id as "researcherId",
-        hedera_account_id as "hederaAccountId",
-        encrypted_private_key as "encryptedPrivateKey"
-      FROM researchers 
-      WHERE researcher_id = $1`
-    : `SELECT 
-        researcher_id as researcherId,
-        hedera_account_id as hederaAccountId,
-        encrypted_private_key as encryptedPrivateKey
-      FROM researchers 
-      WHERE researcher_id = ?`;
-  
-  return await get(sql, [researcherId]);
-}
+// No longer need database access - using API endpoint instead
 
 // Helper function to make API request
 async function apiRequest(endpoint, method = 'GET', body = null) {
@@ -165,57 +144,9 @@ async function makeQueries(count = 15) {
   return successCount;
 }
 
-// Step 3: Send HBAR payment programmatically
-async function sendHBARPayment(researcherAccountId, privateKey, recipientAccountId, amountHBAR) {
-  const client = Client.forTestnet();
-  
-  try {
-    const accountId = AccountId.fromString(researcherAccountId);
-    const privateKeyObj = PrivateKey.fromString(privateKey);
-    
-    client.setOperator(accountId, privateKeyObj);
-    
-    const transaction = await new TransferTransaction()
-      .addHbarTransfer(AccountId.fromString(recipientAccountId), Hbar.fromTinybars(amountHBAR * 100000000))
-      .addHbarTransfer(accountId, Hbar.fromTinybars(-amountHBAR * 100000000))
-      .execute(client);
-    
-    const receipt = await transaction.getReceipt(client);
-    
-    if (receipt.status.toString() !== 'SUCCESS') {
-      throw new Error(`Transaction failed with status: ${receipt.status.toString()}`);
-    }
-    
-    const transactionId = transaction.transactionId.toString();
-    return transactionId;
-    
-  } catch (error) {
-    console.error('❌ Error sending payment:', error.message);
-    throw error;
-  } finally {
-    client.close();
-  }
-}
-
-// Step 4: Make purchases with programmatic payments
+// Step 3: Make purchases with programmatic payments (via API)
 async function makePurchases(count = 5) {
   console.log(`💰 Making ${count} purchases with programmatic payments...\n`);
-  
-  // Get researcher with private key
-  const researcher = await getResearcherWithPrivateKey(researcherId);
-  
-  if (!researcher || !researcher.hederaAccountId || !researcher.encryptedPrivateKey) {
-    throw new Error('Researcher not found or missing Hedera account/private key');
-  }
-  
-  // Decrypt private key
-  const privateKey = decrypt(researcher.encryptedPrivateKey);
-  
-  // Get platform account ID
-  const platformAccountId = process.env.PLATFORM_HEDERA_ACCOUNT_ID || process.env.OPERATOR_ID;
-  if (!platformAccountId) {
-    throw new Error('PLATFORM_HEDERA_ACCOUNT_ID or OPERATOR_ID not set');
-  }
   
   const purchaseAmounts = [50, 100, 150, 200, 250];
   
@@ -227,21 +158,12 @@ async function makePurchases(count = 5) {
     const amount = purchaseAmounts[i % purchaseAmounts.length];
     
     try {
-      // Send payment programmatically
-      process.stdout.write(`📤 Sending payment ${i + 1}/${count} (${amount} HBAR)...\r`);
-      const transactionId = await sendHBARPayment(
-        researcher.hederaAccountId,
-        privateKey,
-        platformAccountId,
-        amount
-      );
+      // Use admin API endpoint to send payment and complete purchase
+      process.stdout.write(`🛒 Processing purchase ${i + 1}/${count} (${amount} HBAR)...\r`);
       
-      // Complete purchase
-      process.stdout.write(`🛒 Completing purchase ${i + 1}/${count}...\r`);
       const purchaseData = {
         researcherId,
-        amount,
-        transactionId,
+        amountHBAR: amount,
         queryFilters: {
           conditionName: 'Type 2 Diabetes',
           country: 'Uganda',
@@ -249,12 +171,13 @@ async function makePurchases(count = 5) {
         },
       };
       
-      const result = await apiRequest('/api/marketplace/purchase', 'POST', purchaseData);
+      const result = await apiRequest('/api/admin/send-payment-and-purchase', 'POST', purchaseData);
       
-      if (result.ok && result.data.success !== false) {
+      if (result.ok && result.data.success) {
         successCount++;
         totalHBAR += amount;
-        console.log(`✅ Purchase ${i + 1}/${count} - ${amount} HBAR (Tx: ${transactionId.substring(0, 20)}...)`);
+        const txId = result.data.transactionId || 'N/A';
+        console.log(`✅ Purchase ${i + 1}/${count} - ${amount} HBAR (Tx: ${txId.substring(0, 20)}...)`);
       } else {
         errorCount++;
         const errorMsg = result.data?.error || result.error || 'Unknown error';
