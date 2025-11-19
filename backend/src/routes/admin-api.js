@@ -16,6 +16,7 @@ import { getPendingWithdrawals, getWithdrawalHistoryForUser } from '../db/withdr
 import { triggerWithdrawalJob } from '../services/automatic-withdrawal-job.js';
 import { all, run } from '../db/database.js';
 import { initDatabase, getDatabase, getDatabaseType } from '../db/database.js';
+import { autoFundTestnetAccount, checkAccountBalance, fundIfLowBalance } from '../services/testnet-funding-service.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -1602,6 +1603,85 @@ router.post('/migrate/pricing-fields', async (req, res) => {
       error: error.message || 'Migration failed',
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
+  }
+});
+
+/**
+ * POST /api/admin/fund-account
+ * Manually fund a Hedera account with testnet HBAR (admin only)
+ * Body: { accountId: "0.0.xxxxx", amountHBAR: 1000 }
+ */
+router.post('/fund-account', async (req, res) => {
+  try {
+    const { accountId, amountHBAR } = req.body;
+    
+    if (!accountId) {
+      return res.status(400).json({ error: 'Account ID is required' });
+    }
+    
+    const amount = amountHBAR || parseFloat(process.env.TESTNET_FUNDING_AMOUNT_HBAR) || 1000;
+    
+    const result = await autoFundTestnetAccount(accountId, amount);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message,
+        transactionId: result.transactionId,
+        amountHBAR: result.amountHBAR,
+        hashScanLink: result.hashScanLink
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.message
+      });
+    }
+  } catch (error) {
+    console.error('Error funding account:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/account-balance/:accountId
+ * Check account balance (admin only)
+ */
+router.get('/account-balance/:accountId', async (req, res) => {
+  try {
+    const { accountId } = req.params;
+    const { minBalance } = req.query;
+    const minBalanceHBAR = minBalance ? parseFloat(minBalance) : 10;
+    
+    const result = await checkAccountBalance(accountId, minBalanceHBAR);
+    res.json(result);
+  } catch (error) {
+    console.error('Error checking account balance:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/fund-if-low
+ * Fund account if balance is below threshold (admin only)
+ * Body: { accountId: "0.0.xxxxx", minBalanceHBAR: 10, fundingAmountHBAR: 1000 }
+ */
+router.post('/fund-if-low', async (req, res) => {
+  try {
+    const { accountId, minBalanceHBAR, fundingAmountHBAR } = req.body;
+    
+    if (!accountId) {
+      return res.status(400).json({ error: 'Account ID is required' });
+    }
+    
+    const minBalance = minBalanceHBAR || 10;
+    const fundingAmount = fundingAmountHBAR || parseFloat(process.env.TESTNET_FUNDING_AMOUNT_HBAR) || 1000;
+    
+    const result = await fundIfLowBalance(accountId, minBalance, fundingAmount);
+    res.json(result);
+  } catch (error) {
+    console.error('Error funding account if low:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

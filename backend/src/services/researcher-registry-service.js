@@ -63,6 +63,17 @@ export async function registerResearcher(researcherInfo, researcherExists, resea
     hederaAccount = await createHederaAccount(0); // Platform pays for account creation
     encryptedPrivateKey = encrypt(hederaAccount.privateKey);
     console.log(`✅ Hedera account created: ${hederaAccount.accountId}`);
+    
+    // Auto-fund testnet account if enabled
+    if (hederaAccount?.accountId) {
+      try {
+        const { autoFundTestnetAccount } = await import('./testnet-funding-service.js');
+        await autoFundTestnetAccount(hederaAccount.accountId);
+      } catch (fundingError) {
+        // Don't fail registration if funding fails
+        console.warn('Auto-funding failed (non-critical):', fundingError.message);
+      }
+    }
   } catch (error) {
     console.error('Failed to create Hedera account for researcher:', error);
     // Continue registration even if Hedera account creation fails

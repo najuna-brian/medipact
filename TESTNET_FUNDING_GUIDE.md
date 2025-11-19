@@ -1,5 +1,56 @@
 # Testnet Account Funding Guide
 
+## 🚀 Automatic Funding (NEW!)
+
+**You can now automatically fund accounts without going to the faucet!**
+
+### Enable Auto-Funding
+
+1. **Set Environment Variable**:
+   ```bash
+   AUTO_FUND_TESTNET_ACCOUNTS=true
+   TESTNET_FUNDING_AMOUNT_HBAR=1000
+   ```
+
+2. **How It Works**:
+   - When a researcher registers, their account is automatically funded
+   - No manual faucet visit needed
+   - Only works on testnet/previewnet (disabled on mainnet for security)
+   - Uses operator account to transfer HBAR
+
+3. **For Production Deployment**:
+   - Add to Railway/Vercel environment variables
+   - Set `AUTO_FUND_TESTNET_ACCOUNTS=true`
+   - Set `TESTNET_FUNDING_AMOUNT_HBAR=1000` (or desired amount)
+
+### Manual Funding via Admin API
+
+You can also manually fund accounts via the admin API:
+
+```bash
+# Fund a specific account
+curl -X POST https://medipact-production.up.railway.app/api/admin/fund-account \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accountId": "0.0.xxxxx",
+    "amountHBAR": 1000
+  }'
+
+# Check account balance
+curl https://medipact-production.up.railway.app/api/admin/account-balance/0.0.xxxxx
+
+# Fund if balance is low
+curl -X POST https://medipact-production.up.railway.app/api/admin/fund-if-low \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accountId": "0.0.xxxxx",
+    "minBalanceHBAR": 10,
+    "fundingAmountHBAR": 1000
+  }'
+```
+
+---
+
 ## How Users Pay for Data
 
 ### Payment Flow
