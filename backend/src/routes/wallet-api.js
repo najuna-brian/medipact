@@ -44,15 +44,24 @@ router.get('/hospital/:hospitalId/wallet/balance', async (req, res) => {
 /**
  * GET /api/researcher/:researcherId/wallet/balance
  * Get researcher wallet balance
+ * Public endpoint - no authentication required
  */
 router.get('/researcher/:researcherId/wallet/balance', async (req, res) => {
   try {
     const { researcherId } = req.params;
+    console.log(`[WALLET] Fetching balance for researcher: ${researcherId}`);
+    
+    // Validate researcherId format
+    if (!researcherId || !researcherId.startsWith('RES-')) {
+      return res.status(400).json({ error: 'Invalid researcher ID format' });
+    }
+    
     const balance = await getResearcherBalanceWithDetails(researcherId);
+    console.log(`[WALLET] Balance fetched successfully for ${researcherId}: ${balance.balanceHBAR} HBAR`);
     res.json(balance);
   } catch (error) {
-    console.error('Error getting researcher balance:', error);
-    res.status(500).json({ error: error.message });
+    console.error(`[WALLET] Error getting researcher balance for ${req.params.researcherId}:`, error);
+    res.status(500).json({ error: error.message || 'Failed to fetch balance' });
   }
 });
 
