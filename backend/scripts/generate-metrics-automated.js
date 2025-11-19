@@ -100,21 +100,70 @@ async function verifyResearcher() {
   return false;
 }
 
+// Step 1.5: Fund researcher account
+async function fundResearcherAccount() {
+  console.log('💰 Checking and funding researcher account...');
+  
+  // Get researcher info to get account ID - use full endpoint, not status
+  const researcherResult = await apiRequest(`/api/researcher/${researcherId}`);
+  
+  if (!researcherResult.ok || !researcherResult.data.hederaAccountId) {
+    console.log('⚠️  Could not get researcher account ID\n');
+    return false;
+  }
+  
+  const accountId = researcherResult.data.hederaAccountId;
+  console.log(`   Account ID: ${accountId}`);
+  
+  // Check balance
+  const balanceResult = await apiRequest(`/api/admin/account-balance/${accountId}`);
+  
+  if (balanceResult.ok) {
+    const balance = balanceResult.data.balanceHBAR || 0;
+    console.log(`   Current balance: ${balance} HBAR`);
+    
+    // If balance is less than 1000 HBAR, fund it
+    if (balance < 1000) {
+      console.log(`   Balance is low. Funding account with 1000 HBAR...`);
+      
+      const fundResult = await apiRequest('/api/admin/fund-account', 'POST', {
+        accountId,
+        amountHBAR: 1000
+      });
+      
+      if (fundResult.ok && fundResult.data.success) {
+        console.log(`✅ Account funded successfully!`);
+        console.log(`   Transaction: ${fundResult.data.transactionId || 'N/A'}\n`);
+        return true;
+      } else {
+        console.log(`⚠️  Funding failed: ${fundResult.data?.error || 'Unknown error'}\n`);
+        return false;
+      }
+    } else {
+      console.log(`✅ Account has sufficient balance\n`);
+      return true;
+    }
+  } else {
+    console.log(`⚠️  Could not check balance: ${balanceResult.error || 'Unknown error'}\n`);
+    return false;
+  }
+}
+
 // Step 2: Make queries (generates HCS messages)
 async function makeQueries(count = 15) {
   console.log(`📊 Making ${count} queries to generate HCS messages...\n`);
   
   const queryFilters = [
-    { conditionName: 'Type 2 Diabetes', country: 'Uganda', limit: 100 },
-    { conditionName: 'Hypertension', country: 'Kenya', limit: 150 },
-    { conditionName: 'Malaria', country: 'Tanzania', limit: 200 },
-    { conditionName: 'Pneumonia', country: 'Uganda', limit: 100 },
-    { conditionName: 'Tuberculosis', country: 'Rwanda', limit: 150 },
-    { conditionName: 'HIV', country: 'Kenya', limit: 100 },
-    { conditionName: 'Asthma', country: 'Uganda', limit: 120 },
-    { conditionName: 'Anemia', country: 'Tanzania', limit: 180 },
-    { conditionName: 'Diabetes', country: 'Kenya', limit: 200 },
-    { conditionName: 'Heart Disease', country: 'Uganda', limit: 100 },
+    { conditionName: 'Type 2 Diabetes', country: 'Uganda', limit: 10 },
+    { conditionName: 'Hypertension', country: 'Kenya', limit: 10 },
+    { conditionName: 'Malaria', country: 'Tanzania', limit: 10 },
+    { conditionName: 'Pneumonia', country: 'Uganda', limit: 10 },
+    { conditionName: 'Tuberculosis', country: 'Rwanda', limit: 10 },
+    { conditionName: 'HIV', country: 'Kenya', limit: 10 },
+    { conditionName: 'Asthma', country: 'Uganda', limit: 10 },
+    { conditionName: 'Anemia', country: 'Tanzania', limit: 10 },
+    { conditionName: 'Diabetes', country: 'Kenya', limit: 10 },
+    { conditionName: 'Heart Disease', country: 'Uganda', limit: 10 },
   ];
   
   let successCount = 0;
@@ -227,6 +276,9 @@ async function main() {
   try {
     // Step 1: Verify researcher
     await verifyResearcher();
+    
+    // Step 1.5: Fund researcher account
+    await fundResearcherAccount();
     
     // Step 2: Make queries
     const queryCount = await makeQueries(15);
