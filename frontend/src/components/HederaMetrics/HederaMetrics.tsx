@@ -23,8 +23,20 @@ export function HederaMetrics() {
   useEffect(() => {
     async function fetchMetrics() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-        const response = await fetch(`${apiUrl}/api/public/metrics`);
+        // Use BACKEND_API_URL if available, otherwise fall back to API_URL
+        // Remove trailing slashes and /api if present to avoid double /api/api/
+        let apiUrl =
+          process.env.NEXT_PUBLIC_BACKEND_API_URL ||
+          process.env.NEXT_PUBLIC_API_URL ||
+          'http://localhost:8080';
+
+        // Remove trailing slash
+        apiUrl = apiUrl.replace(/\/$/, '');
+
+        // If URL already ends with /api, don't add it again
+        const metricsPath = apiUrl.endsWith('/api') ? '/public/metrics' : '/api/public/metrics';
+
+        const response = await fetch(`${apiUrl}${metricsPath}`);
         if (!response.ok) throw new Error('Failed to fetch metrics');
         const data = await response.json();
         setMetrics(data.metrics);
