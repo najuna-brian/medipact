@@ -228,16 +228,42 @@ function ResearcherQueryPageContent() {
                 </CardContent>
               </Card>
 
-              {/* Data Results - Show Flattened CSV Preview if format is csv-flattened */}
-              {queryResult.format === 'csv-flattened' && queryResult.csvData && (
+              {/* Data Results - Show count only in preview, full data after purchase */}
+              {queryResult.format === 'csv-flattened' && (
                 <>
-                  <FlattenedCSVPreview
-                    csvData={queryResult.csvData}
-                    recordCount={queryResult.recordCount || queryResult.count}
-                    filters={queryFilters || {}}
-                    researcherId={researcherId}
-                    onExport={undefined} // Remove export from preview, use purchase flow instead
-                  />
+                  {queryResult.preview ? (
+                    // Preview mode: Only show count, no data fields
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Query Results</CardTitle>
+                        <CardDescription>
+                          Flattened CSV format - One row per patient
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-center py-8">
+                          <p className="text-4xl font-bold text-gray-900 mb-2">
+                            {(queryResult.recordCount || queryResult.count || 0).toLocaleString()}
+                          </p>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            patient records found matching your criteria
+                          </p>
+                          <p className="text-xs text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-200 inline-block">
+                            ⚠️ Purchase required to view data fields. Preview shows count only.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : queryResult.csvData ? (
+                    // After purchase: Show full data
+                    <FlattenedCSVPreview
+                      csvData={queryResult.csvData}
+                      recordCount={queryResult.recordCount || queryResult.count}
+                      filters={queryFilters || {}}
+                      researcherId={researcherId}
+                      onExport={undefined}
+                    />
+                  ) : null}
                   {/* Purchase Flow - Show after preview */}
                   <PurchaseFlow
                     recordCount={queryResult.recordCount || queryResult.count}

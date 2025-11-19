@@ -250,23 +250,26 @@ router.post('/query', queryLimiter, async (req, res) => {
         conditionCodes: filters.conditionCode ? [filters.conditionCode] : null
       };
       
-      // For preview, limit to 20 rows; for full export, use requested limit
-      const previewLimit = filters.preview !== false ? 20 : (filters.limit || 1000);
+      // For preview, use the requested limit (or default to 10 for preview)
+      // For full export, use requested limit
+      const previewLimit = filters.preview !== false 
+        ? (filters.limit || 10)  // Use user's limit, default to 10 for preview
+        : (filters.limit || 1000);
       
       const csvData = await formatAsFlattenedCSV(filters, tempDataset, {
         limit: previewLimit,
         csvSchema: filters.csvSchema
       });
       
-      // If preview mode, return as JSON with CSV data and metadata
+      // If preview mode, return only count (no data fields)
       if (filters.preview !== false) {
         return res.json({
           format: 'csv-flattened',
-          csvData: csvData.data,
           recordCount: csvData.recordCount,
           preview: true,
           filters: filters,
           timestamp: new Date().toISOString()
+          // Don't include csvData in preview - only show after purchase
         });
       }
       
@@ -476,7 +479,17 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
   try {
     let { researcherId, datasetId, patientUPI, hospitalId, amount, transactionId, queryFilters } = req.body;
     
+    // Log purchase attempt
+    console.log('[PURCHASE] Purchase request received:', {
+      researcherId,
+      amount,
+      hasTransactionId: !!transactionId,
+      hasQueryFilters: !!queryFilters,
+      timestamp: new Date().toISOString()
+    });
+    
     if (!researcherId || !amount) {
+      console.error('[PURCHASE] Missing required fields:', { researcherId, amount });
       return res.status(400).json({ 
         error: 'Researcher ID and amount are required' 
       });
@@ -485,8 +498,15 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
     // Get researcher
     const researcher = await getResearcher(researcherId);
     if (!researcher) {
+      console.error('[PURCHASE] Researcher not found:', researcherId);
       return res.status(404).json({ error: 'Researcher not found' });
     }
+    
+    console.log('[PURCHASE] Researcher found:', {
+      researcherId,
+      verificationStatus: researcher.verificationStatus,
+      hasHederaAccount: !!researcher.hederaAccountId
+    });
     
     // Always check verification status and prompt if not verified
     const verificationPrompt = researcher.verificationStatus !== 'verified';
@@ -551,17 +571,20 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
         
         researcherData = await get(sql, [researcherId]);
         
-        console.log('Checking auto-payment for researcher:', {
+        console.log('[PURCHASE] Checking auto-payment for researcher:', {
           researcherId,
           hasData: !!researcherData,
           hasPrivateKey: !!researcherData?.encryptedPrivateKey,
-          hasAccountId: !!researcherData?.hederaAccountId
+          hasAccountId: !!researcherData?.hederaAccountId,
+          timestamp: new Date().toISOString()
         });
         
         if (researcherData?.encryptedPrivateKey && researcherData?.hederaAccountId) {
           // Researcher has stored private key - send payment automatically
+          console.log('[PURCHASE] ✅ Auto-payment possible - sending payment automatically');
           const { decrypt } = await import('../services/encryption-service.js');
           const privateKey = decrypt(researcherData.encryptedPrivateKey);
+          console.log('[PURCHASE] Private key decrypted, sending HBAR transfer...');
           
           const { TransferTransaction, Hbar, Client, AccountId, PrivateKey } = await import('@hashgraph/sdk');
           const network = process.env.HEDERA_NETWORK || 'testnet';
@@ -585,8 +608,10 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
           
           // Use the automatically generated transaction ID
           const autoTransactionId = transaction.transactionId.toString();
+          console.log('[PURCHASE] ✅ Payment sent successfully, transaction ID:', autoTransactionId);
           
           // Verify the payment we just sent
+          console.log('[PURCHASE] Verifying payment...');
           const verification = await verifyHBARPayment(
             autoTransactionId,
             researcherId,
@@ -595,9 +620,11 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
           );
           
           if (!verification.verified) {
+            console.error('[PURCHASE] ❌ Payment verification failed:', verification.error);
             throw new Error('Auto-payment verification failed: ' + (verification.error || 'Unknown error'));
           }
           
+          console.log('[PURCHASE] ✅ Payment verified, returning transaction ID for confirmation');
           // Return transaction ID for user confirmation instead of auto-completing
           // User can see the transaction ID, copy it, or confirm to proceed
           return res.status(202).json({
@@ -614,6 +641,7 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
           });
         } else {
           // No stored private key - return payment request
+          console.log('[PURCHASE] ⚠️  No stored private key - manual payment required');
           const paymentRequest = await createPaymentRequest(
             researcherId,
             amountHBAR,
@@ -624,12 +652,13 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
             message: 'Payment required',
             paymentRequest: paymentRequest,
             instructions: 'Please send the HBAR payment and include the transaction ID in your purchase request',
-            nextStep: 'Send payment and retry purchase with transactionId'
+            nextStep: 'Send payment and retry purchase with transactionId',
+            autoPayment: false // Explicitly set to false when no private key is stored
           });
         }
       } catch (autoPaymentError) {
-        console.error('Auto-payment failed, falling back to manual payment:', autoPaymentError);
-        console.error('Auto-payment error details:', {
+        console.error('[PURCHASE] ❌ Auto-payment failed, falling back to manual payment:', autoPaymentError.message);
+        console.error('[PURCHASE] Auto-payment error details:', {
           researcherId,
           hasPrivateKey: !!researcherData?.encryptedPrivateKey,
           hasAccountId: !!researcherData?.hederaAccountId,
@@ -648,6 +677,7 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
           paymentRequest: paymentRequest,
           instructions: 'Please send the HBAR payment and include the transaction ID in your purchase request',
           nextStep: 'Send payment and retry purchase with transactionId',
+          autoPayment: false, // Auto-payment failed, manual payment required
           autoPaymentError: autoPaymentError.message
         });
       }

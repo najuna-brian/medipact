@@ -64,11 +64,12 @@ export async function registerResearcher(researcherInfo, researcherExists, resea
     encryptedPrivateKey = encrypt(hederaAccount.privateKey);
     console.log(`✅ Hedera account created: ${hederaAccount.accountId}`);
     
-    // Auto-fund testnet account if enabled
+    // Auto-fund testnet account if enabled (10,000 HBAR for researchers)
     if (hederaAccount?.accountId) {
       try {
         const { autoFundTestnetAccount } = await import('./testnet-funding-service.js');
-        await autoFundTestnetAccount(hederaAccount.accountId);
+        await autoFundTestnetAccount(hederaAccount.accountId, 10000);
+        console.log(`✅ Funded researcher account ${hederaAccount.accountId} with 10,000 HBAR`);
       } catch (fundingError) {
         // Don't fail registration if funding fails
         console.warn('Auto-funding failed (non-critical):', fundingError.message);

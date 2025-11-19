@@ -16,6 +16,7 @@ import {
   Users,
   Building2,
   Coins,
+  Copy,
 } from 'lucide-react';
 import { purchaseDataset, exportQueryAsFlattenedCSV, downloadDataset } from '@/lib/api/marketplace';
 import { QueryFilters } from '@/lib/api/marketplace';
@@ -76,7 +77,7 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
           hasPaymentRequest: 'paymentRequest' in result,
           autoPayment: result.autoPayment,
           transactionId: result.transactionId,
-          message: result.message
+          message: result.message,
         });
 
         // If auto-payment was sent, pre-fill transaction ID
@@ -84,7 +85,12 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
           setTransactionId(result.transactionId);
           console.log('✅ Auto-payment sent, transaction ID:', result.transactionId);
         } else {
-          console.log('⚠️ Manual payment required - autoPayment:', result.autoPayment, 'transactionId:', result.transactionId);
+          console.log(
+            '⚠️ Manual payment required - autoPayment:',
+            result.autoPayment,
+            'transactionId:',
+            result.transactionId
+          );
         }
 
         setIsPurchasing(false);
@@ -283,19 +289,53 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
                 </div>
 
                 <div>
-                  <Label htmlFor="transactionId">Transaction ID</Label>
-                  <Input
-                    id="transactionId"
-                    placeholder="0.0.xxxxx@1234567890.123456789"
-                    value={transactionId}
-                    onChange={(e) => setTransactionId(e.target.value)}
-                    className="mt-1 font-mono"
-                  />
+                  <Label htmlFor="transactionId" className="text-base font-semibold">
+                    Transaction ID
+                  </Label>
+                  <div className="mt-2 flex gap-2">
+                    <Input
+                      id="transactionId"
+                      placeholder="0.0.xxxxx@1234567890.123456789"
+                      value={transactionId}
+                      onChange={(e) => setTransactionId(e.target.value)}
+                      className="flex-1 font-mono text-sm"
+                      readOnly={!!purchaseResult.transactionId}
+                    />
+                    {purchaseResult.transactionId && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(transactionId);
+                          alert('Transaction ID copied to clipboard!');
+                        }}
+                        className="shrink-0"
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                    )}
+                  </div>
                   {purchaseResult.transactionId && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Transaction ID auto-filled. You can copy it or edit if needed, then confirm to
-                      complete purchase.
-                    </p>
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs text-green-700 font-medium">
+                        ✅ Transaction ID auto-filled from your payment
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Review the transaction ID above, then click "Confirm & Complete Purchase" to proceed.
+                      </p>
+                      {transactionId.includes('@') && (
+                        <a
+                          href={`https://hashscan.io/testnet/transaction/${transactionId.split('@')[1]}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          View transaction on HashScan <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
 
