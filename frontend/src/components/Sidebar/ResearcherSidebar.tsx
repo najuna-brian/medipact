@@ -12,12 +12,14 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Code,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const researcherNavItems = [
   { name: 'Dashboard', href: '/researcher/dashboard', icon: LayoutDashboard },
   { name: 'Search Data', href: '/researcher/query', icon: Search },
+  { name: 'API Access', href: '/researcher/api-access', icon: Code },
   { name: 'Wallet', href: '/researcher/wallet', icon: Wallet },
 ];
 
