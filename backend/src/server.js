@@ -24,6 +24,7 @@ import adapterRoutes from './routes/adapter-api.js';
 import fhirStorageRoutes from './routes/fhir-storage-api.js';
 import walletRoutes from './routes/wallet-api.js';
 import paymentMethodRoutes from './routes/payment-method-api.js';
+import metricsRoutes from './routes/metrics-api.js';
 import { initDatabase, closeDatabase } from './db/database.js';
 import { initializeDefaultAdmin } from './services/admin-init-service.js';
 import { startExpirationCleanupJob } from './services/expiration-cleanup-service.js';
@@ -134,6 +135,7 @@ app.use('/api/adapter', apiKeyLimiter, adapterRoutes); // Adapter integration ro
 app.use('/api/adapter', apiKeyLimiter, fhirStorageRoutes); // FHIR resource storage routes (API key rate limit)
 app.use('/api', walletRoutes); // Wallet routes (balance, withdrawals)
 app.use('/api', paymentMethodRoutes); // Payment method routes
+app.use('/api/public', metricsRoutes); // Public metrics API (no auth required)
 
 // 404 handler
 app.use((req, res) => {
