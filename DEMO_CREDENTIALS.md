@@ -6,7 +6,8 @@
 ## 🚀 Quick Start
 
 These credentials were generated on: **2025-11-18T19:33:39.198Z**  
-API URL: **https://medipact-production.up.railway.app**
+API URL: **https://medipact-production.up.railway.app**  
+Last Updated: **2025-11-18T22:19:10.138Z**
 
 ---
 
@@ -15,7 +16,7 @@ API URL: **https://medipact-production.up.railway.app**
 - **Hospitals**: 3
 - **Researchers**: 2
 - **Patients**: 600
-- **Datasets**: 0
+- **Datasets**: 12
 - **FHIR Records**: 200
 
 ---
