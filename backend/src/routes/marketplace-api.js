@@ -474,7 +474,7 @@ router.post('/datasets/:datasetId/export', async (req, res) => {
  */
 router.post('/purchase', purchaseLimiter, async (req, res) => {
   try {
-    const { researcherId, datasetId, patientUPI, hospitalId, amount, transactionId, queryFilters } = req.body;
+    let { researcherId, datasetId, patientUPI, hospitalId, amount, transactionId, queryFilters } = req.body;
     
     if (!researcherId || !amount) {
       return res.status(400).json({ 
@@ -537,20 +537,105 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
         });
       }
     } else {
-      // If no transaction ID, create payment request for researcher
-      // This allows them to pay first, then complete the purchase
-      const paymentRequest = await createPaymentRequest(
-        researcherId,
-        amountHBAR,
-        platformAccountId
-      );
-      
-      return res.status(202).json({
-        message: 'Payment required',
-        paymentRequest: paymentRequest,
-        instructions: 'Please send the HBAR payment and include the transaction ID in your purchase request',
-        nextStep: 'Send payment and retry purchase with transactionId'
-      });
+      // Try to send payment automatically if researcher has stored private key
+      try {
+        const { getDatabaseType, get } = await import('../db/database.js');
+        const dbType = getDatabaseType();
+        
+        const sql = dbType === 'postgresql'
+          ? `SELECT encrypted_private_key as "encryptedPrivateKey", hedera_account_id as "hederaAccountId"
+             FROM researchers WHERE researcher_id = $1`
+          : `SELECT encrypted_private_key as encryptedPrivateKey, hedera_account_id as hederaAccountId
+             FROM researchers WHERE researcher_id = ?`;
+        
+        const researcherData = await get(sql, [researcherId]);
+        
+        if (researcherData?.encryptedPrivateKey && researcherData?.hederaAccountId) {
+          // Researcher has stored private key - send payment automatically
+          const { decrypt } = await import('../services/encryption-service.js');
+          const privateKey = decrypt(researcherData.encryptedPrivateKey);
+          
+          const { TransferTransaction, Hbar, Client, AccountId, PrivateKey } = await import('@hashgraph/sdk');
+          const network = process.env.HEDERA_NETWORK || 'testnet';
+          const client = network === 'mainnet' ? Client.forMainnet() : Client.forTestnet();
+          
+          const accountId = AccountId.fromString(researcherData.hederaAccountId);
+          const privateKeyObj = PrivateKey.fromString(privateKey);
+          client.setOperator(accountId, privateKeyObj);
+          
+          const transaction = await new TransferTransaction()
+            .addHbarTransfer(AccountId.fromString(platformAccountId), Hbar.fromTinybars(amountHBAR * 100000000))
+            .addHbarTransfer(accountId, Hbar.fromTinybars(-amountHBAR * 100000000))
+            .execute(client);
+          
+          const receipt = await transaction.getReceipt(client);
+          client.close();
+          
+          if (receipt.status.toString() !== 'SUCCESS') {
+            throw new Error(`Transaction failed with status: ${receipt.status.toString()}`);
+          }
+          
+          // Use the automatically generated transaction ID
+          const autoTransactionId = transaction.transactionId.toString();
+          
+          // Verify the payment we just sent
+          const verification = await verifyHBARPayment(
+            autoTransactionId,
+            researcherId,
+            amountHBAR,
+            platformAccountId
+          );
+          
+          if (!verification.verified) {
+            throw new Error('Auto-payment verification failed: ' + (verification.error || 'Unknown error'));
+          }
+          
+          // Return transaction ID for user confirmation instead of auto-completing
+          // User can see the transaction ID, copy it, or confirm to proceed
+          return res.status(202).json({
+            message: 'Payment sent automatically',
+            paymentRequest: {
+              recipientAccountId: platformAccountId,
+              amountHBAR: amountHBAR,
+              autoSent: true
+            },
+            transactionId: autoTransactionId,
+            instructions: 'Payment has been sent automatically. Please review the transaction ID and confirm to complete your purchase.',
+            nextStep: 'Confirm purchase with transactionId',
+            autoPayment: true
+          });
+        } else {
+          // No stored private key - return payment request
+          const paymentRequest = await createPaymentRequest(
+            researcherId,
+            amountHBAR,
+            platformAccountId
+          );
+          
+          return res.status(202).json({
+            message: 'Payment required',
+            paymentRequest: paymentRequest,
+            instructions: 'Please send the HBAR payment and include the transaction ID in your purchase request',
+            nextStep: 'Send payment and retry purchase with transactionId'
+          });
+        }
+      } catch (autoPaymentError) {
+        console.error('Auto-payment failed, falling back to manual payment:', autoPaymentError);
+        // Fall back to manual payment request
+        const paymentRequest = await createPaymentRequest(
+          researcherId,
+          amountHBAR,
+          platformAccountId
+        );
+        
+        return res.status(202).json({
+          message: 'Payment required',
+          paymentRequest: paymentRequest,
+          instructions: 'Please send the HBAR payment and include the transaction ID in your purchase request',
+          nextStep: 'Send payment and retry purchase with transactionId',
+          autoPaymentError: autoPaymentError.message
+        });
+      }
     }
     
     // If datasetId is provided, use dataset-based distribution

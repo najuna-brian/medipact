@@ -66,15 +66,21 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
         queryFilters: filters, // Pass query filters for revenue distribution
       });
 
-      // Check if payment is required
+      // Check if payment is required or auto-sent (needs confirmation)
       if ('paymentRequest' in result) {
         setShowPaymentForm(true);
         setPurchaseResult(result);
+
+        // If auto-payment was sent, pre-fill transaction ID
+        if (result.autoPayment && result.transactionId) {
+          setTransactionId(result.transactionId);
+        }
+
         setIsPurchasing(false);
         return;
       }
 
-      // Purchase successful
+      // Purchase successful (either auto-payment or manual with transaction ID)
       if ('success' in result && result.success) {
         setPurchaseResult(result);
         setShowPaymentForm(false);
@@ -199,14 +205,16 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
       <CardContent className="space-y-4">
         {/* Price Display */}
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Price for {recordCount.toLocaleString()} records</span>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              Price for {recordCount.toLocaleString()} records
+            </span>
             <div className="text-right">
               <div className="text-2xl font-bold text-gray-900">{totalPrice.toFixed(4)} HBAR</div>
               <div className="text-sm text-muted-foreground">≈ ${priceUSD.toFixed(2)} USD</div>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground mt-2">
+          <div className="mt-2 text-xs text-muted-foreground">
             {pricePerRecord} HBAR per record (minimum 1 HBAR)
           </div>
         </div>
@@ -248,48 +256,103 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
 
         {showPaymentForm && purchaseResult && 'paymentRequest' in purchaseResult && (
           <div className="space-y-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <div>
-              <h4 className="mb-2 font-semibold text-amber-900">Payment Instructions</h4>
-              <p className="mb-3 text-sm text-amber-800">
-                Send {totalPrice.toFixed(4)} HBAR to the platform account:
-              </p>
-              <div className="rounded bg-white p-3 font-mono text-sm">
-                {purchaseResult.paymentRequest.recipientAccountId}
-              </div>
-              <p className="mt-3 text-xs text-amber-700">
-                After sending payment, enter the transaction ID below to complete your purchase.
-              </p>
-            </div>
+            {purchaseResult.autoPayment ? (
+              <>
+                <div>
+                  <h4 className="mb-2 font-semibold text-green-900">Payment Sent Automatically</h4>
+                  <p className="mb-3 text-sm text-green-800">
+                    Your payment of {totalPrice.toFixed(4)} HBAR has been sent automatically to:
+                  </p>
+                  <div className="rounded bg-white p-3 font-mono text-sm">
+                    {purchaseResult.paymentRequest.recipientAccountId}
+                  </div>
+                  <p className="mt-3 text-xs text-green-700">
+                    Please review the transaction ID below and confirm to complete your purchase.
+                  </p>
+                </div>
 
-            <div>
-              <Label htmlFor="transactionId">Transaction ID</Label>
-              <Input
-                id="transactionId"
-                placeholder="0.0.xxxxx@1234567890.123456789"
-                value={transactionId}
-                onChange={(e) => setTransactionId(e.target.value)}
-                className="mt-1"
-              />
-            </div>
+                <div>
+                  <Label htmlFor="transactionId">Transaction ID</Label>
+                  <Input
+                    id="transactionId"
+                    placeholder="0.0.xxxxx@1234567890.123456789"
+                    value={transactionId}
+                    onChange={(e) => setTransactionId(e.target.value)}
+                    className="mt-1 font-mono"
+                  />
+                  {purchaseResult.transactionId && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Transaction ID auto-filled. You can copy it or edit if needed, then confirm to
+                      complete purchase.
+                    </p>
+                  )}
+                </div>
 
-            <Button
-              onClick={handlePurchase}
-              disabled={isPurchasing || !transactionId}
-              className="w-full"
-              size="lg"
-            >
-              {isPurchasing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying Payment...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Verify & Complete Purchase
-                </>
-              )}
-            </Button>
+                <Button
+                  onClick={handlePurchase}
+                  disabled={isPurchasing || !transactionId}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isPurchasing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying Payment...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Confirm & Complete Purchase
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h4 className="mb-2 font-semibold text-amber-900">Payment Instructions</h4>
+                  <p className="mb-3 text-sm text-amber-800">
+                    Send {totalPrice.toFixed(4)} HBAR to the platform account:
+                  </p>
+                  <div className="rounded bg-white p-3 font-mono text-sm">
+                    {purchaseResult.paymentRequest.recipientAccountId}
+                  </div>
+                  <p className="mt-3 text-xs text-amber-700">
+                    After sending payment, enter the transaction ID below to complete your purchase.
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="transactionId">Transaction ID</Label>
+                  <Input
+                    id="transactionId"
+                    placeholder="0.0.xxxxx@1234567890.123456789"
+                    value={transactionId}
+                    onChange={(e) => setTransactionId(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+
+                <Button
+                  onClick={handlePurchase}
+                  disabled={isPurchasing || !transactionId}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isPurchasing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying Payment...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Verify & Complete Purchase
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         )}
 
