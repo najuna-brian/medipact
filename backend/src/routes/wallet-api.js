@@ -53,7 +53,8 @@ router.get('/researcher/:researcherId/wallet/balance', async (req, res) => {
     
     // Validate researcherId format
     if (!researcherId || !researcherId.startsWith('RES-')) {
-      return res.status(400).json({ error: 'Invalid researcher ID format' });
+      console.error(`[WALLET] Invalid researcher ID format: ${researcherId}`);
+      return res.status(400).json({ error: 'Invalid researcher ID format. Must start with RES-' });
     }
     
     const balance = await getResearcherBalanceWithDetails(researcherId);
@@ -61,7 +62,13 @@ router.get('/researcher/:researcherId/wallet/balance', async (req, res) => {
     res.json(balance);
   } catch (error) {
     console.error(`[WALLET] Error getting researcher balance for ${req.params.researcherId}:`, error);
-    res.status(500).json({ error: error.message || 'Failed to fetch balance' });
+    // Provide more detailed error information
+    const errorMessage = error.message || 'Failed to fetch balance';
+    const statusCode = error.message?.includes('not found') ? 404 : 500;
+    res.status(statusCode).json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

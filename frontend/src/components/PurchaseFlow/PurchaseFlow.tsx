@@ -84,6 +84,10 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
         if (result.autoPayment === true && result.transactionId) {
           setTransactionId(result.transactionId);
           console.log('✅ Auto-payment sent, transaction ID:', result.transactionId);
+        } else if (result.transactionId) {
+          // Even if autoPayment is false, if there's a transactionId, use it
+          setTransactionId(result.transactionId);
+          console.log('ℹ️ Transaction ID provided:', result.transactionId);
         } else {
           console.log(
             '⚠️ Manual payment required - autoPayment:',
@@ -91,6 +95,8 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
             'transactionId:',
             result.transactionId
           );
+          // Clear transaction ID for manual payment
+          setTransactionId('');
         }
 
         setIsPurchasing(false);
@@ -296,12 +302,17 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
                     <Input
                       id="transactionId"
                       placeholder="0.0.xxxxx@1234567890.123456789"
-                      value={transactionId}
+                      value={transactionId || ''}
                       onChange={(e) => setTransactionId(e.target.value)}
                       className="flex-1 font-mono text-sm"
-                      readOnly={!!purchaseResult.transactionId}
+                      readOnly={
+                        !!(
+                          purchaseResult?.transactionId ||
+                          (purchaseResult?.autoPayment === true && transactionId)
+                        )
+                      }
                     />
-                    {purchaseResult.transactionId && (
+                    {transactionId && (
                       <Button
                         type="button"
                         variant="outline"
@@ -312,25 +323,33 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
                         }}
                         className="shrink-0"
                       >
-                        <Copy className="h-4 w-4 mr-1" />
+                        <Copy className="mr-1 h-4 w-4" />
                         Copy
                       </Button>
                     )}
                   </div>
-                  {purchaseResult.transactionId && (
+                  {transactionId && (
                     <div className="mt-2 space-y-1">
-                      <p className="text-xs text-green-700 font-medium">
-                        ✅ Transaction ID auto-filled from your payment
-                      </p>
+                      {purchaseResult?.autoPayment === true ? (
+                        <p className="text-xs font-medium text-green-700">
+                          ✅ Transaction ID auto-filled from your payment
+                        </p>
+                      ) : (
+                        <p className="text-xs font-medium text-amber-700">
+                          ⚠️ Please enter the transaction ID from your payment
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">
-                        Review the transaction ID above, then click "Confirm & Complete Purchase" to proceed.
+                        {purchaseResult?.autoPayment === true
+                          ? 'Review the transaction ID above, then click "Confirm & Complete Purchase" to proceed.'
+                          : 'Enter the transaction ID from your Hedera wallet or HashScan, then click "Verify & Complete Purchase".'}
                       </p>
                       {transactionId.includes('@') && (
                         <a
-                          href={`https://hashscan.io/testnet/transaction/${transactionId.split('@')[1]}`}
+                          href={`https://hashscan.io/${(process.env.NEXT_PUBLIC_HEDERA_NETWORK || 'testnet') === 'mainnet' ? '' : 'testnet.'}transaction/${transactionId.split('@')[1]}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                          className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
                         >
                           View transaction on HashScan <ExternalLink className="h-3 w-3" />
                         </a>
@@ -340,7 +359,15 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
                 </div>
 
                 <Button
-                  onClick={handlePurchase}
+                  onClick={() => {
+                    if (!transactionId) {
+                      setError(
+                        'Transaction ID is required. Please wait for auto-payment or enter it manually.'
+                      );
+                      return;
+                    }
+                    handlePurchase();
+                  }}
                   disabled={isPurchasing || !transactionId}
                   className="w-full"
                   size="lg"
@@ -365,23 +392,40 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
                   <p className="mb-3 text-sm text-amber-800">
                     Send {totalPrice.toFixed(4)} HBAR to the platform account:
                   </p>
-                  <div className="rounded bg-white p-3 font-mono text-sm">
+                  <div className="break-all rounded bg-white p-3 font-mono text-sm">
                     {purchaseResult.paymentRequest.recipientAccountId}
                   </div>
-                  <p className="mt-3 text-xs text-amber-700">
-                    After sending payment, enter the transaction ID below to complete your purchase.
-                  </p>
+                  <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                    <p className="mb-1 text-xs font-semibold text-blue-900">
+                      How to get your Transaction ID:
+                    </p>
+                    <ol className="list-inside list-decimal space-y-1 text-xs text-blue-800">
+                      <li>
+                        Send {totalPrice.toFixed(4)} HBAR to the account above using your Hedera
+                        wallet
+                      </li>
+                      <li>After sending, copy the Transaction ID from your wallet or HashScan</li>
+                      <li>Paste the Transaction ID in the field below</li>
+                      <li>Click "Verify & Complete Purchase"</li>
+                    </ol>
+                  </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="transactionId">Transaction ID</Label>
+                  <Label htmlFor="transactionId" className="text-base font-semibold">
+                    Transaction ID <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="transactionId"
                     placeholder="0.0.xxxxx@1234567890.123456789"
                     value={transactionId}
                     onChange={(e) => setTransactionId(e.target.value)}
-                    className="mt-1"
+                    className="mt-1 font-mono text-sm"
                   />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Enter the transaction ID from your payment. Format:
+                    0.0.xxxxx@1234567890.123456789
+                  </p>
                 </div>
 
                 <Button
