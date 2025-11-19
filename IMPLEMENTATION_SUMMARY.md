@@ -59,6 +59,53 @@
   - Judging criteria addressed
   - Design tips included
 
+### 5. Testnet Account Funding System ✅
+- **Automatic Funding Service**: `backend/src/services/testnet-funding-service.js`
+  - Automatically funds new researcher accounts on registration (if enabled)
+  - Manual funding function for existing accounts
+  - Balance checking with AccountBalanceQuery
+  - Default funding amount: 100 HBAR (faucet limit)
+  - Only works on testnet/previewnet (disabled on mainnet for security)
+
+- **Funding Script**: `backend/scripts/fund-existing-accounts.js`
+  - Fund all existing researcher accounts at once
+  - Fund specific researcher by ID
+  - Customizable funding amount and minimum balance threshold
+  - Skips accounts with sufficient balance
+  - Shows transaction IDs and HashScan links
+
+- **Admin API Endpoints**:
+  - `POST /api/admin/fund-account` - Manually fund a specific account
+  - `GET /api/admin/account-balance/:accountId` - Check account balance
+  - `POST /api/admin/fund-if-low` - Fund account if balance is low
+  - `POST /api/admin/fund-all-researchers` - Fund all researchers (planned)
+
+- **Environment Variables**:
+  - `AUTO_FUND_TESTNET_ACCOUNTS=true` - Enable auto-funding on registration
+  - `TESTNET_FUNDING_AMOUNT_HBAR=100` - Amount to fund each account
+
+- **Documentation**: `TESTNET_FUNDING_GUIDE.md`
+  - Complete guide for automatic and manual funding
+  - Instructions for enabling auto-funding
+  - Admin API usage examples
+  - Troubleshooting tips
+
+### 6. Bug Fixes ✅
+- **Fixed Wallet Balance 401 Error**:
+  - Removed duplicate wallet balance route from `researcher-api.js`
+  - Route now correctly accessible via `wallet-api.js`
+  - Wallet balance endpoint works without authentication
+
+- **Fixed SQL Error in Metrics Service**:
+  - Fixed `getMonthlyActiveHederaAccounts` query for PostgreSQL
+  - Corrected table joins and column references
+  - Metrics now accurately track monthly active accounts
+
+- **Fixed Account Balance Query**:
+  - Changed from `client.getAccountInfo()` to `AccountBalanceQuery`
+  - Balance checking now works correctly
+  - Compatible with Hedera SDK v2.x
+
 ---
 
 ## 📋 What You Need to Do
@@ -161,6 +208,10 @@
 - Frontend metrics display
 - Documentation (submission, demo script, pitch deck template)
 - Admin dashboard integration
+- Testnet account funding system (automatic and manual)
+- Wallet balance endpoint fix (401 error resolved)
+- SQL query fix in metrics service
+- Account balance query fix (AccountBalanceQuery)
 
 ### ⏳ Pending (Your Action Required)
 - Contract address verification in production

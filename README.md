@@ -402,6 +402,7 @@ See `env.example` for complete configuration options.
 - [Payment & Withdrawal System](./docs/PAYMENT_AND_WITHDRAWAL_SYSTEM.md) - Payment system details
 - [System Integration Status](./docs/SYSTEM_INTEGRATION_STATUS.md) - Integration verification
 - [Testing Guide](./TESTING_GUIDE.md) - Testing documentation
+- [Testnet Funding Guide](./TESTNET_FUNDING_GUIDE.md) - Automatic and manual account funding
 
 ---
 
@@ -416,6 +417,7 @@ See `env.example` for complete configuration options.
 | **Multi-Layered Security** | 6-layer security architecture |
 | **Patient Identity System (UPI)** | Cross-hospital identity linking |
 | **Automatic Wallet Creation** | Hedera accounts created automatically, users never manage private keys |
+| **Automatic Testnet Funding** | New accounts automatically funded with testnet HBAR (configurable) |
 | **Automated HBAR Revenue Distribution** | 60/25/15 split managed by smart contract |
 | **Fair Revenue Model** | Original collecting hospital is sole beneficiary of their data |
 | **Category-Based Pricing** | 6 pricing tiers, 40% of market rates, volume discounts |
@@ -447,6 +449,28 @@ This creates:
 - Multiple verified hospitals with API keys
 - Multiple verified researchers
 - Hundreds/thousands of patients with realistic medical data
+
+### Testnet Account Funding
+
+Fund existing researcher accounts with testnet HBAR:
+
+```bash
+# Fund all researcher accounts with low balance
+cd backend
+npm run fund-accounts
+
+# Fund specific researcher
+npm run fund-accounts -- --researcher-id=RES-XXXXX
+
+# Custom amount and minimum balance
+npm run fund-accounts -- --amount=200 --min-balance=50
+```
+
+**Auto-Funding**: Enable automatic funding for new accounts by setting:
+- `AUTO_FUND_TESTNET_ACCOUNTS=true`
+- `TESTNET_FUNDING_AMOUNT_HBAR=100` (default: 100 HBAR)
+
+See [TESTNET_FUNDING_GUIDE.md](./TESTNET_FUNDING_GUIDE.md) for complete instructions.
 - Multiple datasets ready for purchase
 - All login credentials saved to `backend/demo-credentials.json`
 
