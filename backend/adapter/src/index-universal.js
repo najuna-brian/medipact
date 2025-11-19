@@ -328,37 +328,57 @@ async function processSystem(systemConfig, hederaContext) {
 
   console.log(`   ✓ Submitted ${consentResults.length} consent proofs\n`);
 
-  // Step 6: Submit data proofs to HCS with double anonymization
-  console.log('5. Applying Stage 2 (Chain) anonymization and submitting provenance proofs to HCS...');
+  // Step 6: Submit data proofs to HCS with double anonymization (ONE PER PATIENT)
+  console.log('5. Applying Stage 2 (Chain) anonymization and submitting provenance proofs to HCS (one per patient)...');
   const dataResults = [];
 
-  for (const processed of filteredResources) {
+  // Group resources by patient (similar to consent proofs)
+  const patientResourceMap = new Map();
+  filteredResources.forEach(processed => {
+    const anonymousId = processed.processed.anonymousPatientId || 
+                       processed.processed.id || 
+                       'unknown';
+    if (anonymousId && anonymousId !== 'unknown') {
+      if (!patientResourceMap.has(anonymousId)) {
+        patientResourceMap.set(anonymousId, []);
+      }
+      patientResourceMap.get(anonymousId).push(processed);
+    }
+  });
+  
+  console.log(`   Grouped ${filteredResources.length} resources into ${patientResourceMap.size} patient proofs`);
+
+  // Create ONE data proof per patient (all resources combined)
+  for (const [anonymousPID, resources] of patientResourceMap) {
     try {
-      // Stage 1: Storage anonymization (already done in processFHIRResource)
-      const storageHash = hashPatientRecord(processed.anonymized);
+      // Stage 1: Get all storage-anonymized records for this patient
+      const storageAnonymizedRecords = resources.map(r => r.anonymized);
+      const storageHash = hashBatch(storageAnonymizedRecords);
       
-      // Stage 2: Chain anonymization (further generalization)
-      const chainAnonymized = await anonymizeForChain(
-        processed.anonymized,
-        processed.resourceType,
-        context
-      );
-      const chainHash = hashPatientRecord(chainAnonymized);
+      // Stage 2: Apply chain anonymization to all resources and combine
+      const chainAnonymizedRecords = [];
+      for (const processed of resources) {
+        const chainAnonymized = await anonymizeForChain(
+          processed.anonymized,
+          processed.resourceType,
+          context
+        );
+        chainAnonymizedRecords.push(chainAnonymized);
+      }
+      const chainHash = hashBatch(chainAnonymizedRecords);
       
-      // Get anonymous patient ID
-      const anonymousPatientId = processed.processed.anonymousPatientId || 
-                                 processed.processed.id || 
-                                 'unknown';
+      // Get unique resource types for this patient
+      const resourceTypes = [...new Set(resources.map(r => r.resourceType))];
       
       // Generate provenance proof linking both hashes
       const provenanceProof = generateProvenanceProof(
         storageHash,
         chainHash,
-        anonymousPatientId,
-        processed.resourceType
+        anonymousPID,
+        'PatientData' // Combined patient data, not a single resource type
       );
       
-      // Create provenance record with both hashes
+      // Create provenance record (ONE per patient, covering all resources)
       const provenanceRecord = {
         // Stage 1: Storage Anonymization
         storage: {
@@ -376,8 +396,9 @@ async function processSystem(systemConfig, hederaContext) {
         },
         
         // Metadata
-        anonymousPatientId,
-        resourceType: processed.resourceType,
+        anonymousPatientId: anonymousPID,
+        resourceCount: resources.length,
+        resourceTypes: resourceTypes,
         hospitalId: systemConfig.hospitalId,
         timestamp: new Date().toISOString(),
         
@@ -385,7 +406,7 @@ async function processSystem(systemConfig, hederaContext) {
         provenanceProof
       };
       
-      // Submit provenance record to HCS (both hashes in one message)
+      // Submit provenance record to HCS (ONE proof per patient)
       const transactionId = await submitMessage(
         client, 
         dataTopicId, 
@@ -393,8 +414,9 @@ async function processSystem(systemConfig, hederaContext) {
       );
 
       dataResults.push({
-        resourceType: processed.resourceType,
-        anonymousId: anonymousPatientId,
+        anonymousId: anonymousPID,
+        resourceCount: resources.length,
+        resourceTypes: resourceTypes,
         storageHash,
         chainHash,
         provenanceProof,
@@ -405,11 +427,11 @@ async function processSystem(systemConfig, hederaContext) {
       // Small delay to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
-      console.error(`     ✗ Data proof failed:`, error.message);
+      console.error(`     ✗ Data proof failed for patient ${anonymousPID}:`, error.message);
     }
   }
 
-  console.log(`   ✓ Submitted ${dataResults.length} provenance proofs (with double anonymization)\n`);
+  console.log(`   ✓ Submitted ${dataResults.length} data proofs (one per patient, covering all resources)\n`);
 
   // Disconnect
   await extractor.disconnect();

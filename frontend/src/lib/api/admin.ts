@@ -168,3 +168,124 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return response.data;
 }
 
+// Revenue Distribution Types
+export interface RevenueDistribution {
+  id: string;
+  purchaseId: string;
+  patientUPI?: string | null;
+  hospitalId?: string | null;
+  recipientType: 'patient' | 'hospital' | 'platform';
+  recipientAccountId: string;
+  recipientEvmAddress?: string | null;
+  amountHBAR: number;
+  amountTinybars: number;
+  transactionId: string;
+  distributionMethod: 'direct' | 'contract-dynamic' | 'contract-fixed';
+  contractAddress?: string | null;
+  status: 'pending' | 'completed' | 'failed';
+  errorMessage?: string | null;
+  distributedAt: string;
+}
+
+export interface RevenueDistributionStats {
+  totalDistributions: number;
+  totalPurchases: number;
+  totalPatients: number;
+  totalHospitals: number;
+  totalDistributedHBAR: number;
+  totalPatientHBAR: number;
+  totalHospitalHBAR: number;
+  totalPlatformHBAR: number;
+  failedDistributions: number;
+}
+
+// Revenue Distribution API
+const revenueClient = axios.create({
+  baseURL: `${BACKEND_API_URL}/api/revenue`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add auth token to revenue client
+revenueClient.interceptors.request.use(
+  (config) => {
+    const token = sessionStorage.getItem('medipact_admin_token') || localStorage.getItem('medipact_admin_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      config.headers['x-admin-token'] = token;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+export async function getRevenueDistributions(limit = 100, offset = 0): Promise<{ distributions: RevenueDistribution[]; limit: number; offset: number }> {
+  const response = await revenueClient.get('/distributions', { params: { limit, offset } });
+  return response.data;
+}
+
+export async function getRevenueDistributionsByPurchase(purchaseId: string): Promise<{ purchaseId: string; distributions: RevenueDistribution[] }> {
+  const response = await revenueClient.get(`/distributions/purchase/${purchaseId}`);
+  return response.data;
+}
+
+export async function getRevenueDistributionsByPatient(patientUPI: string, limit = 50): Promise<{ patientUPI: string; distributions: RevenueDistribution[] }> {
+  const response = await revenueClient.get(`/distributions/patient/${patientUPI}`, { params: { limit } });
+  return response.data;
+}
+
+export async function getRevenueDistributionsByHospital(hospitalId: string, limit = 50): Promise<{ hospitalId: string; distributions: RevenueDistribution[] }> {
+  const response = await revenueClient.get(`/distributions/hospital/${hospitalId}`, { params: { limit } });
+  return response.data;
+}
+
+export async function getRevenueDistributionStats(): Promise<RevenueDistributionStats> {
+  const response = await revenueClient.get('/distributions/stats');
+  return response.data;
+}
+
+// Marketplace API for purchase details
+const marketplaceClient = axios.create({
+  baseURL: `${BACKEND_API_URL}/api/marketplace`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add auth token to marketplace client
+marketplaceClient.interceptors.request.use(
+  (config) => {
+    const token = sessionStorage.getItem('medipact_admin_token') || localStorage.getItem('medipact_admin_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      config.headers['x-admin-token'] = token;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+export async function getPurchasePatients(purchaseId: string): Promise<{
+  purchaseId: string;
+  totalPatients: number;
+  totalAmountHBAR: number;
+  patients: Array<{
+    patientUPI: string;
+    hospitalId: string | null;
+    amountHBAR: number;
+    amountTinybars: number;
+    transactionId: string;
+    recipientAccountId: string;
+    distributedAt: string;
+    status: string;
+  }>;
+}> {
+  const response = await marketplaceClient.get(`/purchases/${purchaseId}/patients`);
+  return response.data;
+}
+

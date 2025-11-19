@@ -29,7 +29,8 @@ export async function distributeRevenueFromSale({
   patientUPI,
   hospitalId,
   totalAmount,
-  revenueSplitterAddress = null
+  revenueSplitterAddress = null,
+  purchaseId = null
 }) {
   try {
     // Get patient and hospital to retrieve Hedera Account IDs
@@ -66,7 +67,10 @@ export async function distributeRevenueFromSale({
       totalAmount: hbarAmount,
       revenueSplitterAddress,
       getPatient: () => Promise.resolve(patient), // Pass patient object with evmAddress
-      getHospital: () => Promise.resolve(hospital) // Pass hospital object with evmAddress
+      getHospital: () => Promise.resolve(hospital), // Pass hospital object with evmAddress
+      purchaseId, // Pass purchaseId for tracking
+      patientUPI,
+      hospitalId
     });
     
     return {
@@ -93,7 +97,7 @@ export async function distributeRevenueFromSale({
  * @param {string} revenueSplitterAddress - Optional contract address
  * @returns {Promise<Array>} Distribution results
  */
-export async function distributeBulkRevenue(sales, revenueSplitterAddress = null) {
+export async function distributeBulkRevenue(sales, revenueSplitterAddress = null, purchaseId = null) {
   const results = [];
   
   for (const sale of sales) {
@@ -102,7 +106,8 @@ export async function distributeBulkRevenue(sales, revenueSplitterAddress = null
         patientUPI: sale.patientUPI,
         hospitalId: sale.hospitalId, // Use the specific hospital that provided this patient's data
         totalAmount: sale.amount,
-        revenueSplitterAddress
+        revenueSplitterAddress,
+        purchaseId // Pass purchaseId for tracking
       });
       results.push({ success: true, ...result });
     } catch (error) {
@@ -147,7 +152,8 @@ export async function distributeDatasetRevenue({
   datasetId,
   totalAmount,
   revenueSplitterAddress = null,
-  filters = null
+  filters = null,
+  purchaseId = null
 }) {
   try {
     // Import here to avoid circular dependencies
@@ -217,7 +223,7 @@ export async function distributeDatasetRevenue({
     }
     
     // Distribute using bulk distribution
-    const results = await distributeBulkRevenue(sales, revenueSplitterAddress);
+    const results = await distributeBulkRevenue(sales, revenueSplitterAddress, purchaseId);
     
     // Calculate summary
     const successful = results.filter(r => r.success).length;

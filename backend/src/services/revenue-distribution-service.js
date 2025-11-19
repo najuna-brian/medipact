@@ -17,6 +17,7 @@ import {
   ContractFunctionParameters
 } from '@hashgraph/sdk';
 import { createHederaClient } from './hedera-client.js';
+import { recordRevenueDistribution } from '../db/revenue-distribution-db.js';
 
 /**
  * Note: Hedera Account IDs (0.0.xxxxx) can be used directly in native Hedera transfers.
@@ -37,6 +38,9 @@ import { createHederaClient } from './hedera-client.js';
  *   - hospitalAccountId: string - Hospital Hedera Account ID (0.0.xxxxx)
  *   - totalAmount: Hbar - Total revenue amount
  *   - revenueSplitterAddress: string (optional) - RevenueSplitter contract address
+ *   - purchaseId: string (optional) - Purchase ID for tracking
+ *   - patientUPI: string (optional) - Patient UPI for tracking
+ *   - hospitalId: string (optional) - Hospital ID for tracking
  * @returns {Promise<Object>} Distribution result with transaction IDs
  */
 export async function distributeRevenue({
@@ -45,7 +49,10 @@ export async function distributeRevenue({
   totalAmount,
   revenueSplitterAddress = null,
   getPatient = null,
-  getHospital = null
+  getHospital = null,
+  purchaseId = null,
+  patientUPI = null,
+  hospitalId = null
 }) {
   const client = createHederaClient();
   
@@ -124,10 +131,64 @@ export async function distributeRevenue({
           throw new Error(`RevenueSplitter contract execution failed: ${receipt.status}`);
         }
         
+        const transactionId = txResponse.transactionId.toString();
+        const operatorId = client.operatorAccountId;
+        
+        // Record individual payouts if purchaseId is provided
+        if (purchaseId) {
+          try {
+            // Record patient payout
+            await recordRevenueDistribution({
+              purchaseId,
+              patientUPI,
+              recipientType: 'patient',
+              recipientAccountId: patientHederaAccountId,
+              recipientEvmAddress: patientEvmAddress,
+              amountHBAR: Number(patientAmount.toTinybars()) / 100000000,
+              amountTinybars: Number(patientAmount.toTinybars()),
+              transactionId,
+              distributionMethod: 'contract-dynamic',
+              contractAddress: revenueSplitterAddress,
+              status: 'completed'
+            });
+            
+            // Record hospital payout
+            await recordRevenueDistribution({
+              purchaseId,
+              hospitalId,
+              recipientType: 'hospital',
+              recipientAccountId: hospitalHederaAccountId,
+              recipientEvmAddress: hospitalEvmAddress,
+              amountHBAR: Number(hospitalAmount.toTinybars()) / 100000000,
+              amountTinybars: Number(hospitalAmount.toTinybars()),
+              transactionId,
+              distributionMethod: 'contract-dynamic',
+              contractAddress: revenueSplitterAddress,
+              status: 'completed'
+            });
+            
+            // Record platform payout
+            await recordRevenueDistribution({
+              purchaseId,
+              recipientType: 'platform',
+              recipientAccountId: operatorId.toString(),
+              amountHBAR: Number(platformAmount.toTinybars()) / 100000000,
+              amountTinybars: Number(platformAmount.toTinybars()),
+              transactionId,
+              distributionMethod: 'contract-dynamic',
+              contractAddress: revenueSplitterAddress,
+              status: 'completed'
+            });
+          } catch (recordError) {
+            console.error('Error recording revenue distributions:', recordError);
+            // Don't fail the distribution if recording fails
+          }
+        }
+        
         return {
           method: 'contract-dynamic',
           contractAddress: revenueSplitterAddress,
-          transactionId: txResponse.transactionId.toString(),
+          transactionId,
           totalAmount: totalAmount.toString(),
           patientEvmAddress,
           hospitalEvmAddress,
@@ -176,9 +237,59 @@ export async function distributeRevenue({
       throw new Error(`Direct transfer failed: ${receipt.status}`);
     }
     
+    const transactionId = txResponse.transactionId.toString();
+    
+    // Record individual payouts if purchaseId is provided
+    if (purchaseId) {
+      try {
+        // Record patient payout
+        await recordRevenueDistribution({
+          purchaseId,
+          patientUPI,
+          recipientType: 'patient',
+          recipientAccountId: patientHederaAccountId,
+          recipientEvmAddress: patient?.evmAddress || null,
+          amountHBAR: Number(patientAmount.toTinybars()) / 100000000,
+          amountTinybars: Number(patientAmount.toTinybars()),
+          transactionId,
+          distributionMethod: 'direct',
+          status: 'completed'
+        });
+        
+        // Record hospital payout
+        await recordRevenueDistribution({
+          purchaseId,
+          hospitalId,
+          recipientType: 'hospital',
+          recipientAccountId: hospitalHederaAccountId,
+          recipientEvmAddress: hospital?.evmAddress || null,
+          amountHBAR: Number(hospitalAmount.toTinybars()) / 100000000,
+          amountTinybars: Number(hospitalAmount.toTinybars()),
+          transactionId,
+          distributionMethod: 'direct',
+          status: 'completed'
+        });
+        
+        // Record platform payout (stays with operator, no transfer needed)
+        await recordRevenueDistribution({
+          purchaseId,
+          recipientType: 'platform',
+          recipientAccountId: operatorId.toString(),
+          amountHBAR: Number(platformAmount.toTinybars()) / 100000000,
+          amountTinybars: Number(platformAmount.toTinybars()),
+          transactionId,
+          distributionMethod: 'direct',
+          status: 'completed'
+        });
+      } catch (recordError) {
+        console.error('Error recording revenue distributions:', recordError);
+        // Don't fail the distribution if recording fails
+      }
+    }
+    
     return {
       method: 'direct',
-      transactionId: txResponse.transactionId.toString(),
+      transactionId,
       transfers: {
         patient: {
           accountId: patientHederaAccountId,

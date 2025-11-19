@@ -6,6 +6,13 @@
 
 import express from 'express';
 import { distributeRevenueFromSale, distributeBulkRevenue } from '../services/adapter-integration-service.js';
+import { 
+  getRevenueDistributionsByPurchase,
+  getRevenueDistributionsByPatient,
+  getRevenueDistributionsByHospital,
+  getAllRevenueDistributions,
+  getRevenueDistributionStats
+} from '../db/revenue-distribution-db.js';
 import { Hbar } from '@hashgraph/sdk';
 
 const router = express.Router();
@@ -129,6 +136,83 @@ router.post('/distribute-bulk', async (req, res) => {
     });
   } catch (error) {
     console.error('Error distributing bulk revenue:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/revenue/distributions/purchase/:purchaseId
+ * Get all revenue distributions for a specific purchase
+ */
+router.get('/distributions/purchase/:purchaseId', async (req, res) => {
+  try {
+    const { purchaseId } = req.params;
+    const distributions = await getRevenueDistributionsByPurchase(purchaseId);
+    res.json({ purchaseId, distributions });
+  } catch (error) {
+    console.error('Error fetching revenue distributions by purchase:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/revenue/distributions/patient/:patientUPI
+ * Get all revenue distributions for a specific patient
+ */
+router.get('/distributions/patient/:patientUPI', async (req, res) => {
+  try {
+    const { patientUPI } = req.params;
+    const limit = parseInt(req.query.limit) || 50;
+    const distributions = await getRevenueDistributionsByPatient(patientUPI, limit);
+    res.json({ patientUPI, distributions });
+  } catch (error) {
+    console.error('Error fetching revenue distributions by patient:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/revenue/distributions/hospital/:hospitalId
+ * Get all revenue distributions for a specific hospital
+ */
+router.get('/distributions/hospital/:hospitalId', async (req, res) => {
+  try {
+    const { hospitalId } = req.params;
+    const limit = parseInt(req.query.limit) || 50;
+    const distributions = await getRevenueDistributionsByHospital(hospitalId, limit);
+    res.json({ hospitalId, distributions });
+  } catch (error) {
+    console.error('Error fetching revenue distributions by hospital:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/revenue/distributions
+ * Get all revenue distributions (admin view)
+ */
+router.get('/distributions', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 100;
+    const offset = parseInt(req.query.offset) || 0;
+    const distributions = await getAllRevenueDistributions(limit, offset);
+    res.json({ distributions, limit, offset });
+  } catch (error) {
+    console.error('Error fetching all revenue distributions:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/revenue/distributions/stats
+ * Get revenue distribution statistics
+ */
+router.get('/distributions/stats', async (req, res) => {
+  try {
+    const stats = await getRevenueDistributionStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching revenue distribution stats:', error);
     res.status(500).json({ error: error.message });
   }
 });

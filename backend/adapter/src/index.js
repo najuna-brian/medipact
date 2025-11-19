@@ -7,9 +7,9 @@
  *   - Stage 1: Storage anonymization (kept in MediPact backend)
  *   - Stage 2: Chain anonymization (max privacy for blockchain proofs)
  * - Adapter generates:
- *   - Consent proofs on Hedera HCS (per patient, NO PII)
+ *   - Consent proofs on Hedera HCS (one per patient, NO PII)
  *   - Optional on-chain consent records in ConsentManager (per anonymous patient ID)
- *   - Provenance records linking Storage H1 and Chain H2 for each record
+ *   - Data proofs on Hedera HCS (one per patient, covering all resources for that patient)
  *
  * IMPORTANT:
  * - This adapter is currently the "consent CREATION" path for CSV uploads.
@@ -767,38 +767,58 @@ async function main() {
     }
     console.log('');
 
-    // Step 10: Apply Stage 2 (Chain) anonymization and create provenance proofs
-    console.log('10. Applying Stage 2 (Chain) anonymization and creating provenance proofs...');
+    // Step 10: Apply Stage 2 (Chain) anonymization and create provenance proofs (ONE PER PATIENT)
+    console.log('10. Applying Stage 2 (Chain) anonymization and creating provenance proofs (one per patient)...');
     const dataResults = [];
     
-    for (const processed of processedResources) {
+    // Group resources by patient (similar to consent proofs)
+    const patientResourceMap = new Map();
+    processedResources.forEach(processed => {
+      const anonymousId = processed.processed.anonymousPatientId || 
+                         processed.processed.id || 
+                         'unknown';
+      if (anonymousId && anonymousId !== 'unknown') {
+        if (!patientResourceMap.has(anonymousId)) {
+          patientResourceMap.set(anonymousId, []);
+        }
+        patientResourceMap.get(anonymousId).push(processed);
+      }
+    });
+    
+    console.log(`   Grouped ${processedResources.length} resources into ${patientResourceMap.size} patient proofs`);
+    
+    // Create ONE data proof per patient (all resources combined)
+    for (const [anonymousPID, resources] of patientResourceMap) {
       try {
-        // Stage 1: Storage anonymization (already done in processFHIRResource)
-        const storageHash = hashPatientRecord(processed.anonymized);
+        // Stage 1: Get all storage-anonymized records for this patient
+        const storageAnonymizedRecords = resources.map(r => r.anonymized);
+        const storageHash = hashBatch(storageAnonymizedRecords);
         
-        // Stage 2: Chain anonymization (further generalization)
+        // Stage 2: Apply chain anonymization to all resources and combine
         const { anonymizeForChain } = await import('./fhir/fhir-anonymizer.js');
-        const chainAnonymized = await anonymizeForChain(
-          processed.anonymized,
-          processed.resourceType,
-          context
-        );
-        const chainHash = hashPatientRecord(chainAnonymized);
+        const chainAnonymizedRecords = [];
+        for (const processed of resources) {
+          const chainAnonymized = await anonymizeForChain(
+            processed.anonymized,
+            processed.resourceType,
+            context
+          );
+          chainAnonymizedRecords.push(chainAnonymized);
+        }
+        const chainHash = hashBatch(chainAnonymizedRecords);
         
-        // Get anonymous patient ID
-        const anonymousPatientId = processed.processed.anonymousPatientId || 
-                                   processed.processed.id || 
-                                   'unknown';
+        // Get unique resource types for this patient
+        const resourceTypes = [...new Set(resources.map(r => r.resourceType))];
         
         // Generate provenance proof linking both hashes
         const provenanceProof = generateProvenanceProof(
           storageHash,
           chainHash,
-          anonymousPatientId,
-          processed.resourceType
+          anonymousPID,
+          'PatientData' // Combined patient data, not a single resource type
         );
         
-        // Create provenance record
+        // Create provenance record (ONE per patient, covering all resources)
         const provenanceRecord = {
           storage: {
             hash: storageHash,
@@ -811,14 +831,15 @@ async function main() {
             derivedFrom: storageHash,
             timestamp: new Date().toISOString()
           },
-          anonymousPatientId,
-          resourceType: processed.resourceType,
+          anonymousPatientId: anonymousPID,
+          resourceCount: resources.length,
+          resourceTypes: resourceTypes,
           hospitalId: storageHospitalId || defaultContext.hospitalId,
           timestamp: new Date().toISOString(),
           provenanceProof
         };
         
-        // Submit provenance record to HCS
+        // Submit provenance record to HCS (ONE proof per patient)
         const transactionId = await submitMessage(
           client, 
           dataTopicId, 
@@ -826,8 +847,9 @@ async function main() {
         );
 
         dataResults.push({
-          resourceType: processed.resourceType,
-          anonymousId: anonymousPatientId,
+          anonymousId: anonymousPID,
+          resourceCount: resources.length,
+          resourceTypes: resourceTypes,
           storageHash,
           chainHash,
           provenanceProof,
@@ -838,10 +860,10 @@ async function main() {
         // Small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
-        console.error(`     ✗ Provenance proof failed for ${processed.resourceType}:`, error.message);
+        console.error(`     ✗ Provenance proof failed for patient ${anonymousPID}:`, error.message);
       }
     }
-    console.log(`   ✓ Created ${dataResults.length} provenance proofs\n`);
+    console.log(`   ✓ Created ${dataResults.length} provenance proofs (one per patient)\n`);
 
     // Step 11: Display summary
     console.log('=== Processing Complete ===\n');
@@ -850,8 +872,8 @@ async function main() {
     console.log(`  - FHIR resources created: ${fhirBundle.entry.length}`);
     console.log(`  - FHIR resources processed: ${processedResources.length}`);
     console.log(`  - Unique patients: ${patientMapping.size}`);
-    console.log(`  - Consent proofs: ${consentResults.length}`);
-    console.log(`  - Provenance proofs (double anonymization): ${dataResults.length}`);
+    console.log(`  - Consent proofs: ${consentResults.length} (one per patient)`);
+    console.log(`  - Data proofs: ${dataResults.length} (one per patient, covering all resources)`);
     console.log(`  - Output file: ${OUTPUT_FILE}\n`);
     
     // Display resource type breakdown
@@ -1036,8 +1058,8 @@ async function main() {
     // Final summary
     console.log('\n=== FINAL SUMMARY ===');
     console.log(`FHIR resources processed: ${processedResources.length}`);
-    console.log(`Consent proofs: ${consentResults.length}`);
-    console.log(`Data proofs: ${dataResults.length}`);
+    console.log(`Consent proofs: ${consentResults.length} (one per patient)`);
+    console.log(`Data proofs: ${dataResults.length} (one per patient, covering all resources)`);
     if (storageResult) {
       console.log(`Storage: ${storageResult.successful} successful, ${storageResult.failed} failed`);
     }

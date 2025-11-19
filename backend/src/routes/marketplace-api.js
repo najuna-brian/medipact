@@ -683,7 +683,8 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
       distributionResult = await distributeDatasetRevenue({
         datasetId,
         totalAmount: totalTinybars,
-        revenueSplitterAddress: process.env.REVENUE_SPLITTER_ADDRESS || null
+        revenueSplitterAddress: process.env.REVENUE_SPLITTER_ADDRESS || null,
+        purchaseId // Pass purchaseId for tracking
       });
     } else if (patientUPI && hospitalId) {
       // Single patient purchase: use specific patient and hospital
@@ -704,7 +705,8 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
         patientUPI,
         hospitalId,
         totalAmount: totalTinybars,
-        revenueSplitterAddress: process.env.REVENUE_SPLITTER_ADDRESS || null
+        revenueSplitterAddress: process.env.REVENUE_SPLITTER_ADDRESS || null,
+        purchaseId // Pass purchaseId for tracking
       });
       
       distributionResult = {
@@ -736,7 +738,7 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
         amount: totalTinybars / patientUPIs.length // Equal split per patient
       }));
       
-      const bulkResult = await distributeBulkRevenue(sales, process.env.REVENUE_SPLITTER_ADDRESS || null);
+      const bulkResult = await distributeBulkRevenue(sales, process.env.REVENUE_SPLITTER_ADDRESS || null, purchaseId);
       
       distributionResult = {
         success: true,
@@ -900,6 +902,48 @@ router.get('/researcher/:researcherId/status', checkResearcherVerification, asyn
     });
   } catch (error) {
     console.error('Error fetching researcher status:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/marketplace/purchases/:purchaseId/patients
+ * Get list of patients who received revenue from a purchase
+ */
+router.get('/purchases/:purchaseId/patients', async (req, res) => {
+  try {
+    const { purchaseId } = req.params;
+    
+    // Get all revenue distributions for this purchase
+    const { getRevenueDistributionsByPurchase } = await import('../db/revenue-distribution-db.js');
+    const { distributions } = await getRevenueDistributionsByPurchase(purchaseId);
+    
+    // Filter to only patient distributions and group by patient
+    const patientDistributions = distributions
+      .filter(d => d.recipientType === 'patient')
+      .map(d => ({
+        patientUPI: d.patientUPI,
+        hospitalId: d.hospitalId,
+        amountHBAR: d.amountHBAR,
+        amountTinybars: d.amountTinybars,
+        transactionId: d.transactionId,
+        recipientAccountId: d.recipientAccountId,
+        distributedAt: d.distributedAt,
+        status: d.status
+      }));
+    
+    // Calculate totals
+    const totalPatients = patientDistributions.length;
+    const totalAmount = patientDistributions.reduce((sum, d) => sum + d.amountHBAR, 0);
+    
+    res.json({
+      purchaseId,
+      totalPatients,
+      totalAmountHBAR: totalAmount,
+      patients: patientDistributions
+    });
+  } catch (error) {
+    console.error('Error fetching purchase patients:', error);
     res.status(500).json({ error: error.message });
   }
 });

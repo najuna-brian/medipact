@@ -920,7 +920,7 @@ async function createPostgreSQLTables() {
     CREATE TABLE IF NOT EXISTS purchases (
       id VARCHAR(32) PRIMARY KEY,
       researcher_id VARCHAR(32) NOT NULL,
-      dataset_id VARCHAR(32) NOT NULL,
+      dataset_id VARCHAR(32),
       amount DECIMAL(18, 8) NOT NULL,
       currency VARCHAR(10) NOT NULL DEFAULT 'HBAR',
       hedera_transaction_id VARCHAR(100),
@@ -934,6 +934,40 @@ async function createPostgreSQLTables() {
       FOREIGN KEY (dataset_id) REFERENCES datasets(id)
     )
   `);
+
+  // Revenue Distributions Table - Tracks individual payouts to patients, hospitals, and platform
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS revenue_distributions (
+      id VARCHAR(32) PRIMARY KEY,
+      purchase_id VARCHAR(32) NOT NULL,
+      patient_upi VARCHAR(64),
+      hospital_id VARCHAR(32),
+      recipient_type VARCHAR(20) NOT NULL,
+      recipient_account_id VARCHAR(50) NOT NULL,
+      recipient_evm_address VARCHAR(42),
+      amount_hbar DECIMAL(18, 8) NOT NULL,
+      amount_tinybars BIGINT NOT NULL,
+      transaction_id VARCHAR(100) NOT NULL,
+      distribution_method VARCHAR(20) NOT NULL DEFAULT 'direct',
+      contract_address VARCHAR(42),
+      status VARCHAR(20) NOT NULL DEFAULT 'completed',
+      error_message TEXT,
+      distributed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (recipient_type IN ('patient', 'hospital', 'platform')),
+      CHECK (distribution_method IN ('direct', 'contract-dynamic', 'contract-fixed')),
+      CHECK (status IN ('pending', 'completed', 'failed')),
+      FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE CASCADE,
+      FOREIGN KEY (patient_upi) REFERENCES patient_identities(upi) ON DELETE SET NULL,
+      FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id) ON DELETE SET NULL
+    )
+  `);
+
+  // Create indexes for revenue distributions
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_revenue_distributions_purchase_id ON revenue_distributions(purchase_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_revenue_distributions_patient_upi ON revenue_distributions(patient_upi)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_revenue_distributions_hospital_id ON revenue_distributions(hospital_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_revenue_distributions_recipient_account ON revenue_distributions(recipient_account_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS idx_revenue_distributions_distributed_at ON revenue_distributions(distributed_at)`);
 
   // Create indexes for FHIR tables
   // FHIR table indexes - Using camelCase with quoted identifiers for consistency
@@ -1679,7 +1713,7 @@ async function createSQLiteTables() {
     CREATE TABLE IF NOT EXISTS purchases (
       id TEXT PRIMARY KEY,
       researcher_id TEXT NOT NULL,
-      dataset_id TEXT NOT NULL,
+      dataset_id TEXT,
       amount REAL NOT NULL,
       currency TEXT NOT NULL DEFAULT 'HBAR',
       hedera_transaction_id TEXT,
@@ -1693,6 +1727,40 @@ async function createSQLiteTables() {
       FOREIGN KEY (dataset_id) REFERENCES datasets(id)
     )
   `);
+
+  // Revenue Distributions Table - Tracks individual payouts to patients, hospitals, and platform
+  await run(`
+    CREATE TABLE IF NOT EXISTS revenue_distributions (
+      id TEXT PRIMARY KEY,
+      purchase_id TEXT NOT NULL,
+      patient_upi TEXT,
+      hospital_id TEXT,
+      recipient_type TEXT NOT NULL,
+      recipient_account_id TEXT NOT NULL,
+      recipient_evm_address TEXT,
+      amount_hbar REAL NOT NULL,
+      amount_tinybars INTEGER NOT NULL,
+      transaction_id TEXT NOT NULL,
+      distribution_method TEXT NOT NULL DEFAULT 'direct',
+      contract_address TEXT,
+      status TEXT NOT NULL DEFAULT 'completed',
+      error_message TEXT,
+      distributed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CHECK (recipient_type IN ('patient', 'hospital', 'platform')),
+      CHECK (distribution_method IN ('direct', 'contract-dynamic', 'contract-fixed')),
+      CHECK (status IN ('pending', 'completed', 'failed')),
+      FOREIGN KEY (purchase_id) REFERENCES purchases(id) ON DELETE CASCADE,
+      FOREIGN KEY (patient_upi) REFERENCES patient_identities(upi) ON DELETE SET NULL,
+      FOREIGN KEY (hospital_id) REFERENCES hospitals(hospital_id) ON DELETE SET NULL
+    )
+  `);
+
+  // Create indexes for revenue distributions
+  await run(`CREATE INDEX IF NOT EXISTS idx_revenue_distributions_purchase_id ON revenue_distributions(purchase_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_revenue_distributions_patient_upi ON revenue_distributions(patient_upi)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_revenue_distributions_hospital_id ON revenue_distributions(hospital_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_revenue_distributions_recipient_account ON revenue_distributions(recipient_account_id)`);
+  await run(`CREATE INDEX IF NOT EXISTS idx_revenue_distributions_distributed_at ON revenue_distributions(distributed_at)`);
 
   // Create indexes for FHIR tables (using camelCase column names)
   await run(`CREATE INDEX IF NOT EXISTS idx_fhir_patients_anonymous_id ON fhir_patients(anonymousPatientId)`);
