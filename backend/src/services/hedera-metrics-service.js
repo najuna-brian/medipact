@@ -69,21 +69,22 @@ export async function getMonthlyActiveHederaAccounts() {
       const result = await all(`
         SELECT COUNT(DISTINCT account_id) as count
         FROM (
-          SELECT p.hedera_account_id as account_id
+          SELECT r.hedera_account_id as account_id
           FROM purchases p
-          JOIN patient_identities pt ON p.researcher_id = pt.researcher_id
-          WHERE p.purchased_at >= $1
+          JOIN researchers r ON p.researcher_id = r.researcher_id
+          WHERE p.purchased_at >= $1 AND r.hedera_account_id IS NOT NULL
           UNION
           SELECT pt.hedera_account_id as account_id
           FROM purchases p
-          JOIN patient_identities pt ON p.researcher_id = pt.researcher_id
+          JOIN datasets d ON p.dataset_id = d.id
+          JOIN fhir_patients fp ON d.id = fp.dataset_id
+          JOIN patient_identities pt ON fp.upi = pt.upi
           WHERE p.purchased_at >= $1 AND pt.hedera_account_id IS NOT NULL
           UNION
           SELECT h.hedera_account_id as account_id
           FROM purchases p
-          JOIN hospitals h ON p.dataset_id IN (
-            SELECT id FROM datasets WHERE hospital_id = h.hospital_id
-          )
+          JOIN datasets d ON p.dataset_id = d.id
+          JOIN hospitals h ON d.hospital_id = h.hospital_id
           WHERE p.purchased_at >= $1 AND h.hedera_account_id IS NOT NULL
         ) AS active_accounts
       `, [thirtyDaysAgo.toISOString()]);

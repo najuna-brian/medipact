@@ -5,7 +5,7 @@
  */
 
 import express from 'express';
-import { getPatientBalanceWithDetails, getHospitalBalanceWithDetails } from '../services/balance-service.js';
+import { getPatientBalanceWithDetails, getHospitalBalanceWithDetails, getResearcherBalanceWithDetails } from '../services/balance-service.js';
 import { initiatePatientWithdrawal, initiateHospitalWithdrawal } from '../services/withdrawal-service.js';
 import { getPatientWithdrawals, getHospitalWithdrawals } from '../db/withdrawal-db.js';
 
@@ -37,6 +37,21 @@ router.get('/hospital/:hospitalId/wallet/balance', async (req, res) => {
     res.json(balance);
   } catch (error) {
     console.error('Error getting hospital balance:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/researcher/:researcherId/wallet/balance
+ * Get researcher wallet balance
+ */
+router.get('/researcher/:researcherId/wallet/balance', async (req, res) => {
+  try {
+    const { researcherId } = req.params;
+    const balance = await getResearcherBalanceWithDetails(researcherId);
+    res.json(balance);
+  } catch (error) {
+    console.error('Error getting researcher balance:', error);
     res.status(500).json({ error: error.message });
   }
 });
