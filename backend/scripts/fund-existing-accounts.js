@@ -13,7 +13,7 @@
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { autoFundTestnetAccount, checkAccountBalance, fundIfLowBalance } from '../src/services/testnet-funding-service.js';
+import { manualFundTestnetAccount, checkAccountBalance, fundIfLowBalance } from '../src/services/testnet-funding-service.js';
 import { getAllResearchers } from '../src/db/researcher-db.js';
 import { initDatabase } from '../src/db/database.js';
 
@@ -31,7 +31,7 @@ const amountArg = args.find(arg => arg.startsWith('--amount='))?.split('=')[1];
 
 const targetResearcherId = researcherIdArg;
 const minBalanceHBAR = minBalanceArg ? parseFloat(minBalanceArg) : 10;
-const fundingAmountHBAR = amountArg ? parseFloat(amountArg) : (parseFloat(process.env.TESTNET_FUNDING_AMOUNT_HBAR) || 1000);
+const fundingAmountHBAR = amountArg ? parseFloat(amountArg) : (parseFloat(process.env.TESTNET_FUNDING_AMOUNT_HBAR) || 100);
 
 async function fundExistingAccounts() {
   try {
@@ -99,9 +99,9 @@ async function fundExistingAccounts() {
           continue;
         }
 
-        // Fund the account
+        // Fund the account (use manual funding that bypasses the check)
         console.log(`   💰 Funding account with ${fundingAmountHBAR} HBAR...`);
-        const fundingResult = await autoFundTestnetAccount(researcher.hederaAccountId, fundingAmountHBAR);
+        const fundingResult = await manualFundTestnetAccount(researcher.hederaAccountId, fundingAmountHBAR);
 
         if (fundingResult.success) {
           console.log(`   ✅ Successfully funded!`);

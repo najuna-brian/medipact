@@ -16,7 +16,7 @@ import { getPendingWithdrawals, getWithdrawalHistoryForUser } from '../db/withdr
 import { triggerWithdrawalJob } from '../services/automatic-withdrawal-job.js';
 import { all, run } from '../db/database.js';
 import { initDatabase, getDatabase, getDatabaseType } from '../db/database.js';
-import { autoFundTestnetAccount, checkAccountBalance, fundIfLowBalance } from '../services/testnet-funding-service.js';
+import { autoFundTestnetAccount, manualFundTestnetAccount, checkAccountBalance, fundIfLowBalance } from '../services/testnet-funding-service.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -1619,9 +1619,10 @@ router.post('/fund-account', async (req, res) => {
       return res.status(400).json({ error: 'Account ID is required' });
     }
     
-    const amount = amountHBAR || parseFloat(process.env.TESTNET_FUNDING_AMOUNT_HBAR) || 1000;
+    const amount = amountHBAR || parseFloat(process.env.TESTNET_FUNDING_AMOUNT_HBAR) || 100;
     
-    const result = await autoFundTestnetAccount(accountId, amount);
+    // Use manual funding for admin endpoint (bypasses AUTO_FUND_TESTNET_ACCOUNTS check)
+    const result = await manualFundTestnetAccount(accountId, amount);
     
     if (result.success) {
       res.json({
@@ -1675,7 +1676,7 @@ router.post('/fund-if-low', async (req, res) => {
     }
     
     const minBalance = minBalanceHBAR || 10;
-    const fundingAmount = fundingAmountHBAR || parseFloat(process.env.TESTNET_FUNDING_AMOUNT_HBAR) || 1000;
+    const fundingAmount = fundingAmountHBAR || parseFloat(process.env.TESTNET_FUNDING_AMOUNT_HBAR) || 100;
     
     const result = await fundIfLowBalance(accountId, minBalance, fundingAmount);
     res.json(result);
