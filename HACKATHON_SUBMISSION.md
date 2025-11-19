@@ -81,7 +81,7 @@ We chose the Open Track because MediPact addresses a critical real-world problem
 
 ## Demo Video
 
-**YouTube Link**: [To be added - Demo video will be uploaded here]
+**YouTube Link**: [ADD YOUR YOUTUBE LINK HERE - See DEMO_VIDEO_GUIDE.md for instructions]
 
 **Video Description**: 
 A 3-5 minute walkthrough demonstrating:
@@ -92,11 +92,15 @@ A 3-5 minute walkthrough demonstrating:
 5. Automated revenue distribution (60/25/15 split)
 6. HashScan verification of transactions
 
+**Recording Guide**: See `DEMO_VIDEO_GUIDE.md` for step-by-step instructions.
+
 ---
 
 ## GitHub Repository
 
-**Repository**: [https://github.com/[your-username]/medipact](https://github.com/[your-username]/medipact)
+**Repository**: [https://github.com/najuna-brian/medipact](https://github.com/najuna-brian/medipact)
+
+**Note**: Update this with your actual GitHub repository URL before submission.
 
 **Key Files**:
 - `README.md` - Complete project documentation
@@ -220,17 +224,19 @@ See `README.md` for complete setup instructions.
 
 ## Testing Instructions
 
-### Run Tests
+### Automated Tests
 ```bash
-# Backend tests
+# Backend unit tests (12/12 passing)
 cd backend && npm test
 
-# Frontend tests
-cd frontend && npm test
+# Backend end-to-end tests (14/23 passing - core flow verified)
+cd backend && npm run test:e2e
 
 # Contract tests
 cd contracts && npm test
 ```
+
+**Test Results**: See `TEST_DOCUMENTATION.md` for complete test results and documentation.
 
 ### Manual Testing
 1. Register a hospital at `/hospital/register`
@@ -239,7 +245,7 @@ cd contracts && npm test
 4. Search for data at `/researcher/query`
 5. Purchase dataset and verify revenue distribution
 
-See `TESTING_GUIDE.md` for detailed testing instructions.
+See `TESTING_GUIDE.md` and `TEST_DOCUMENTATION.md` for detailed testing instructions.
 
 ---
 

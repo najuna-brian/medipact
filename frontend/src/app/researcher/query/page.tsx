@@ -125,188 +125,195 @@ function ResearcherQueryPageContent() {
       <ResearcherSidebar />
       <div className="ml-0 md:ml-64">
         <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold">Query Data</h1>
-          <p className="text-muted-foreground">
-            Search and explore anonymized medical data with advanced filters
-          </p>
-        </div>
+          <div className="mb-8">
+            <h1 className="mb-2 text-3xl font-bold">Query Data</h1>
+            <p className="text-muted-foreground">
+              Search and explore anonymized medical data with advanced filters
+            </p>
+          </div>
 
-        <div className="mb-6">
-          <QueryBuilder
-            onQuery={handleQuery}
-            onReset={() => {
-              setQueryFilters(null);
-              router.push('/researcher/query');
-            }}
-            initialFilters={queryFilters || {}}
-          />
-        </div>
+          <div className="mb-6">
+            <QueryBuilder
+              onQuery={handleQuery}
+              onReset={() => {
+                setQueryFilters(null);
+                router.push('/researcher/query');
+              }}
+              initialFilters={queryFilters || {}}
+            />
+          </div>
 
-        {error && (
-          <Alert className="mb-6 border-red-200 bg-red-50">
-            <AlertCircle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">
-              {error instanceof Error ? error.message : 'Failed to execute query'}
-            </AlertDescription>
-          </Alert>
-        )}
+          {error && (
+            <Alert className="mb-6 border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                {error instanceof Error ? error.message : 'Failed to execute query'}
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {isLoading && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-muted-foreground" />
-              <p className="text-muted-foreground">Executing query...</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {queryResult && !isLoading && (
-          <div className="space-y-6">
-            {/* Query Summary */}
+          {isLoading && (
             <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Database className="h-5 w-5" />
-                      Query Results
-                    </CardTitle>
-                    <CardDescription>
-                      {queryResult.format === 'csv-flattened' 
-                        ? 'Flattened CSV format - One row per patient'
-                        : queryResult.preview
-                        ? 'Preview mode - Purchase to view full data'
-                        : 'Full data access'}
-                    </CardDescription>
-                  </div>
-                  {queryResult.hcsMessageId && (
-                    <div className="flex items-center gap-2">
-                      <HashScanLink
-                        transactionId={queryResult.hcsMessageId}
-                        label="View Query on HashScan"
-                        variant="button"
-                      />
-                    </div>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Records Found</p>
-                    <p className="text-3xl font-bold">{(queryResult.recordCount || queryResult.count).toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Format</p>
-                    <p className="text-lg font-semibold">
-                      {queryResult.format === 'csv-flattened' ? 'Flattened CSV' : queryResult.preview ? 'Preview' : 'Full Access'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Timestamp</p>
-                    <p className="text-sm font-medium">
-                      {queryResult.timestamp ? formatDate(queryResult.timestamp) : 'N/A'}
-                    </p>
-                  </div>
-                </div>
-
-
-                {purchaseSuccess && (
-                  <Alert className="mt-4 border-green-200 bg-green-50">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-800">
-                      Purchase successful! You now have full access to the data.
-                    </AlertDescription>
-                  </Alert>
-                )}
+              <CardContent className="py-12 text-center">
+                <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="text-muted-foreground">Executing query...</p>
               </CardContent>
             </Card>
+          )}
 
-            {/* Data Results - Show Flattened CSV Preview if format is csv-flattened */}
-            {queryResult.format === 'csv-flattened' && queryResult.csvData && (
-              <>
-                <FlattenedCSVPreview
-                  csvData={queryResult.csvData}
-                  recordCount={queryResult.recordCount || queryResult.count}
-                  filters={queryFilters || {}}
-                  researcherId={researcherId}
-                  onExport={undefined} // Remove export from preview, use purchase flow instead
-                />
-                {/* Purchase Flow - Show after preview */}
-                <PurchaseFlow
-                  recordCount={queryResult.recordCount || queryResult.count}
-                  filters={queryFilters || {}}
-                  researcherId={researcherId || ''}
-                  onPurchaseSuccess={() => {
-                    // Refetch query to show full data
-                    refetch();
-                  }}
-                />
-              </>
-            )}
-
-            {/* Purchase Flow for JSON format results */}
-            {queryResult.format !== 'csv-flattened' && queryResult.results && queryResult.results.length > 0 && (
-              <PurchaseFlow
-                recordCount={queryResult.count}
-                filters={queryFilters || {}}
-                researcherId={researcherId || ''}
-                onPurchaseSuccess={() => {
-                  refetch();
-                }}
-              />
-            )}
-
-            {queryResult.results && queryResult.results.length === 0 && (
+          {queryResult && !isLoading && (
+            <div className="space-y-6">
+              {/* Query Summary */}
               <Card>
-                <CardContent className="py-12 text-center">
-                  <Database className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                  <p className="text-muted-foreground">No records found matching your query</p>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Try adjusting your filters or search criteria
-                  </p>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Database className="h-5 w-5" />
+                        Query Results
+                      </CardTitle>
+                      <CardDescription>
+                        {queryResult.format === 'csv-flattened'
+                          ? 'Flattened CSV format - One row per patient'
+                          : queryResult.preview
+                            ? 'Preview mode - Purchase to view full data'
+                            : 'Full data access'}
+                      </CardDescription>
+                    </div>
+                    {queryResult.hcsMessageId && (
+                      <div className="flex items-center gap-2">
+                        <HashScanLink
+                          transactionId={queryResult.hcsMessageId}
+                          label="View Query on HashScan"
+                          variant="button"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Records Found</p>
+                      <p className="text-3xl font-bold">
+                        {(queryResult.recordCount || queryResult.count).toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Format</p>
+                      <p className="text-lg font-semibold">
+                        {queryResult.format === 'csv-flattened'
+                          ? 'Flattened CSV'
+                          : queryResult.preview
+                            ? 'Preview'
+                            : 'Full Access'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Timestamp</p>
+                      <p className="text-sm font-medium">
+                        {queryResult.timestamp ? formatDate(queryResult.timestamp) : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {purchaseSuccess && (
+                    <Alert className="mt-4 border-green-200 bg-green-50">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <AlertDescription className="text-green-800">
+                        Purchase successful! You now have full access to the data.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </CardContent>
               </Card>
-            )}
 
-            {/* Verification Info */}
+              {/* Data Results - Show Flattened CSV Preview if format is csv-flattened */}
+              {queryResult.format === 'csv-flattened' && queryResult.csvData && (
+                <>
+                  <FlattenedCSVPreview
+                    csvData={queryResult.csvData}
+                    recordCount={queryResult.recordCount || queryResult.count}
+                    filters={queryFilters || {}}
+                    researcherId={researcherId}
+                    onExport={undefined} // Remove export from preview, use purchase flow instead
+                  />
+                  {/* Purchase Flow - Show after preview */}
+                  <PurchaseFlow
+                    recordCount={queryResult.recordCount || queryResult.count}
+                    filters={queryFilters || {}}
+                    researcherId={researcherId || ''}
+                    onPurchaseSuccess={() => {
+                      // Refetch query to show full data
+                      refetch();
+                    }}
+                  />
+                </>
+              )}
+
+              {/* Purchase Flow for JSON format results */}
+              {queryResult.format !== 'csv-flattened' &&
+                queryResult.results &&
+                queryResult.results.length > 0 && (
+                  <PurchaseFlow
+                    recordCount={queryResult.count}
+                    filters={queryFilters || {}}
+                    researcherId={researcherId || ''}
+                    onPurchaseSuccess={() => {
+                      refetch();
+                    }}
+                  />
+                )}
+
+              {queryResult.results && queryResult.results.length === 0 && (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Database className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                    <p className="text-muted-foreground">No records found matching your query</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Try adjusting your filters or search criteria
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Verification Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Data Verification
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  <p className="text-muted-foreground">
+                    All data in this query is verified on Hedera HashScan. You can verify the
+                    authenticity and integrity of the data by clicking the HashScan links.
+                  </p>
+                  <div className="rounded-lg border bg-gray-50 p-3">
+                    <p className="mb-1 font-medium">How Verification Works:</p>
+                    <ul className="list-inside list-disc space-y-1 text-muted-foreground">
+                      <li>Each patient record has a cryptographic hash stored on Hedera</li>
+                      <li>Click "Verify on HashScan" to view the original data proof</li>
+                      <li>Query execution is logged to Hedera Consensus Service (HCS)</li>
+                      <li>All data is anonymized and cannot be traced back to individuals</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {!queryFilters && !isLoading && (
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Shield className="h-5 w-5" />
-                  Data Verification
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+              <CardContent className="py-12 text-center">
+                <Search className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
                 <p className="text-muted-foreground">
-                  All data in this query is verified on Hedera HashScan. You can verify the
-                  authenticity and integrity of the data by clicking the HashScan links.
+                  Use the query builder above to search for anonymized medical data
                 </p>
-                <div className="rounded-lg border bg-gray-50 p-3">
-                  <p className="mb-1 font-medium">How Verification Works:</p>
-                  <ul className="list-inside list-disc space-y-1 text-muted-foreground">
-                    <li>Each patient record has a cryptographic hash stored on Hedera</li>
-                    <li>Click "Verify on HashScan" to view the original data proof</li>
-                    <li>Query execution is logged to Hedera Consensus Service (HCS)</li>
-                    <li>All data is anonymized and cannot be traced back to individuals</li>
-                  </ul>
-                </div>
               </CardContent>
             </Card>
-          </div>
-        )}
-
-        {!queryFilters && !isLoading && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Search className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                Use the query builder above to search for anonymized medical data
-              </p>
-            </CardContent>
-          </Card>
-        )}
+          )}
         </div>
       </div>
     </div>
