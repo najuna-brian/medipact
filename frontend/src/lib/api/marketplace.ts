@@ -97,26 +97,38 @@ export interface PurchaseRequest {
 }
 
 export interface PurchaseResponse {
+  success: boolean;
   message: string;
   purchaseId: string;
   datasetId?: string; // Optional for query-based purchases
-  amount: string;
+  amount?: string;
   amountHBAR?: number;
   amountUSD?: number;
   transactionId?: string;
   revenueDistribution?: any;
-  accessGranted: boolean;
+  accessGranted?: boolean;
   downloadUrl?: string;
   verified?: boolean;
 }
 
 export interface PaymentRequest {
-  paymentRequestId: string;
+  paymentRequestId?: string;
   amountHBAR: number;
   recipientAccountId: string;
-  memo: string;
+  memo?: string;
   researcherAccountId?: string;
+  instructions?: string;
+  autoSent?: boolean;
+}
+
+export interface PaymentRequiredResponse {
+  paymentRequest: PaymentRequest;
+  message: string;
   instructions: string;
+  nextStep: string;
+  transactionId?: string;
+  autoPayment?: boolean;
+  autoPaymentError?: string;
 }
 
 /**
@@ -236,9 +248,9 @@ export async function getResearcherAnalytics(researcherId: string): Promise<{
 
 /**
  * Purchase dataset
- * Returns either a PurchaseResponse (if transactionId provided) or PaymentRequest (if payment needed)
+ * Returns either a PurchaseResponse (if transactionId provided) or PaymentRequiredResponse (if payment needed)
  */
-export async function purchaseDataset(request: PurchaseRequest): Promise<PurchaseResponse | { paymentRequest: PaymentRequest; message: string; instructions: string; nextStep: string }> {
+export async function purchaseDataset(request: PurchaseRequest): Promise<PurchaseResponse | PaymentRequiredResponse> {
   const response = await fetch(`${API_URL}/api/marketplace/purchase`, {
     method: 'POST',
     headers: {
