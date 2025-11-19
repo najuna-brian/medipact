@@ -3,7 +3,7 @@
 <div align="center">
 
 [![Hedera](https://img.shields.io/badge/Built%20on-Hedera-00A9CE?style=for-the-badge&logo=hedera)](https://hedera.com)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge)](LICENSE.md)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg?style=for-the-badge&logo=node.js)](https://nodejs.org)
 
 **[📚 View Complete Documentation →](./docs)** | **[🌐 Live Docs (Frontend) →](http://localhost:3000/docs)**
@@ -321,7 +321,7 @@ graph LR
 
 ```bash
 # 1. Clone & install 
-git clone git@github.com:najuna-brian/medipact.git && cd medipact
+git clone https://github.com/najuna-brian/medipact.git && cd medipact
 cd adapter && npm install
 cd ../backend && npm install  
 cd ../frontend && npm install
