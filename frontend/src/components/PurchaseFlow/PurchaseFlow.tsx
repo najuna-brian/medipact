@@ -57,7 +57,7 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
 
     try {
       // For query-based purchases, pass query filters to backend
-      // The backend will use filters to get patients and distribute revenue
+      // The backend will use query filters to get patients and distribute revenue
       const result = await purchaseDataset({
         researcherId,
         // No datasetId for query-based purchases
@@ -71,9 +71,20 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
         setShowPaymentForm(true);
         setPurchaseResult(result);
 
+        // Debug: Log the result to see what we're getting
+        console.log('Purchase result:', {
+          hasPaymentRequest: 'paymentRequest' in result,
+          autoPayment: result.autoPayment,
+          transactionId: result.transactionId,
+          message: result.message
+        });
+
         // If auto-payment was sent, pre-fill transaction ID
-        if (result.autoPayment && result.transactionId) {
+        if (result.autoPayment === true && result.transactionId) {
           setTransactionId(result.transactionId);
+          console.log('✅ Auto-payment sent, transaction ID:', result.transactionId);
+        } else {
+          console.log('⚠️ Manual payment required - autoPayment:', result.autoPayment, 'transactionId:', result.transactionId);
         }
 
         setIsPurchasing(false);
@@ -256,7 +267,7 @@ export function PurchaseFlow({ recordCount, filters, researcherId, onPurchaseSuc
 
         {showPaymentForm && purchaseResult && 'paymentRequest' in purchaseResult && (
           <div className="space-y-4 rounded-lg border border-amber-200 bg-amber-50 p-4">
-            {purchaseResult.autoPayment ? (
+            {purchaseResult.autoPayment === true ? (
               <>
                 <div>
                   <h4 className="mb-2 font-semibold text-green-900">Payment Sent Automatically</h4>

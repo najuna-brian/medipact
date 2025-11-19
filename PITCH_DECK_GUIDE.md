@@ -2,7 +2,7 @@
 
 **Time Required**: 3-4 hours  
 **Deadline**: Before submission deadline  
-**Format**: PDF (10-15 slides)  
+**Format**: PDF (10-15 slides)
 **Presentation Time**: 5-7 minutes
 
 ---
@@ -124,8 +124,8 @@ curl http://localhost:8080/api/public/metrics
    - Save as: `screenshot-metrics.png`
 
 5. **HashScan Contract Pages:**
-   - ConsentManager: https://hashscan.io/testnet/contract/0xf2423F1E568eC90921045be96Ad2D618fCcd9841
-   - RevenueSplitter: https://hashscan.io/testnet/contract/0xCc7DF673dE5d24D295cdd7a503652C18A1aE7392
+  - ConsentManager: https://hashscan.io/testnet/contract/0xf2423F1E568eC90921045be96Ad2D618fCcd9841
+  - RevenueSplitter: https://hashscan.io/testnet/contract/0xCc7DF673dE5d24D295cdd7a503652C18A1aE7392
    - Save as: `screenshot-consentmanager.png` and `screenshot-revenuesplitter.png`
 
 **How to take screenshot:**
@@ -211,16 +211,16 @@ November 2025
 
 **Team Members:**
 - [Name 1] - [Role]
-- [Name 2] - [Role]
-- [Name 3] - [Role]
+  - [Name 2] - [Role]
+  - [Name 3] - [Role]
 
 **Project Overview:**
-> MediPact is a verifiable medical data marketplace that solves the patient data black market by creating a transparent, ethical platform using Hedera's blockchain technology.
+  > MediPact is a verifiable medical data marketplace that solves the patient data black market by creating a transparent, ethical platform using Hedera's blockchain technology.
 
 **Problem We're Solving:**
-- Patients' data sold without consent or compensation
-- Hospitals have no safe way to share data
-- Researchers need verified, ethical data sources
+  - Patients' data sold without consent or compensation
+  - Hospitals have no safe way to share data
+  - Researchers need verified, ethical data sources
 
 **Visual:** Add team photos (optional) or just names
 
@@ -483,28 +483,28 @@ November 2025
 **What to include:**
 
 **Problem:**
-- Multi-billion dollar patient data black market
-- Patients exploited without consent or compensation
-- Hospitals trapped with no safe sharing mechanism
-- Researchers need verified, ethical data
+  - Multi-billion dollar patient data black market
+  - Patients exploited without consent or compensation
+  - Hospitals trapped with no safe sharing mechanism
+  - Researchers need verified, ethical data
 
 **Solution:**
-- Verifiable medical data marketplace on Hedera
-- Immutable consent management (HCS)
-- Automated revenue distribution (Smart Contracts)
-- Fair compensation (60/25/15 split)
-- Transparent and ethical
+  - Verifiable medical data marketplace on Hedera
+  - Immutable consent management (HCS)
+  - Automated revenue distribution (Smart Contracts)
+  - Fair compensation (60/25/15 split)
+  - Transparent and ethical
 
 **Opportunity:**
 - $XX billion healthcare data market (research actual number)
-- Growing research needs
-- Regulatory compliance requirements
-- Patient empowerment movement
+  - Growing research needs
+  - Regulatory compliance requirements
+  - Patient empowerment movement
 
 **Hedera Representation:**
-- Built exclusively on Hedera
-- Showcases Hedera's unique capabilities
-- Demonstrates real-world blockchain use case
+  - Built exclusively on Hedera
+  - Showcases Hedera's unique capabilities
+  - Demonstrates real-world blockchain use case
 - Ready for mainnet deployment
 
 **Visual:**
@@ -533,12 +533,12 @@ Result: Ethical, Verifiable Marketplace
 - YouTube Link: `https://www.youtube.com/watch?v=[VIDEO_ID]`
 
 **Video Highlights:**
-1. Hospital CSV upload
-2. Data anonymization and HCS submission
-3. Researcher data search
-4. Purchase and payment
-5. Automated revenue distribution
-6. HashScan verification
+  1. Hospital CSV upload
+  2. Data anonymization and HCS submission
+  3. Researcher data search
+  4. Purchase and payment
+  5. Automated revenue distribution
+  6. HashScan verification
 
 **Live Demo:**
 - Link: https://www.medipact.space
@@ -562,17 +562,17 @@ Result: Ethical, Verifiable Marketplace
 **System Architecture Diagram:**
 ```
 Frontend (Next.js 15)
-    ↓
-Backend API (Express.js)
-    ↓
-Adapter (CSV → FHIR)
-    ↓
-Hedera Network
-    ├── HCS (Consent Proofs)
-    ├── EVM (Smart Contracts)
-    ├── Accounts (0.0.xxxxx)
-    └── HBAR (Micropayments)
-```
+      ↓
+  Backend API (Express.js)
+      ↓
+  Adapter (CSV → FHIR)
+      ↓
+  Hedera Network
+      ├── HCS (Consent Proofs)
+      ├── EVM (Smart Contracts)
+      ├── Accounts (0.0.xxxxx)
+      └── HBAR (Micropayments)
+  ```
 
 **Key Technologies:**
 - Frontend: Next.js 15, TypeScript, Tailwind CSS
@@ -600,14 +600,14 @@ Hedera Network
 **Deployed Contracts (Hedera Testnet):**
 
 **ConsentManager:**
-- Address: `0xf2423F1E568eC90921045be96Ad2D618fCcd9841`
-- Function: Patient consent registry
+  - Address: `0xf2423F1E568eC90921045be96Ad2D618fCcd9841`
+  - Function: Patient consent registry
 - HashScan: [Add clickable link]
 - Link: https://hashscan.io/testnet/contract/0xf2423F1E568eC90921045be96Ad2D618fCcd9841
 
 **RevenueSplitter:**
-- Address: `0xCc7DF673dE5d24D295cdd7a503652C18A1aE7392`
-- Function: Automated 60/25/15 revenue distribution
+  - Address: `0xCc7DF673dE5d24D295cdd7a503652C18A1aE7392`
+  - Function: Automated 60/25/15 revenue distribution
 - HashScan: [Add clickable link]
 - Link: https://hashscan.io/testnet/contract/0xCc7DF673dE5d24D295cdd7a503652C18A1aE7392
 
@@ -630,27 +630,27 @@ Hedera Network
 **What to include:**
 
 **Short Term (3-6 months):**
-- Mainnet deployment
-- Mobile app for patients
-- Enhanced analytics
-- Multi-language support
+  - Mainnet deployment
+  - Mobile app for patients
+  - Enhanced analytics
+  - Multi-language support
 
 **Medium Term (6-12 months):**
-- Hedera Token Service (HTS) integration
-- AI-powered data quality scoring
-- Real-time data streaming
-- Advanced consent management
+  - Hedera Token Service (HTS) integration
+  - AI-powered data quality scoring
+  - Real-time data streaming
+  - Advanced consent management
 
 **Long Term (12+ months):**
-- Global expansion
-- Major EHR system integration
-- Regulatory certifications (HIPAA, GDPR)
-- Research collaboration platform
+  - Global expansion
+  - Major EHR system integration
+  - Regulatory certifications (HIPAA, GDPR)
+  - Research collaboration platform
 
 **Key Learnings:**
-- Hedera's low fees enable micropayments at scale
-- HCS provides unique immutable audit trail
-- Native accounts simplify UX significantly
+  - Hedera's low fees enable micropayments at scale
+  - HCS provides unique immutable audit trail
+  - Native accounts simplify UX significantly
 - EVM compatibility enables rapid development
 
 **Visual:**

@@ -538,6 +538,7 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
       }
     } else {
       // Try to send payment automatically if researcher has stored private key
+      let researcherData = null;
       try {
         const { getDatabaseType, get } = await import('../db/database.js');
         const dbType = getDatabaseType();
@@ -548,7 +549,14 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
           : `SELECT encrypted_private_key as encryptedPrivateKey, hedera_account_id as hederaAccountId
              FROM researchers WHERE researcher_id = ?`;
         
-        const researcherData = await get(sql, [researcherId]);
+        researcherData = await get(sql, [researcherId]);
+        
+        console.log('Checking auto-payment for researcher:', {
+          researcherId,
+          hasData: !!researcherData,
+          hasPrivateKey: !!researcherData?.encryptedPrivateKey,
+          hasAccountId: !!researcherData?.hederaAccountId
+        });
         
         if (researcherData?.encryptedPrivateKey && researcherData?.hederaAccountId) {
           // Researcher has stored private key - send payment automatically
@@ -621,6 +629,13 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
         }
       } catch (autoPaymentError) {
         console.error('Auto-payment failed, falling back to manual payment:', autoPaymentError);
+        console.error('Auto-payment error details:', {
+          researcherId,
+          hasPrivateKey: !!researcherData?.encryptedPrivateKey,
+          hasAccountId: !!researcherData?.hederaAccountId,
+          error: autoPaymentError.message,
+          stack: autoPaymentError.stack
+        });
         // Fall back to manual payment request
         const paymentRequest = await createPaymentRequest(
           researcherId,

@@ -1,7 +1,7 @@
 # Demo Video Recording Guide - STEP BY STEP
 
 **Time Required**: 2-3 hours  
-**Deadline**: Before submission deadline  
+**Deadline**: Before submission deadline
 **Video Length**: 3-5 minutes (CRITICAL)
 
 ---
@@ -431,23 +431,23 @@ cat backend/demo-credentials.json
    ```
 
 4. **Add description:**
-   ```
-   MediPact is a verifiable medical data marketplace built on Hedera Hashgraph.
+```
+MediPact is a verifiable medical data marketplace built on Hedera Hashgraph.
 
-   Built for: Hedera Hello Future: Ascension Hackathon 2025
-   Track: Open Track - Verifiable Healthcare Systems
+Built for: Hedera Hello Future: Ascension Hackathon 2025
+Track: Open Track - Verifiable Healthcare Systems
 
-   Features:
-   - Hedera Consensus Service (HCS) for immutable consent proofs
-   - Hedera EVM Smart Contracts for automated revenue distribution
-   - Native Hedera Accounts for seamless wallet management
-   - HBAR micropayments for instant settlements
+Features:
+- Hedera Consensus Service (HCS) for immutable consent proofs
+- Hedera EVM Smart Contracts for automated revenue distribution
+- Native Hedera Accounts for seamless wallet management
+- HBAR micropayments for instant settlements
 
-   Live Demo: https://www.medipact.space
+Live Demo: https://www.medipact.space
    GitHub: https://github.com/najuna-brian/medipact
 
-   #HederaHackathon #HelloFutureAscension #Hedera #Blockchain #Healthcare
-   ```
+#HederaHackathon #HelloFutureAscension #Hedera #Blockchain #Healthcare
+```
 
 5. **Set visibility:**
    - Choose **Unlisted** (recommended) - Only people with link can view
@@ -468,7 +468,7 @@ cat backend/demo-credentials.json
 **After publishing:**
 
 1. **Copy the YouTube URL:**
-   - Format: `https://www.youtube.com/watch?v=[VIDEO_ID]`
+- Format: `https://www.youtube.com/watch?v=[VIDEO_ID]`
    - OR short link: `https://youtu.be/[VIDEO_ID]`
 
 2. **Test the link:**
