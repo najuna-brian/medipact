@@ -151,3 +151,20 @@ export async function rejectResearcher(
   return response.data;
 }
 
+// Dashboard Stats
+export interface DashboardStats {
+  totalRecords: number;
+  totalRevenue: {
+    balanceHBAR: number;
+    balanceUSD: number;
+    hederaAccountId: string | null;
+  };
+  activeUsers: number;
+  totalTransactions: number;
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const response = await adminClient.get('/dashboard/stats');
+  return response.data;
+}
+

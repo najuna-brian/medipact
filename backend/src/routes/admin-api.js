@@ -1663,6 +1663,65 @@ router.get('/account-balance/:accountId', async (req, res) => {
 });
 
 /**
+ * GET /api/admin/dashboard/stats
+ * Get dashboard statistics for admin
+ */
+router.get('/dashboard/stats', async (req, res) => {
+  try {
+    const { getPlatformBalance } = await import('../services/balance-service.js');
+    const { all } = await import('../db/database.js');
+    const dbType = getDatabaseType();
+    
+    // Get platform revenue balance
+    const platformBalance = await getPlatformBalance();
+    
+    // Get total records count
+    const recordsQuery = dbType === 'postgresql'
+      ? `SELECT COUNT(*) as count FROM fhir_patients`
+      : `SELECT COUNT(*) as count FROM fhir_patients`;
+    const recordsResult = await all(recordsQuery);
+    const totalRecords = recordsResult[0]?.count || 0;
+    
+    // Get active users count (patients + hospitals + researchers)
+    const usersQuery = dbType === 'postgresql'
+      ? `SELECT 
+          (SELECT COUNT(*) FROM patient_identities WHERE status = 'active') as patients,
+          (SELECT COUNT(*) FROM hospitals WHERE status = 'active') as hospitals,
+          (SELECT COUNT(*) FROM researchers WHERE status = 'active') as researchers`
+      : `SELECT 
+          (SELECT COUNT(*) FROM patient_identities WHERE status = 'active') as patients,
+          (SELECT COUNT(*) FROM hospitals WHERE status = 'active') as hospitals,
+          (SELECT COUNT(*) FROM researchers WHERE status = 'active') as researchers`;
+    const usersResult = await all(usersQuery);
+    const row = usersResult[0] || {};
+    const activeUsers = (parseInt(row.patients || 0) + 
+                         parseInt(row.hospitals || 0) + 
+                         parseInt(row.researchers || 0));
+    
+    // Get total transactions (HCS messages from query logs)
+    const transactionsQuery = dbType === 'postgresql'
+      ? `SELECT COUNT(*) as count FROM query_logs WHERE hcs_message_id IS NOT NULL`
+      : `SELECT COUNT(*) as count FROM query_logs WHERE hcs_message_id IS NOT NULL`;
+    const transactionsResult = await all(transactionsQuery);
+    const totalTransactions = transactionsResult[0]?.count || 0;
+    
+    res.json({
+      totalRecords,
+      totalRevenue: {
+        balanceHBAR: platformBalance.balanceHBAR,
+        balanceUSD: platformBalance.balanceUSD,
+        hederaAccountId: platformBalance.hederaAccountId
+      },
+      activeUsers,
+      totalTransactions
+    });
+  } catch (error) {
+    console.error('Error getting dashboard stats:', error);
+    res.status(500).json({ error: error.message || 'Failed to get dashboard stats' });
+  }
+});
+
+/**
  * POST /api/admin/fund-if-low
  * Fund account if balance is below threshold (admin only)
  * Body: { accountId: "0.0.xxxxx", minBalanceHBAR: 10, fundingAmountHBAR: 1000 }

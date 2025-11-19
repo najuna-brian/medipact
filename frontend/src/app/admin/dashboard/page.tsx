@@ -1,11 +1,38 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Activity, DollarSign, Users, Database } from 'lucide-react';
+import { Activity, DollarSign, Users, Database, Loader2 } from 'lucide-react';
 import { AdminSidebar } from '@/components/Sidebar/AdminSidebar';
 import { HederaMetrics } from '@/components/HederaMetrics/HederaMetrics';
+import { getDashboardStats, type DashboardStats } from '@/lib/api/admin';
 
 export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchStats();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getDashboardStats();
+      setStats(data);
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard stats');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <AdminSidebar />
@@ -25,8 +52,16 @@ export default function AdminDashboardPage() {
                 <Database className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold md:text-2xl">0</div>
-                <p className="text-xs text-muted-foreground">Processed records</p>
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <div className="text-xl font-bold md:text-2xl">
+                      {stats?.totalRecords.toLocaleString() || '0'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">Processed records</p>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -36,8 +71,19 @@ export default function AdminDashboardPage() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold md:text-2xl">0 HBAR</div>
-                <p className="text-xs text-muted-foreground">Platform revenue</p>
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <div className="text-xl font-bold md:text-2xl">
+                      {stats?.totalRevenue?.balanceHBAR?.toFixed(4) || '0.0000'} HBAR
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      ${stats?.totalRevenue?.balanceUSD?.toFixed(2) || '0.00'} USD • Platform
+                      revenue
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -47,8 +93,18 @@ export default function AdminDashboardPage() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold md:text-2xl">0</div>
-                <p className="text-xs text-muted-foreground">Patients, hospitals, researchers</p>
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <div className="text-xl font-bold md:text-2xl">
+                      {stats?.activeUsers.toLocaleString() || '0'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Patients, hospitals, researchers
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -58,11 +114,25 @@ export default function AdminDashboardPage() {
                 <Activity className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-xl font-bold md:text-2xl">0</div>
-                <p className="text-xs text-muted-foreground">HCS transactions</p>
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <>
+                    <div className="text-xl font-bold md:text-2xl">
+                      {stats?.totalTransactions.toLocaleString() || '0'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">HCS transactions</p>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
+
+          {error && (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+              {error}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Card>

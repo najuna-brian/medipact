@@ -218,3 +218,22 @@ export async function getResearcherBalanceWithDetails(researcherId) {
   };
 }
 
+/**
+ * Get platform account balance
+ * 
+ * @returns {Promise<{balanceHBAR: number, balanceUSD: number, hederaAccountId: string}>}
+ */
+export async function getPlatformBalance() {
+  const platformAccountId = process.env.PLATFORM_HEDERA_ACCOUNT_ID || process.env.OPERATOR_ID;
+  
+  if (!platformAccountId) {
+    return {
+      balanceHBAR: 0,
+      balanceUSD: 0,
+      hederaAccountId: null
+    };
+  }
+  
+  return await getAccountBalance(platformAccountId);
+}
+
