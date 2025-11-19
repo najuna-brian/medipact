@@ -165,7 +165,7 @@ export async function manualFundTestnetAccount(accountId, amountHBAR = 100) {
       .setTransactionMemo(`Manual funding testnet account for demo/testing`);
 
     const txResponse = await transferTransaction.execute(client);
-    const receipt = await transferTransaction.getReceipt(client);
+    await txResponse.getReceipt(client);
     const transactionId = txResponse.transactionId.toString();
 
     console.log(`✅ Successfully funded account ${accountId} with ${fundingAmount} HBAR`);
