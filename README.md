@@ -471,6 +471,8 @@ npm run fund-accounts -- --amount=200 --min-balance=50
 - `TESTNET_FUNDING_AMOUNT_HBAR=100` (default: 100 HBAR)
 
 See [TESTNET_FUNDING_GUIDE.md](./TESTNET_FUNDING_GUIDE.md) for complete instructions.
+
+This creates:
 - Multiple datasets ready for purchase
 - All login credentials saved to `backend/demo-credentials.json`
 
