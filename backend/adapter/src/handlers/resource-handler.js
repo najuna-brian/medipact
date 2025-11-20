@@ -239,9 +239,30 @@ async function handleCondition(fhirResource, context) {
     stageDisplay: fhirResource.stage?.[0]?.summary?.coding?.[0]?.display || null,
     severityCode: fhirResource.severity?.coding?.[0]?.code || null,
     severityDisplay: fhirResource.severity?.coding?.[0]?.display || null,
-    onsetDate: fhirResource.onsetDateTime ? new Date(fhirResource.onsetDateTime).toISOString().split('T')[0] : null,
-    diagnosisDate: fhirResource.recordedDate ? new Date(fhirResource.recordedDate).toISOString().split('T')[0] : null,
-    abatementDate: fhirResource.abatementDateTime ? new Date(fhirResource.abatementDateTime).toISOString().split('T')[0] : null,
+    onsetDate: fhirResource.onsetDateTime ? (() => {
+      try {
+        const date = new Date(fhirResource.onsetDateTime);
+        return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
+      } catch {
+        return null;
+      }
+    })() : null,
+    diagnosisDate: fhirResource.recordedDate ? (() => {
+      try {
+        const date = new Date(fhirResource.recordedDate);
+        return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
+      } catch {
+        return null;
+      }
+    })() : null,
+    abatementDate: fhirResource.abatementDateTime ? (() => {
+      try {
+        const date = new Date(fhirResource.abatementDateTime);
+        return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
+      } catch {
+        return null;
+      }
+    })() : null,
     diagnosisRole: fhirResource.category?.[0]?.coding?.[0]?.code || 'primary',
     categoryCode: fhirResource.category?.[0]?.coding?.[0]?.code || null,
     categoryDisplay: fhirResource.category?.[0]?.coding?.[0]?.display || null,

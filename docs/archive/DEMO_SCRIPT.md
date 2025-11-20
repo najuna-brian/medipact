@@ -59,30 +59,36 @@
 > "Let's start with sample hospital EHR data. This CSV contains lab results with patient names, IDs, addresses, and phone numbers - everything we need to anonymize."
 
 **Actions**:
-1. Open `adapter/data/raw_data.csv` in editor
-2. Show patient names, IDs, addresses
-3. Highlight PII fields
+1. Open `backend/adapter/data/raw_data.csv` in editor
+2. Show patient names, IDs, addresses, phone numbers, emails
+3. Highlight PII fields (Patient Name, Patient ID, Phone Number, Email, Address)
+4. Show medical data (Lab Test, Result, Test Date) - this will be preserved
 
 ---
 
 ### Live Demo - Part 2: Running the Adapter (60 seconds)
 
-**Visual**: Terminal, running `npm start`
+**Visual**: Terminal, running `npm run start:legacy`
 
 **Narration**:
-> "Now we run the MediPact Adapter. Watch as it reads the CSV, anonymizes the data by removing all PII and generating anonymous patient IDs, then submits proof hashes to Hedera Consensus Service."
+> "Now we run the MediPact CSV Adapter. Watch as it reads the CSV, anonymizes the data by removing all PII and generating anonymous patient IDs, then submits proof hashes to Hedera Consensus Service."
 
 **Actions**:
-1. Open terminal in `adapter/` directory
-2. Run `npm start`
+1. Open terminal in `backend/adapter/` directory
+2. **IMPORTANT**: Run `npm run start:legacy` (NOT `npm start` - that's for API connections)
 3. Let it run through the steps
 4. Highlight key outputs:
-   - "Anonymized X records"
-   - "Mapped Y unique patients"
+   - "Read X records from data/raw_data.csv"
+   - "Created FHIR Bundle with Y resources"
+   - "Processed Z resources"
+   - "Consent proofs: X (one per patient)"
+   - "Data proofs: X (one per patient)"
    - Transaction IDs appearing
-   - HashScan links
+   - HashScan links displayed
 
 **Key Moments to Capture**:
+- ✓ CSV file read successfully
+- ✓ FHIR conversion complete
 - ✓ Anonymization complete
 - ✓ Topics created
 - ✓ Consent proofs submitted
@@ -96,13 +102,14 @@
 **Visual**: Show `anonymized_data.csv` file
 
 **Narration**:
-> "Let's verify the anonymization worked. Notice how all PII is gone - no names, no IDs, no addresses. But the medical data is preserved - lab tests, results, dates. Each patient now has an anonymous ID like PID-001, PID-002."
+> "Let's verify the anonymization worked. Notice how all PII is gone - no names, no IDs, no addresses, no phone numbers. But the medical data is preserved - lab tests, results, dates. Each patient now has an anonymous ID like PID-001, PID-002. Demographics are generalized - age ranges instead of exact dates of birth, country-level location only."
 
 **Actions**:
-1. Open `adapter/data/anonymized_data.csv`
-2. Show headers (no PII fields)
-3. Show anonymous PIDs
-4. Show preserved medical data
+1. Open `backend/adapter/data/anonymized_data.csv`
+2. Show headers (no PII fields like Patient Name, Patient ID, Phone Number, Email, Address)
+3. Show anonymous PIDs (PID-001, PID-002, etc.)
+4. Show preserved medical data (Lab Test, Result, Test Date)
+5. Show generalized demographics (Age Range, Country)
 
 ---
 
@@ -187,15 +194,34 @@
 
 ---
 
+## Local Demo vs Live Demo
+
+### Local Demo (For Judges/Testing)
+- **Location**: Run on your local machine
+- **Command**: `npm run start:legacy` (CSV processor)
+- **Data**: Uses `backend/adapter/data/raw_data.csv`
+- **Setup**: Run `./setup-local-demo.sh` first
+- **Use Case**: Demonstrating CSV processing, anonymization, Hedera integration
+
+### Live Demo (Production/Deployed)
+- **Location**: Deployed system (frontend + backend)
+- **Method**: Upload CSV via web interface at `/hospital/upload`
+- **Data**: CSV uploaded through browser
+- **Setup**: Backend server running, frontend accessible
+- **Use Case**: Full system demonstration with web UI
+
+**For this demo script, we're focusing on the Local Demo approach.**
+
 ## Recording Tips
 
 ### Preparation
 
-1. **Test First**: Run the adapter multiple times to ensure smooth execution
+1. **Test First**: Run `npm run start:legacy` multiple times to ensure smooth execution
 2. **Clean Environment**: Close unnecessary apps, clear terminal history
 3. **Prepare Script**: Have narration script ready (can be read or memorized)
 4. **Test Audio**: Ensure microphone quality is good
 5. **Screen Resolution**: Use 1920x1080 or higher for clarity
+6. **Verify Setup**: Run `./setup-local-demo.sh` to ensure everything is configured
 
 ### Recording Setup
 
@@ -240,15 +266,24 @@
 
 ## Demo Checklist
 
-Before recording:
-- [ ] Adapter runs successfully without errors
+### Local Demo Setup (for judges/testing)
+- [ ] Run `./setup-local-demo.sh` in `backend/adapter/`
+- [ ] Verify `.env` has `HOSPITAL_COUNTRY` set
+- [ ] Verify `data/raw_data.csv` exists with sample data
+- [ ] Test run: `npm run start:legacy` completes successfully
+- [ ] Verify `data/anonymized_data.csv` is created
+- [ ] Copy HashScan links from test run
+
+### Before Recording:
+- [ ] Adapter runs successfully without errors (`npm run start:legacy`)
 - [ ] HashScan links are valid and accessible
-- [ ] Anonymized output is correct
-- [ ] All files are in correct locations
+- [ ] Anonymized output is correct (no PII in `anonymized_data.csv`)
+- [ ] All files are in correct locations (`backend/adapter/data/`)
 - [ ] Terminal is clean and ready
 - [ ] Browser has HashScan ready
 - [ ] Script is prepared
 - [ ] Audio is tested
+- [ ] Know the difference: `npm start` (API connector) vs `npm run start:legacy` (CSV processor)
 
 During recording:
 - [ ] Show problem clearly

@@ -790,6 +790,9 @@ async function main() {
     // Create ONE data proof per patient (all resources combined)
     for (const [anonymousPID, resources] of patientResourceMap) {
       try {
+        // Get context for this patient (use patientContexts if available, otherwise defaultContext)
+        const patientContext = patientContexts.get(anonymousPID) || defaultContext;
+        
         // Stage 1: Get all storage-anonymized records for this patient
         const storageAnonymizedRecords = resources.map(r => r.anonymized);
         const storageHash = hashBatch(storageAnonymizedRecords);
@@ -801,7 +804,7 @@ async function main() {
           const chainAnonymized = await anonymizeForChain(
             processed.anonymized,
             processed.resourceType,
-            context
+            patientContext
           );
           chainAnonymizedRecords.push(chainAnonymized);
         }

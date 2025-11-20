@@ -4,6 +4,28 @@ Core engine for processing hospital EHR data, anonymizing it, and submitting pro
 
 ## Setup
 
+### Quick Setup (Recommended)
+
+1. **Run the automated setup script:**
+   ```bash
+   cd backend/adapter
+   ./setup-local-demo.sh
+   ```
+
+2. **Verify everything is ready:**
+   ```bash
+   ./verify-demo-ready.sh
+   ```
+
+3. **Run the adapter:**
+   ```bash
+   npm run start:legacy  # For CSV processing
+   # OR
+   npm start  # For API connections (OpenMRS, FHIR servers)
+   ```
+
+### Manual Setup
+
 1. Install dependencies:
 ```bash
 npm install
@@ -33,10 +55,25 @@ REVENUE_SPLITTER_ADDRESS="0x..."
 
 Get free testnet account at: https://portal.hedera.com/dashboard
 
-3. Run the adapter:
-```bash
-npm start
-```
+3. **Prepare CSV data:**
+   - Place your CSV file at `data/raw_data.csv`
+   - See `data/raw_data.csv` for example format
+
+4. **Run the adapter:**
+   ```bash
+   npm run start:legacy  # For CSV processing (recommended for demos)
+   # OR
+   npm start  # For API connections (OpenMRS, FHIR servers)
+   ```
+
+## Demo Setup
+
+For demonstrations and testing, see:
+- **`LOCAL_DEMO_SETUP.md`** - Complete local demo guide
+- **`DEMO_QUICK_START.md`** - Quick reference
+- **`DEMO_SUMMARY.md`** - Overview of demo options
+- **`setup-local-demo.sh`** - Automated setup script
+- **`verify-demo-ready.sh`** - Pre-demo verification
 
 ## Usage
 

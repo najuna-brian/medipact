@@ -12,6 +12,49 @@ import { createAdmin, anyAdminExists, resetAdminPassword, adminExists } from '..
 const router = express.Router();
 
 /**
+ * @swagger
+ * /api/admin/auth/login:
+ *   post:
+ *     summary: Admin login
+ *     description: Authenticate admin user and receive JWT token. Currently bypassed for MVP/demo purposes.
+ *     tags: [Admin]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 token:
+ *                   type: string
+ *                   description: JWT token for admin authentication
+ *                 admin:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     username:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *       401:
+ *         description: Invalid credentials
+ */
+/**
  * POST /api/admin/auth/login
  * Admin login
  * TEMPORARILY BYPASSED - Authentication will be implemented later

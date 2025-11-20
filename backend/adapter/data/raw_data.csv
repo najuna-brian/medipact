@@ -1,0 +1,22 @@
+Patient ID,Patient Name,Date of Birth,Gender,Phone Number,Email,Address,Lab Test,Test Date,Result,Unit,Reference Range,Encounter Date,Encounter Type,Condition Name,Diagnosis Date,Medication Name,Medication Date
+PAT-001,John Mukasa,1985-03-15,Male,+256700123456,john.mukasa@example.com,Kampala, Uganda,Blood Glucose,2024-01-15,95,mg/dL,70-100,2024-01-15,Outpatient,Type 2 Diabetes,2024-01-10,Metformin,2024-01-10
+PAT-001,John Mukasa,1985-03-15,Male,+256700123456,john.mukasa@example.com,Kampala, Uganda,Cholesterol,2024-01-20,180,mg/dL,<200,2024-01-20,Outpatient,Type 2 Diabetes,2024-01-10,Metformin,2024-01-10
+PAT-002,Mary Nakato,1990-07-22,Female,+256700234567,mary.nakato@example.com,Entebbe, Uganda,Blood Glucose,2024-01-15,110,mg/dL,70-100,2024-01-15,Outpatient,Hypertension,2024-01-12,Lisinopril,2024-01-12
+PAT-002,Mary Nakato,1990-07-22,Female,+256700234567,mary.nakato@example.com,Entebbe, Uganda,Cholesterol,2024-01-20,220,mg/dL,<200,2024-01-20,Outpatient,Hypertension,2024-01-12,Lisinopril,2024-01-12
+PAT-003,Peter Okello,1978-11-08,Male,+256700345678,peter.okello@example.com,Jinja, Uganda,Blood Glucose,2024-01-15,88,mg/dL,70-100,2024-01-15,Outpatient,Healthy,2024-01-15,None,2024-01-15
+PAT-003,Peter Okello,1978-11-08,Male,+256700345678,peter.okello@example.com,Jinja, Uganda,Hemoglobin,2024-01-25,14.5,g/dL,12-16,2024-01-25,Outpatient,Healthy,2024-01-15,None,2024-01-15
+PAT-004,Sarah Namukasa,1992-05-30,Female,+256700456789,sarah.namukasa@example.com,Mbarara, Uganda,Blood Glucose,2024-01-15,102,mg/dL,70-100,2024-01-15,Outpatient,Healthy,2024-01-15,None,2024-01-15
+PAT-004,Sarah Namukasa,1992-05-30,Female,+256700456789,sarah.namukasa@example.com,Mbarara, Uganda,Hemoglobin,2024-01-25,13.2,g/dL,12-16,2024-01-25,Outpatient,Healthy,2024-01-15,None,2024-01-15
+PAT-005,David Kato,1988-09-14,Male,+256700567890,david.kato@example.com,Gulu, Uganda,Blood Glucose,2024-01-15,92,mg/dL,70-100,2024-01-15,Outpatient,Healthy,2024-01-15,None,2024-01-15
+PAT-005,David Kato,1988-09-14,Male,+256700567890,david.kato@example.com,Gulu, Uganda,Hemoglobin,2024-01-25,15.1,g/dL,12-16,2024-01-25,Outpatient,Healthy,2024-01-15,None,2024-01-15
+PAT-006,Grace Achieng,1983-12-05,Female,+256700678901,grace.achieng@example.com,Lira, Uganda,Blood Glucose,2024-01-15,105,mg/dL,70-100,2024-01-15,Outpatient,Pre-diabetes,2024-01-15,None,2024-01-15
+PAT-006,Grace Achieng,1983-12-05,Female,+256700678901,grace.achieng@example.com,Lira, Uganda,Hemoglobin,2024-01-25,12.8,g/dL,12-16,2024-01-25,Outpatient,Pre-diabetes,2024-01-15,None,2024-01-15
+PAT-007,James Ochieng,1975-04-18,Male,+256700789012,james.ochieng@example.com,Fort Portal, Uganda,Blood Glucose,2024-01-15,98,mg/dL,70-100,2024-01-15,Outpatient,Healthy,2024-01-15,None,2024-01-15
+PAT-007,James Ochieng,1975-04-18,Male,+256700789012,james.ochieng@example.com,Fort Portal, Uganda,Cholesterol,2024-01-20,195,mg/dL,<200,2024-01-20,Outpatient,Healthy,2024-01-15,None,2024-01-15
+PAT-008,Esther Nakimuli,1995-08-25,Female,+256700890123,esther.nakimuli@example.com,Masaka, Uganda,Blood Glucose,2024-01-15,87,mg/dL,70-100,2024-01-15,Outpatient,Healthy,2024-01-15,None,2024-01-15
+PAT-008,Esther Nakimuli,1995-08-25,Female,+256700890123,esther.nakimuli@example.com,Masaka, Uganda,Hemoglobin,2024-01-25,14.0,g/dL,12-16,2024-01-25,Outpatient,Healthy,2024-01-15,None,2024-01-15
+PAT-009,Robert Ssemwogerere,1980-02-12,Male,+256700901234,robert.ssemwogerere@example.com,Mukono, Uganda,Blood Glucose,2024-01-15,112,mg/dL,70-100,2024-01-15,Outpatient,Pre-diabetes,2024-01-15,None,2024-01-15
+PAT-009,Robert Ssemwogerere,1980-02-12,Male,+256700901234,robert.ssemwogerere@example.com,Mukono, Uganda,Cholesterol,2024-01-20,210,mg/dL,<200,2024-01-20,Outpatient,Pre-diabetes,2024-01-15,None,2024-01-15
+PAT-010,Florence Nalubega,1987-06-20,Female,+256701012345,florence.nalubega@example.com,Hoima, Uganda,Blood Glucose,2024-01-15,89,mg/dL,70-100,2024-01-15,Outpatient,Healthy,2024-01-15,None,2024-01-15
+PAT-010,Florence Nalubega,1987-06-20,Female,+256701012345,florence.nalubega@example.com,Hoima, Uganda,Hemoglobin,2024-01-25,13.5,g/dL,12-16,2024-01-25,Outpatient,Healthy,2024-01-15,None,2024-01-15
+

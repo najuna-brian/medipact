@@ -12,6 +12,41 @@ import { getPatientWithdrawals, getHospitalWithdrawals } from '../db/withdrawal-
 const router = express.Router();
 
 /**
+ * @swagger
+ * /api/patient/{upi}/wallet/balance:
+ *   get:
+ *     summary: Get patient wallet balance
+ *     description: Retrieve patient's wallet balance in HBAR and USD. Shows total earnings, pending withdrawals, and available balance.
+ *     tags: [Revenue]
+ *     parameters:
+ *       - in: path
+ *         name: upi
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Patient UPI (Universal Patient Identifier)
+ *     responses:
+ *       200:
+ *         description: Wallet balance
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 balanceHBAR:
+ *                   type: number
+ *                   example: 1.5
+ *                 balanceUSD:
+ *                   type: number
+ *                   example: 0.075
+ *                 totalEarnings:
+ *                   type: number
+ *                 pendingWithdrawals:
+ *                   type: number
+ *       404:
+ *         description: Patient not found
+ */
+/**
  * GET /api/patient/:upi/wallet/balance
  * Get patient wallet balance
  */
@@ -41,6 +76,41 @@ router.get('/hospital/:hospitalId/wallet/balance', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/researcher/{researcherId}/wallet/balance:
+ *   get:
+ *     summary: Get researcher wallet balance
+ *     description: Retrieve researcher's wallet balance in HBAR and USD. Public endpoint - no authentication required.
+ *     tags: [Revenue]
+ *     parameters:
+ *       - in: path
+ *         name: researcherId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Researcher ID (must start with RES-)
+ *     responses:
+ *       200:
+ *         description: Wallet balance
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 balanceHBAR:
+ *                   type: number
+ *                   example: 10.5
+ *                 balanceUSD:
+ *                   type: number
+ *                   example: 0.525
+ *                 hederaAccountId:
+ *                   type: string
+ *       400:
+ *         description: Invalid researcher ID format
+ *       404:
+ *         description: Researcher not found
+ */
 /**
  * GET /api/researcher/:researcherId/wallet/balance
  * Get researcher wallet balance

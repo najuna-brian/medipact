@@ -7,7 +7,6 @@
 import { createDataset, getDataset, getAllDatasets, updateDataset } from '../db/dataset-db.js';
 import { queryFHIRResources, countFHIRPatients } from '../db/fhir-db.js';
 import { logDatasetToHCS } from '../hedera/hcs-client.js';
-import { determinePricingCategory, calculateDatasetPrice } from './pricing-service.js';
 import crypto from 'crypto';
 
 /**
@@ -39,31 +38,30 @@ export async function createDatasetFromQuery(datasetData, filters = {}) {
     conditionCodes = [filters.conditionCode];
   }
   
-  // Auto-calculate pricing based on category
-  const category = determinePricingCategory({
-    conditionCodes: conditionCodes,
-    observationTypes: datasetData.observationTypes,
-    isLongitudinal: datasetData.isLongitudinal,
-    containsSensitiveData: datasetData.containsSensitiveData
-  });
+  // Simple fixed price: 2 HBAR per patient record (no discounts, no categories)
+  const FIXED_PRICE_PER_RECORD_HBAR = 2.0;
+  const { hbarToUSD } = await import('./pricing-service.js');
+  const hbarToUsdRate = await hbarToUSD(1); // Get current exchange rate
   
-  const pricing = await calculateDatasetPrice(recordCount, category);
+  const totalPriceHBAR = FIXED_PRICE_PER_RECORD_HBAR * recordCount;
+  const totalPriceUSD = totalPriceHBAR * hbarToUsdRate;
+  const pricePerRecordUSD = FIXED_PRICE_PER_RECORD_HBAR * hbarToUsdRate;
   
-  // Create dataset record with auto-calculated pricing
+  // Create dataset record with fixed pricing
   const dataset = await createDataset({
     ...datasetData,
     recordCount,
     dateRangeStart,
     dateRangeEnd,
     conditionCodes: conditionCodes ? JSON.stringify(conditionCodes) : null,
-    // Pricing fields
-    price: pricing.pricing.finalPriceHBAR, // Store in HBAR for transactions
-    priceUSD: pricing.pricing.finalPriceUSD, // Store USD for display
-    pricePerRecordHBAR: pricing.pricing.finalPricePerRecordHBAR,
-    pricePerRecordUSD: pricing.pricing.finalPricePerRecordUSD,
-    pricingCategoryId: pricing.categoryId,
-    pricingCategory: pricing.category,
-    volumeDiscount: pricing.pricing.volumeDiscount,
+    // Pricing fields (fixed: 2 HBAR per record)
+    price: totalPriceHBAR,
+    priceUSD: totalPriceUSD,
+    pricePerRecordHBAR: FIXED_PRICE_PER_RECORD_HBAR,
+    pricePerRecordUSD: pricePerRecordUSD,
+    pricingCategoryId: 'CAT-FIXED',
+    pricingCategory: 'Fixed Price (2 HBAR per record)',
+    volumeDiscount: 0, // No discounts
     status: 'active'
   });
   

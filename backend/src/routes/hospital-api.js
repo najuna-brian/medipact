@@ -207,6 +207,35 @@ router.post('/register', async (req, res) => {
 });
 
 /**
+ * @swagger
+ * /api/hospital/{hospitalId}:
+ *   get:
+ *     summary: Get hospital information
+ *     description: Retrieve hospital details by hospital ID. Requires hospital authentication.
+ *     tags: [Hospital]
+ *     security:
+ *       - HospitalAuth: []
+ *       - HospitalApiKey: []
+ *     parameters:
+ *       - in: path
+ *         name: hospitalId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Hospital ID
+ *     responses:
+ *       200:
+ *         description: Hospital information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Hospital'
+ *       404:
+ *         description: Hospital not found
+ *       401:
+ *         description: Authentication failed
+ */
+/**
  * GET /api/hospital/:hospitalId
  * Get hospital information
  */
@@ -233,6 +262,53 @@ router.get('/:hospitalId', authenticateHospital, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/hospital/{hospitalId}:
+ *   put:
+ *     summary: Update hospital information
+ *     description: Update hospital details. Requires hospital authentication.
+ *     tags: [Hospital]
+ *     security:
+ *       - HospitalAuth: []
+ *       - HospitalApiKey: []
+ *     parameters:
+ *       - in: path
+ *         name: hospitalId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Hospital ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               country:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Hospital updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 hospital:
+ *                   $ref: '#/components/schemas/Hospital'
+ *       401:
+ *         description: Authentication failed
+ *       404:
+ *         description: Hospital not found
+ */
 /**
  * PUT /api/hospital/:hospitalId
  * Update hospital information
@@ -261,6 +337,43 @@ router.put('/:hospitalId', authenticateHospital, async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/hospital/{hospitalId}/verify:
+ *   post:
+ *     summary: Submit verification documents
+ *     description: Submit documents for hospital verification. Requires hospital authentication.
+ *     tags: [Hospital]
+ *     security:
+ *       - HospitalAuth: []
+ *       - HospitalApiKey: []
+ *     parameters:
+ *       - in: path
+ *         name: hospitalId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - documents
+ *             properties:
+ *               documents:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Verification documents submitted successfully
+ *       400:
+ *         description: Missing documents
+ *       401:
+ *         description: Authentication failed
+ */
 /**
  * POST /api/hospital/:hospitalId/verify
  * Submit verification documents
@@ -293,6 +406,38 @@ router.post('/:hospitalId/verify', authenticateHospital, async (req, res) => {
 });
 
 /**
+ * @swagger
+ * /api/hospital/{hospitalId}/verification-status:
+ *   get:
+ *     summary: Get verification status
+ *     description: Get the current verification status of the hospital. Requires hospital authentication.
+ *     tags: [Hospital]
+ *     security:
+ *       - HospitalAuth: []
+ *       - HospitalApiKey: []
+ *     parameters:
+ *       - in: path
+ *         name: hospitalId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Verification status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   enum: [pending, verified, rejected]
+ *       401:
+ *         description: Authentication failed
+ *       404:
+ *         description: Hospital not found
+ */
+/**
  * GET /api/hospital/:hospitalId/verification-status
  * Get verification status
  */
@@ -315,6 +460,39 @@ router.get('/:hospitalId/verification-status', authenticateHospital, async (req,
 });
 
 /**
+ * @swagger
+ * /api/hospital/{hospitalId}/consent/statistics:
+ *   get:
+ *     summary: Get consent statistics for a hospital
+ *     description: Retrieve consent statistics including total consents, active consents, and consent breakdown. Requires hospital authentication.
+ *     tags: [Hospital]
+ *     security:
+ *       - HospitalAuth: []
+ *       - HospitalApiKey: []
+ *     parameters:
+ *       - in: path
+ *         name: hospitalId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Consent statistics
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 totalConsents:
+ *                   type: integer
+ *                 activeConsents:
+ *                   type: integer
+ *       401:
+ *         description: Authentication failed
+ *       403:
+ *         description: Access denied
+ */
+/**
  * GET /api/hospital/:hospitalId/consent/statistics
  * Get consent statistics for a hospital
  */
@@ -336,6 +514,60 @@ router.get('/:hospitalId/consent/statistics', authenticateHospital, async (req, 
   }
 });
 
+/**
+ * @swagger
+ * /api/hospital/{hospitalId}/processing-history:
+ *   get:
+ *     summary: Get processing history for a hospital
+ *     description: Retrieve history of CSV uploads and data processing. Shows records processed, consent proofs, data proofs, and HashScan links. Requires hospital authentication.
+ *     tags: [Hospital]
+ *     security:
+ *       - HospitalAuth: []
+ *       - HospitalApiKey: []
+ *     parameters:
+ *       - in: path
+ *         name: hospitalId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Maximum number of records to return
+ *     responses:
+ *       200:
+ *         description: Processing history
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   hospitalId:
+ *                     type: string
+ *                   fileName:
+ *                     type: string
+ *                   recordsProcessed:
+ *                     type: integer
+ *                   consentProofs:
+ *                     type: integer
+ *                   dataProofs:
+ *                     type: integer
+ *                   status:
+ *                     type: string
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *       401:
+ *         description: Authentication failed
+ *       403:
+ *         description: Access denied
+ */
 /**
  * GET /api/hospital/:hospitalId/processing-history
  * Get processing history for a hospital
@@ -366,6 +598,70 @@ router.get('/:hospitalId/processing-history', authenticateHospital, async (req, 
   }
 });
 
+/**
+ * @swagger
+ * /api/hospital/upload-csv:
+ *   post:
+ *     summary: Upload and process CSV file using the adapter
+ *     description: Upload a CSV file containing patient data. The adapter will process, anonymize, and submit proofs to Hedera HCS. This is the primary endpoint for CSV data uploads.
+ *     tags: [Hospital]
+ *     security:
+ *       - HospitalAuth: []
+ *       - HospitalApiKey: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - file
+ *               - hospitalCountry
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: CSV file containing patient data
+ *               hospitalCountry:
+ *                 type: string
+ *                 example: "Uganda"
+ *                 description: Hospital country (required)
+ *               hospitalLocation:
+ *                 type: string
+ *                 example: "Kampala"
+ *                 description: Hospital location (optional)
+ *     responses:
+ *       200:
+ *         description: CSV processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 recordsProcessed:
+ *                   type: integer
+ *                   example: 20
+ *                 consentProofs:
+ *                   type: integer
+ *                   example: 10
+ *                 dataProofs:
+ *                   type: integer
+ *                   example: 10
+ *                 consentTopicId:
+ *                   type: string
+ *                   example: "0.0.7296443"
+ *                 dataTopicId:
+ *                   type: string
+ *                   example: "0.0.7296444"
+ *                 revenue:
+ *                   type: object
+ *       400:
+ *         description: Bad request (missing file or hospitalCountry)
+ *       401:
+ *         description: Authentication failed
+ *       500:
+ *         description: Processing error
+ */
 /**
  * POST /api/hospital/upload-csv
  * Upload and process CSV file using the adapter
