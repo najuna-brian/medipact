@@ -203,6 +203,161 @@ This account was created by ${hospitalName}. If you have questions, please conta
   return results;
 }
 
+/**
+ * Send withdrawal notification
+ * @param {Object} params - Notification parameters
+ * @param {string} params.userType - 'patient' or 'hospital'
+ * @param {string} params.userId - User identifier (UPI or hospitalId)
+ * @param {string} params.email - User email
+ * @param {string|null} params.phone - User phone (optional)
+ * @param {string} params.status - 'processing' or 'completed'
+ * @param {Object} params.withdrawal - Withdrawal details
+ * @returns {Promise<{email?: Object, sms?: Object}>}
+ */
+export async function sendWithdrawalNotification(params) {
+  const { userType, userId, email, phone, status, withdrawal } = params;
+  const results = {};
+  
+  const userName = userType === 'patient' ? 'Patient' : 'Hospital';
+  const subject = status === 'completed' 
+    ? `Your ${userName} Withdrawal Has Been Completed`
+    : `Your ${userName} Withdrawal Is Being Processed`;
+  
+  const statusText = status === 'completed' ? 'completed' : 'is being processed';
+  const amountText = `$${withdrawal.amountUSD.toFixed(2)}`;
+  
+  const emailBody = `
+    <html>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb;">Withdrawal ${status === 'completed' ? 'Completed' : 'Processing'}</h2>
+          <p>Your withdrawal request has been ${statusText}.</p>
+          
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0; font-weight: bold;">Withdrawal Details:</p>
+            <p style="margin: 5px 0;"><strong>Amount:</strong> ${amountText}</p>
+            <p style="margin: 5px 0;"><strong>Payment Method:</strong> ${withdrawal.paymentMethod}</p>
+            <p style="margin: 5px 0;"><strong>Status:</strong> ${status}</p>
+            ${withdrawal.transactionId ? `<p style="margin: 5px 0;"><strong>Transaction ID:</strong> ${withdrawal.transactionId}</p>` : ''}
+          </div>
+          
+          ${status === 'completed' 
+            ? '<p>Your funds have been successfully transferred to your account.</p>'
+            : '<p>Your withdrawal is being processed and will be completed shortly. You will receive another notification when it is completed.</p>'
+          }
+          
+          <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">
+            If you have any questions, please contact support.
+          </p>
+        </div>
+      </body>
+    </html>
+  `;
+  
+  const textBody = `
+Withdrawal ${status === 'completed' ? 'Completed' : 'Processing'}
+
+Your withdrawal request has been ${statusText}.
+
+Withdrawal Details:
+Amount: ${amountText}
+Payment Method: ${withdrawal.paymentMethod}
+Status: ${status}
+${withdrawal.transactionId ? `Transaction ID: ${withdrawal.transactionId}` : ''}
+
+${status === 'completed' 
+  ? 'Your funds have been successfully transferred to your account.'
+  : 'Your withdrawal is being processed and will be completed shortly. You will receive another notification when it is completed.'
+}
+
+If you have any questions, please contact support.
+  `;
+  
+  const smsMessage = status === 'completed'
+    ? `MediPact: Your withdrawal of ${amountText} has been completed. Transaction ID: ${withdrawal.transactionId || 'N/A'}`
+    : `MediPact: Your withdrawal of ${amountText} is being processed. You'll be notified when it's completed.`;
+  
+  // Send email if available
+  if (email) {
+    results.email = await sendEmail(email, subject, emailBody, textBody);
+  }
+  
+  // Send SMS if available
+  if (phone) {
+    results.sms = await sendSMS(phone, smsMessage);
+  }
+  
+  return results;
+}
+
+/**
+ * Send balance threshold notification
+ * @param {string} userType - 'patient' or 'hospital'
+ * @param {string} userId - User identifier (UPI or hospitalId)
+ * @param {string} email - User email
+ * @param {string|null} phone - User phone (optional)
+ * @param {number} balanceUSD - Current balance in USD
+ * @param {number} thresholdUSD - Withdrawal threshold in USD
+ * @returns {Promise<{email?: Object, sms?: Object}>}
+ */
+export async function sendBalanceThresholdNotification(userType, userId, email, phone, balanceUSD, thresholdUSD) {
+  const results = {};
+  
+  const userName = userType === 'patient' ? 'Patient' : 'Hospital';
+  const subject = `Your ${userName} Balance Has Reached the Withdrawal Threshold`;
+  
+  const emailBody = `
+    <html>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb;">Balance Threshold Reached</h2>
+          <p>Your account balance has reached the automatic withdrawal threshold.</p>
+          
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0; font-weight: bold;">Account Details:</p>
+            <p style="margin: 5px 0;"><strong>Current Balance:</strong> $${balanceUSD.toFixed(2)}</p>
+            <p style="margin: 5px 0;"><strong>Withdrawal Threshold:</strong> $${thresholdUSD.toFixed(2)}</p>
+          </div>
+          
+          <p>An automatic withdrawal has been initiated for your account. You will receive a notification once the withdrawal is processed.</p>
+          
+          <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">
+            If you have any questions, please contact support.
+          </p>
+        </div>
+      </body>
+    </html>
+  `;
+  
+  const textBody = `
+Balance Threshold Reached
+
+Your account balance has reached the automatic withdrawal threshold.
+
+Account Details:
+Current Balance: $${balanceUSD.toFixed(2)}
+Withdrawal Threshold: $${thresholdUSD.toFixed(2)}
+
+An automatic withdrawal has been initiated for your account. You will receive a notification once the withdrawal is processed.
+
+If you have any questions, please contact support.
+  `;
+  
+  const smsMessage = `MediPact: Your balance ($${balanceUSD.toFixed(2)}) has reached the withdrawal threshold. An automatic withdrawal has been initiated.`;
+  
+  // Send email if available
+  if (email) {
+    results.email = await sendEmail(email, subject, emailBody, textBody);
+  }
+  
+  // Send SMS if available
+  if (phone) {
+    results.sms = await sendSMS(phone, smsMessage);
+  }
+  
+  return results;
+}
+
 // Email service implementations
 
 async function sendViaSendGrid(to, subject, htmlBody, textBody, from, apiKey) {

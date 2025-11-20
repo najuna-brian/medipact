@@ -445,6 +445,16 @@ export default function DocsOverviewPage() {
             </p>
           </a>
           <a
+            href="/docs/local-setup-demo"
+            className="block rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-6 transition-shadow hover:shadow-md"
+          >
+            <h3 className="text-lg font-semibold text-[#00A9CE]">Local Setup & Demo Guide</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Complete step-by-step guide to set up locally, verify all components, and run
+              end-to-end demonstrations with ready-to-copy code.
+            </p>
+          </a>
+          <a
             href="/docs/production"
             className="block rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-md"
           >
