@@ -453,7 +453,7 @@ export default function HospitalPatientsPage() {
                           </td>
                           <td className="px-4 py-3">
                             <Badge
-                              variant={patient.source === 'registered' ? 'default' : 'secondary'}
+                              variant={patient.source === 'registered' ? 'default' : 'info'}
                             >
                               {patient.source === 'registered' ? 'Registered' : 'CSV Upload'}
                             </Badge>

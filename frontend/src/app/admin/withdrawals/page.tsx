@@ -128,10 +128,10 @@ function WithdrawalsContent() {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
-      pending: { variant: 'secondary' as const, icon: Clock },
+      pending: { variant: 'info' as const, icon: Clock },
       processing: { variant: 'default' as const, icon: Loader2 },
-      completed: { variant: 'default' as const, icon: CheckCircle2, className: 'bg-green-500' },
-      failed: { variant: 'destructive' as const, icon: XCircle }
+      completed: { variant: 'success' as const, icon: CheckCircle2, className: 'bg-green-500' },
+      failed: { variant: 'error' as const, icon: XCircle }
     };
     const config = variants[status] || variants.pending;
     const Icon = config.icon;
