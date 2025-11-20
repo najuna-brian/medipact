@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge)](LICENSE.md)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg?style=for-the-badge&logo=node.js)](https://nodejs.org)
 
-**[📚 View Complete Documentation →](./docs)** | **[🌐 Live Docs (Frontend) →](http://localhost:3000/docs)**
+**[📚 View Complete Documentation →](https://www.medipact.space/docs)** | **[🌐 Live Docs (Frontend) →](http://localhost:3000/docs)**
 
 </div>
 
@@ -232,7 +232,7 @@ Revenue from dataset purchases is automatically distributed:
 
 **Benefits**: Trustless, Transparent, Instant, Low fees (~$0.0001 per transfer), Fair attribution
 
-See [Revenue Distribution Guide](./docs/REVENUE_DISTRIBUTION_MODEL.md) for complete details.
+See the [Revenue Distribution Guide](https://www.medipact.space/docs/revenue-distribution) for complete details.
 
 ---
 
@@ -338,7 +338,7 @@ cd adapter && npm start      # Process data
 
 ### MVP Configuration
 
-For MVP/demo deployment, see [MVP Configuration Guide](./docs/MVP_CONFIGURATION.md) which covers:
+For MVP/demo deployment, see the [Deployment Guide](./docs/DEPLOYMENT_GUIDE.md) which covers:
 - Manual withdrawal processing
 - Testnet Hedera accounts
 - In-app notifications (no email/SMS)
@@ -380,29 +380,24 @@ See `env.example` for complete configuration options.
 
 ## 📡 Documentation
 
-### Interactive Documentation
+### 🌐 Complete Documentation
 
-- **🌐 Frontend Documentation**: [http://localhost:3000/docs](http://localhost:3000/docs) - Complete interactive documentation with diagrams
-- **📋 API Swagger UI**: [http://localhost:8080/api-docs](http://localhost:8080/api-docs) - Interactive API reference
+**Visit our comprehensive documentation site**: [https://www.medipact.space/docs](https://www.medipact.space/docs)
 
-### Key Documentation Pages
+The documentation includes:
+- **Overview** - Complete system introduction and architecture
+- **Hedera Integration** - How MediPact leverages HCS, EVM, Accounts, and HBAR
+- **Data Flow** - Complete data flow from upload to revenue distribution
+- **Privacy & Security** - Multi-layered security approach and anonymization
+- **Smart Contracts** - ConsentManager and RevenueSplitter documentation
+- **API Reference** - Complete API documentation
+- **Quick Start** - Get started in minutes
+- **User Guides** - Role-based guides for Patients, Hospitals, and Researchers
 
-- [Overview](/docs) - Main documentation hub
-- [Quick Start](/docs/quick-start) - Getting started guide
-- [Data Flow](/docs/data-flow) - Complete data flow with Hedera integration
-- [Revenue Distribution](/docs/revenue-distribution) - Revenue model details
-- [Hedera Integration](/docs/hedera) - Hedera services usage
-- [Privacy & Security](/docs/privacy) - Security architecture
-- [Smart Contracts](/docs/smart-contracts) - Contract documentation
-- [API Reference](/docs/api) - Full API reference
+### Local Development
 
-### Markdown Documentation
-
-- [Revenue Distribution Model](./docs/REVENUE_DISTRIBUTION_MODEL.md) - Detailed revenue model
-- [Payment & Withdrawal System](./docs/PAYMENT_AND_WITHDRAWAL_SYSTEM.md) - Payment system details
-- [System Integration Status](./docs/SYSTEM_INTEGRATION_STATUS.md) - Integration verification
-- [Testing Guide](./TESTING_GUIDE.md) - Testing documentation
-- [Testnet Funding Guide](./TESTNET_FUNDING_GUIDE.md) - Automatic and manual account funding
+- **🌐 Frontend Documentation**: [http://localhost:3000/docs](http://localhost:3000/docs) - Interactive documentation (local)
+- **📋 API Swagger UI**: [http://localhost:8080/api-docs](http://localhost:8080/api-docs) - Interactive API reference (local)
 
 ---
 
@@ -470,13 +465,9 @@ npm run fund-accounts -- --amount=200 --min-balance=50
 - `AUTO_FUND_TESTNET_ACCOUNTS=true`
 - `TESTNET_FUNDING_AMOUNT_HBAR=100` (default: 100 HBAR)
 
-See [TESTNET_FUNDING_GUIDE.md](./TESTNET_FUNDING_GUIDE.md) for complete instructions.
-
 This creates:
 - Multiple datasets ready for purchase
 - All login credentials saved to `backend/demo-credentials.json`
-
-See `backend/scripts/DEMO_DATA_README.md` for details.
 
 ### Test Scripts
 
@@ -508,7 +499,6 @@ cd contracts && npm test
 
 - [Data Flow Test Guide](./scripts/DATA_FLOW_TEST_README.md)
 - [Revenue Flow Test Guide](./scripts/REVENUE_FLOW_TEST_README.md)
-- [System Integration Status](./docs/SYSTEM_INTEGRATION_STATUS.md)
 
 ---
 

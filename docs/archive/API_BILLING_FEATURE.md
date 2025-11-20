@@ -108,3 +108,5 @@ All endpoints charge **0.1 HBAR per patient record** (minimum 1 HBAR):
 
 **Last Updated**: November 19, 2025
 
+
+
