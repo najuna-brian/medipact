@@ -1,0 +1,20 @@
+{
+  "name": "medipact",
+  "version": "1.0.0",
+  "description": "MediPact - Verifiable Health Data Marketplace",
+  "private": true,
+  "scripts": {
+    "test:data-flow": "node scripts/test-complete-data-flow.js",
+    "test:revenue-flow": "node scripts/test-revenue-flow.js",
+    "test:revenue-detailed": "node scripts/test-revenue-flow-detailed.js",
+    "test:payment-payout": "node scripts/test-payment-payout-flow.js",
+    "test:integration": "node scripts/verify-system-integration.js",
+    "verify:production": "bash verify-production.sh"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "contracts"
+  ]
+}
+

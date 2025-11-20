@@ -10,14 +10,21 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "setup-admin": "node scripts/setup-admin.js",
-    "migrate:fhir": "node scripts/migrate-fhir-complete-schema.js",
-    "view-data": "node scripts/view-researcher-data.js",
-    "populate-demo": "node scripts/populate-demo-data.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "vitest run tests/integration/end-to-end-flow.test.js",
-    "fund-accounts": "node scripts/fund-existing-accounts.js"
+    "setup-admin": "node scripts/setup-admin.js",
+    "demo:populate": "node scripts/populate-demo-data.js",
+    "demo:datasets": "node scripts/create-datasets-for-demo.js",
+    "demo:mvp": "node scripts/create-mvp-datasets.js",
+    "hedera:fund": "node scripts/fund-existing-accounts.js",
+    "hedera:accounts": "node scripts/test-hedera-accounts.js",
+    "data:view": "node scripts/view-researcher-data.js",
+    "data:check": "node scripts/check-researcher-payment-data.js",
+    "revenue:test": "node scripts/test-revenue-distribution.js",
+    "revenue:bulk": "node scripts/test-bulk-revenue.js",
+    "metrics:generate": "node scripts/generate-metrics.js",
+    "metrics:auto": "node scripts/generate-metrics-automated.js"
   },
   "keywords": [
     "medipact",

@@ -35,6 +35,13 @@ dist/
 build/
 *.egg-info/
 
+# TypeScript build info
+*.tsbuildinfo
+
+# Hardhat build artifacts (already in contracts/.gitignore but adding here for clarity)
+contracts/artifacts/
+contracts/cache/
+
 # Hedera
 *.key
 *.pem
