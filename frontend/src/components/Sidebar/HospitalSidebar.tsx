@@ -13,11 +13,13 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const hospitalNavItems = [
   { name: 'Dashboard', href: '/hospital/dashboard', icon: LayoutDashboard },
+  { name: 'Patients', href: '/hospital/patients', icon: Users },
   { name: 'Upload Data', href: '/hospital/upload', icon: Upload },
   { name: 'Revenue', href: '/hospital/revenue', icon: DollarSign },
   { name: 'Wallet', href: '/hospital/wallet', icon: Wallet },

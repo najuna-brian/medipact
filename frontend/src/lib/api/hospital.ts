@@ -37,6 +37,31 @@ export interface Hospital {
   apiKey?: string; // Only returned on registration
 }
 
+export interface HospitalPatient {
+  upi: string;
+  hospitalPatientId: string;
+  linkedAt: string;
+  verified: boolean;
+  verificationMethod?: string | null;
+  source: 'registered' | 'csv_upload';
+  encounterCount?: number;
+  conditionCount?: number;
+  observationCount?: number;
+  hasCSVRecords?: boolean;
+  email?: string;
+  phone?: string;
+  nationalId?: string;
+}
+
+export interface HospitalPatientsResponse {
+  hospitalId: string;
+  totalPatients: number;
+  registeredPatients: number;
+  csvUploadPatients: number;
+  totalRecords: number;
+  patients: HospitalPatient[];
+}
+
 export interface HospitalRegistrationResponse {
   message: string;
   hospital: Hospital;
@@ -122,5 +147,131 @@ export async function getVerificationStatus(
       'x-api-key': apiKey,
     },
   });
+  return response.data;
+}
+
+export interface HospitalPatient {
+  upi: string;
+  hospitalPatientId: string;
+  linkedAt: string;
+  verified: boolean;
+  verificationMethod?: string | null;
+  source: 'registered' | 'csv_upload';
+  encounterCount?: number;
+  conditionCount?: number;
+  observationCount?: number;
+  hasCSVRecords?: boolean;
+  email?: string;
+  phone?: string;
+  nationalId?: string;
+}
+
+export interface HospitalPatientsResponse {
+  hospitalId: string;
+  totalPatients: number;
+  registeredPatients: number;
+  csvUploadPatients: number;
+  totalRecords: number;
+  patients: HospitalPatient[];
+}
+
+/**
+ * Get all patients for a hospital
+ */
+export async function getHospitalPatients(
+  hospitalId: string,
+  apiKey: string
+): Promise<HospitalPatientsResponse> {
+  const response = await hospitalClient.get<HospitalPatientsResponse>(
+    `/${hospitalId}/patients`,
+    {
+      headers: {
+        'x-hospital-id': hospitalId,
+        'x-api-key': apiKey,
+      },
+    }
+  );
+  return response.data;
+}
+
+/**
+ * Export patients (CSV or JSON)
+ */
+export async function exportHospitalPatients(
+  hospitalId: string,
+  apiKey: string,
+  format: 'csv' | 'json' = 'json'
+): Promise<Blob | HospitalPatientsResponse> {
+  const response = await hospitalClient.get(
+    `/${hospitalId}/patients/export?format=${format}`,
+    {
+      headers: {
+        'x-hospital-id': hospitalId,
+        'x-api-key': apiKey,
+      },
+      responseType: format === 'csv' ? 'blob' : 'json',
+    }
+  );
+  return response.data;
+}
+
+/**
+ * Send UPI notification to a patient
+ */
+export async function notifyPatient(
+  hospitalId: string,
+  apiKey: string,
+  upi: string
+): Promise<{
+  success: boolean;
+  upi: string;
+  notifications: {
+    email?: { success: boolean; method: string; message?: string };
+    sms?: { success: boolean; method: string; message?: string };
+  };
+  message: string;
+}> {
+  const response = await hospitalClient.post(
+    `/${hospitalId}/patients/${upi}/notify`,
+    {},
+    {
+      headers: {
+        'x-hospital-id': hospitalId,
+        'x-api-key': apiKey,
+      },
+    }
+  );
+  return response.data;
+}
+
+/**
+ * Send UPI notifications to multiple patients
+ */
+export async function notifyPatientsBulk(
+  hospitalId: string,
+  apiKey: string,
+  upis: string[]
+): Promise<{
+  success: boolean;
+  total: number;
+  successful: number;
+  failed: number;
+  results: Array<{
+    upi: string;
+    success: boolean;
+    notifications?: any;
+    error?: string;
+  }>;
+}> {
+  const response = await hospitalClient.post(
+    `/${hospitalId}/patients/notify-bulk`,
+    { upis },
+    {
+      headers: {
+        'x-hospital-id': hospitalId,
+        'x-api-key': apiKey,
+      },
+    }
+  );
   return response.data;
 }

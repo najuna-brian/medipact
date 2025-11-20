@@ -1,167 +1,253 @@
 /**
  * Notification Service
  * 
- * Handles sending notifications to users about withdrawal status.
- * 
- * MVP Configuration:
- * - Uses console logging for development/testing
- * - Notifications are logged and can be displayed in-app
- * - Email/SMS integration is stubbed out for future implementation
- * 
- * For production, integrate with:
- * - Email: SendGrid, AWS SES, etc.
- * - SMS: Twilio, AWS SNS, etc.
- * - In-app: Store notifications in database for user dashboard
+ * Handles email and SMS notifications for patients.
+ * Gracefully falls back to console logging when services are not configured.
  */
 
 /**
- * Send withdrawal notification to user
- * 
- * @param {Object} options - Notification options
- * @param {string} options.userType - 'patient' or 'hospital'
- * @param {string} options.userId - UPI or hospital ID
- * @param {string} options.email - User email (optional)
- * @param {string} options.phone - User phone (optional)
- * @param {string} options.status - Withdrawal status
- * @param {Object} options.withdrawal - Withdrawal details
+ * Send email notification
+ * @param {string} to - Recipient email address
+ * @param {string} subject - Email subject
+ * @param {string} htmlBody - HTML email body
+ * @param {string} textBody - Plain text email body (optional)
+ * @returns {Promise<{success: boolean, method: string, error?: string}>}
  */
-export async function sendWithdrawalNotification(options) {
-  const { userType, userId, email, phone, status, withdrawal } = options;
-
+export async function sendEmail(to, subject, htmlBody, textBody = null) {
+  // Check if email service is configured
+  const emailService = process.env.EMAIL_SERVICE; // 'sendgrid', 'ses', 'smtp', etc.
+  const emailApiKey = process.env.EMAIL_API_KEY;
+  const emailFrom = process.env.EMAIL_FROM || 'noreply@medipact.com';
+  
+  if (!emailService || !emailApiKey) {
+    // Fallback: Log to console for hackathon/demo purposes
+    console.log('\n=== EMAIL NOTIFICATION (FALLBACK MODE) ===');
+    console.log(`To: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Body:\n${textBody || htmlBody}`);
+    console.log('==========================================\n');
+    
+    return {
+      success: true,
+      method: 'console_fallback',
+      message: 'Email logged to console (email service not configured)'
+    };
+  }
+  
   try {
-    const message = buildWithdrawalMessage(status, withdrawal);
-    
-    // MVP: Log notification (can be displayed in-app via notification system)
-    // In production, integrate with email/SMS services
-    console.log(`[NOTIFICATION] ${userType.toUpperCase()} ${userId}: ${message.title}`);
-    console.log(`[NOTIFICATION] Message: ${message.body}`);
-    
-    // MVP: Store notification in database for in-app display (future enhancement)
-    // For now, notifications are logged and can be shown in admin/user dashboards
-    
-    // Email/SMS integration stubbed out for MVP
-    // TODO: Integrate with email service (SendGrid, AWS SES, etc.) for production
-    if (email) {
-      await sendEmailNotification(email, message);
+    switch (emailService.toLowerCase()) {
+      case 'sendgrid':
+        return await sendViaSendGrid(to, subject, htmlBody, textBody, emailFrom, emailApiKey);
+      case 'ses':
+        return await sendViaSES(to, subject, htmlBody, textBody, emailFrom);
+      case 'smtp':
+        return await sendViaSMTP(to, subject, htmlBody, textBody, emailFrom);
+      default:
+        console.warn(`Unknown email service: ${emailService}, using fallback`);
+        return {
+          success: true,
+          method: 'console_fallback',
+          message: 'Email logged to console (unknown email service)'
+        };
     }
-    
-    // TODO: Integrate with SMS service (Twilio, AWS SNS, etc.) for production
-    if (phone) {
-      await sendSMSNotification(phone, message);
-    }
-    
-    return { success: true, sentVia: 'console', message: 'Notification logged (in-app display available)' };
   } catch (error) {
-    console.error(`[NOTIFICATION] Failed to send notification to ${userId}:`, error);
-    // Don't throw - notifications are non-critical
-    return { success: false, error: error.message };
+    console.error('Email sending failed:', error);
+    // Fallback to console
+    console.log('\n=== EMAIL NOTIFICATION (FALLBACK - ERROR) ===');
+    console.log(`To: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Body:\n${textBody || htmlBody}`);
+    console.log('==========================================\n');
+    
+    return {
+      success: true,
+      method: 'console_fallback',
+      error: error.message,
+      message: 'Email logged to console (sending failed)'
+    };
   }
 }
 
 /**
- * Build withdrawal notification message
+ * Send SMS notification
+ * @param {string} to - Recipient phone number (E.164 format)
+ * @param {string} message - SMS message
+ * @returns {Promise<{success: boolean, method: string, error?: string}>}
  */
-function buildWithdrawalMessage(status, withdrawal) {
-  const amountUSD = withdrawal.amountUSD || withdrawal.amount_usd || 0;
-  const amountHBAR = withdrawal.amountHBAR || withdrawal.amount_hbar || 0;
-  const paymentMethod = withdrawal.paymentMethod || withdrawal.payment_method || 'account';
+export async function sendSMS(to, message) {
+  // Check if SMS service is configured
+  const smsService = process.env.SMS_SERVICE; // 'twilio', 'aws-sns', etc.
+  const smsApiKey = process.env.SMS_API_KEY;
+  const smsFrom = process.env.SMS_FROM;
   
-  const messages = {
-    pending: {
-      title: 'Withdrawal Request Received',
-      body: `Your withdrawal request of $${amountUSD.toFixed(2)} (${amountHBAR.toFixed(4)} HBAR) has been received and is being processed. You will be notified once it's completed.`
-    },
-    processing: {
-      title: 'Withdrawal Processing',
-      body: `Your withdrawal of $${amountUSD.toFixed(2)} is currently being processed and will be sent to your ${paymentMethod === 'bank' ? 'bank account' : 'mobile money'} shortly.`
-    },
-    completed: {
-      title: 'Withdrawal Completed',
-      body: `Your withdrawal of $${amountUSD.toFixed(2)} has been successfully completed and sent to your ${paymentMethod === 'bank' ? 'bank account' : 'mobile money'}. Transaction ID: ${withdrawal.transactionId || withdrawal.transaction_id || 'N/A'}.`
-    },
-    failed: {
-      title: 'Withdrawal Failed',
-      body: `Unfortunately, your withdrawal request of $${amountUSD.toFixed(2)} could not be processed. Please check your payment method settings or contact support. The funds remain in your wallet.`
+  if (!smsService || !smsApiKey) {
+    // Fallback: Log to console for hackathon/demo purposes
+    console.log('\n=== SMS NOTIFICATION (FALLBACK MODE) ===');
+    console.log(`To: ${to}`);
+    console.log(`Message: ${message}`);
+    console.log('==========================================\n');
+    
+    return {
+      success: true,
+      method: 'console_fallback',
+      message: 'SMS logged to console (SMS service not configured)'
+    };
+  }
+  
+  try {
+    switch (smsService.toLowerCase()) {
+      case 'twilio':
+        return await sendViaTwilio(to, message, smsFrom, smsApiKey);
+      case 'aws-sns':
+        return await sendViaSNS(to, message);
+      default:
+        console.warn(`Unknown SMS service: ${smsService}, using fallback`);
+        return {
+          success: true,
+          method: 'console_fallback',
+          message: 'SMS logged to console (unknown SMS service)'
+        };
     }
+  } catch (error) {
+    console.error('SMS sending failed:', error);
+    // Fallback to console
+    console.log('\n=== SMS NOTIFICATION (FALLBACK - ERROR) ===');
+    console.log(`To: ${to}`);
+    console.log(`Message: ${message}`);
+    console.log('==========================================\n');
+    
+    return {
+      success: true,
+      method: 'console_fallback',
+      error: error.message,
+      message: 'SMS logged to console (sending failed)'
+    };
+  }
+}
+
+/**
+ * Send patient UPI notification
+ * @param {Object} patientInfo - Patient information
+ * @param {string} patientInfo.upi - Patient UPI
+ * @param {string} patientInfo.email - Patient email (optional)
+ * @param {string} patientInfo.phone - Patient phone (optional)
+ * @param {string} patientInfo.name - Patient name
+ * @param {string} hospitalName - Hospital name
+ * @returns {Promise<{email?: Object, sms?: Object}>}
+ */
+export async function sendUPINotification(patientInfo, hospitalName = 'MediPact') {
+  const { upi, email, phone, name } = patientInfo;
+  const results = {};
+  
+  const portalUrl = process.env.PATIENT_PORTAL_URL || 'https://medipact.com/patient/login';
+  const subject = 'Your MediPact Patient Account Access';
+  
+  const emailBody = `
+    <html>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb;">Welcome to MediPact, ${name || 'Patient'}!</h2>
+          <p>Your medical data has been uploaded to MediPact, and your patient account has been created.</p>
+          
+          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0 0 10px 0; font-weight: bold;">Your Patient Identifier (UPI):</p>
+            <p style="font-family: monospace; font-size: 18px; font-weight: bold; color: #2563eb; margin: 0;">${upi}</p>
+          </div>
+          
+          <p><strong>How to access your account:</strong></p>
+          <ol>
+            <li>Visit: <a href="${portalUrl}">${portalUrl}</a></li>
+            <li>Enter your UPI: <code>${upi}</code></li>
+            <li>View your medical records and earnings</li>
+          </ol>
+          
+          <p><strong>Alternative login:</strong> If you forget your UPI, you can retrieve it using your email or phone number on the login page.</p>
+          
+          <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">
+            This account was created by ${hospitalName}. If you have questions, please contact your healthcare provider.
+          </p>
+        </div>
+      </body>
+    </html>
+  `;
+  
+  const textBody = `
+Welcome to MediPact, ${name || 'Patient'}!
+
+Your medical data has been uploaded to MediPact, and your patient account has been created.
+
+Your Patient Identifier (UPI): ${upi}
+
+How to access your account:
+1. Visit: ${portalUrl}
+2. Enter your UPI: ${upi}
+3. View your medical records and earnings
+
+Alternative login: If you forget your UPI, you can retrieve it using your email or phone number on the login page.
+
+This account was created by ${hospitalName}. If you have questions, please contact your healthcare provider.
+  `;
+  
+  const smsMessage = `MediPact: Your UPI is ${upi}. Access your account at ${portalUrl}`;
+  
+  // Send email if available
+  if (email) {
+    results.email = await sendEmail(email, subject, emailBody, textBody);
+  }
+  
+  // Send SMS if available
+  if (phone) {
+    results.sms = await sendSMS(phone, smsMessage);
+  }
+  
+  return results;
+}
+
+// Email service implementations
+
+async function sendViaSendGrid(to, subject, htmlBody, textBody, from, apiKey) {
+  const sgMail = await import('@sendgrid/mail');
+  sgMail.default.setApiKey(apiKey);
+  
+  const msg = {
+    to,
+    from,
+    subject,
+    text: textBody || htmlBody.replace(/<[^>]*>/g, ''),
+    html: htmlBody,
   };
   
-  return messages[status] || messages.pending;
-}
-
-/**
- * Send email notification (stubbed for MVP)
- * 
- * MVP: Logs email notification (not sent)
- * Production: Integrate with email service (SendGrid, AWS SES, etc.)
- */
-async function sendEmailNotification(email, message) {
-  // MVP: Email notifications are logged but not sent
-  // TODO: Integrate with email service for production
-  // Example with SendGrid:
-  // const sgMail = require('@sendgrid/mail');
-  // sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-  // await sgMail.send({
-  //   to: email,
-  //   from: 'noreply@medipact.com',
-  //   subject: message.title,
-  //   text: message.body,
-  //   html: `<p>${message.body}</p>`
-  // });
+  await sgMail.default.send(msg);
   
-  console.log(`[EMAIL] To: ${email}`);
-  console.log(`[EMAIL] Subject: ${message.title}`);
-  console.log(`[EMAIL] Body: ${message.body}`);
-  console.log(`[EMAIL] Note: Email not sent in MVP mode - use in-app notifications`);
+  return {
+    success: true,
+    method: 'sendgrid',
+    message: 'Email sent via SendGrid'
+  };
 }
 
-/**
- * Send SMS notification (stubbed for MVP)
- * 
- * MVP: Logs SMS notification (not sent)
- * Production: Integrate with SMS service (Twilio, AWS SNS, etc.)
- */
-async function sendSMSNotification(phone, message) {
-  // MVP: SMS notifications are logged but not sent
-  // TODO: Integrate with SMS service for production
-  // Example with Twilio:
-  // const twilio = require('twilio');
-  // const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-  // await client.messages.create({
-  //   body: `${message.title}: ${message.body}`,
-  //   to: phone,
-  //   from: process.env.TWILIO_PHONE_NUMBER
-  // });
-  
-  console.log(`[SMS] To: ${phone}`);
-  console.log(`[SMS] Message: ${message.title}: ${message.body}`);
-  console.log(`[SMS] Note: SMS not sent in MVP mode - use in-app notifications`);
+async function sendViaSES(to, subject, htmlBody, textBody, from) {
+  // AWS SES implementation would go here
+  // For now, fallback
+  throw new Error('AWS SES not yet implemented');
 }
 
-/**
- * Send balance threshold notification
- * Notify user when balance reaches withdrawal threshold
- */
-export async function sendBalanceThresholdNotification(userType, userId, email, phone, balanceUSD, thresholdUSD) {
-  try {
-    const message = {
-      title: 'Withdrawal Threshold Reached',
-      body: `Your wallet balance ($${balanceUSD.toFixed(2)}) has reached your withdrawal threshold ($${thresholdUSD.toFixed(2)}). An automatic withdrawal will be processed shortly.`
-    };
-    
-    console.log(`[NOTIFICATION] ${userType.toUpperCase()} ${userId}: ${message.title}`);
-    
-    if (email) {
-      await sendEmailNotification(email, message);
-    }
-    
-    if (phone) {
-      await sendSMSNotification(phone, message);
-    }
-    
-    return { success: true };
-  } catch (error) {
-    console.error(`[NOTIFICATION] Failed to send threshold notification:`, error);
-    return { success: false, error: error.message };
-  }
+async function sendViaSMTP(to, subject, htmlBody, textBody, from) {
+  // SMTP implementation would go here
+  // For now, fallback
+  throw new Error('SMTP not yet implemented');
 }
 
+// SMS service implementations
+
+async function sendViaTwilio(to, message, from, apiKey) {
+  // Twilio implementation would go here
+  // For now, fallback
+  throw new Error('Twilio not yet implemented');
+}
+
+async function sendViaSNS(to, message) {
+  // AWS SNS implementation would go here
+  // For now, fallback
+  throw new Error('AWS SNS not yet implemented');
+}

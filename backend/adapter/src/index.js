@@ -1068,6 +1068,68 @@ async function main() {
     }
     console.log('=== END SUMMARY ===\n');
     
+    // Step 9: Send patient notifications (if enabled and UPIs are available)
+    if (upiMapping && upiMapping.size > 0 && storageBackendApiUrl && storageHospitalId && apiKey) {
+      const sendNotifications = process.env.SEND_PATIENT_NOTIFICATIONS !== 'false'; // Default true
+      if (sendNotifications) {
+        console.log('9. Sending patient notifications...');
+        try {
+          const uniqueUPIs = Array.from(new Set(upiMapping.values()));
+          console.log(`   Found ${uniqueUPIs.length} unique patients to notify`);
+          
+          // Send notifications in batches to avoid overwhelming the system
+          const batchSize = 10;
+          for (let i = 0; i < uniqueUPIs.length; i += batchSize) {
+            const batch = uniqueUPIs.slice(i, i + batchSize);
+            try {
+              const response = await axios.post(
+                `${storageBackendApiUrl}/api/hospital/${storageHospitalId}/patients/notify-bulk`,
+                { upis: batch },
+                {
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Hospital-ID': storageHospitalId,
+                    'X-API-Key': apiKey
+                  },
+                  timeout: 30000,
+                  validateStatus: (status) => status < 500
+                }
+              );
+              
+              if (response.data) {
+                console.log(`   ✓ Batch ${Math.floor(i / batchSize) + 1}: ${response.data.successful} sent, ${response.data.failed} failed`);
+                if (response.data.results) {
+                  response.data.results.forEach((result) => {
+                    if (result.success) {
+                      const methods = [];
+                      if (result.notifications?.email?.method) methods.push(`email:${result.notifications.email.method}`);
+                      if (result.notifications?.sms?.method) methods.push(`sms:${result.notifications.sms.method}`);
+                      if (methods.length > 0) {
+                        console.log(`     → ${result.upi}: ${methods.join(', ')}`);
+                      }
+                    } else {
+                      console.log(`     ✗ ${result.upi}: ${result.error || 'Failed'}`);
+                    }
+                  });
+                }
+              }
+            } catch (error) {
+              console.warn(`   ⚠️  Failed to send notifications for batch: ${error.message}`);
+              // Continue with next batch
+            }
+          }
+          console.log('   ✓ Notification process completed\n');
+        } catch (error) {
+          console.warn(`   ⚠️  Notification sending failed: ${error.message}`);
+          console.warn('   (This is non-critical - patients can still access their accounts via UPI lookup)');
+        }
+      } else {
+        console.log('9. Skipping patient notifications (SEND_PATIENT_NOTIFICATIONS=false)\n');
+      }
+    } else {
+      console.log('9. Skipping patient notifications (no UPIs or backend not configured)\n');
+    }
+    
     console.log('✓ All done!');
     
   } catch (error) {

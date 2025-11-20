@@ -14,6 +14,8 @@ import { upsertPatientContact, findUPIByEmail, findUPIByPhone, findUPIByNational
 import { checkLookupPermission } from '../services/patient-lookup-service.js';
 import { verifyHospitalApiKey, getHospital as getHospitalFromDB } from '../db/hospital-db.js';
 import { isHospitalVerified } from '../services/hospital-verification-service.js';
+import { sendUPINotification } from '../services/notification-service.js';
+import { getPatientContactByUPI } from '../db/patient-contacts-db.js';
 
 const router = express.Router();
 
@@ -592,6 +594,259 @@ router.get('/:hospitalId/verify-token', async (req, res) => {
   } catch (error) {
     console.error('Error verifying token:', error);
     res.status(500).json({ valid: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/hospital/:hospitalId/patients/export
+ * Export patient list with UPIs (CSV or JSON format)
+ */
+router.get('/:hospitalId/patients/export', authenticateHospital, async (req, res) => {
+  try {
+    const { hospitalId } = req.params;
+    const format = req.query.format || 'json'; // 'json' or 'csv'
+    
+    // Verify hospital ID matches authenticated hospital
+    if (hospitalId !== req.hospitalId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Get all patients (same logic as GET /patients)
+    const linkages = await getLinkagesByHospital(hospitalId);
+    const { get, all } = await import('../db/database.js');
+    const { getDatabaseType } = await import('../db/database.js');
+    const dbType = getDatabaseType();
+    
+    let fhirPatients = [];
+    try {
+      if (dbType === 'postgresql') {
+        const result = await all(
+          `SELECT DISTINCT ON (upi)
+            "anonymousPatientId",
+            upi,
+            "hospitalId",
+            "createdAt"
+          FROM fhir_patients
+          WHERE "hospitalId" = $1 AND upi IS NOT NULL
+          ORDER BY upi, "createdAt" DESC`,
+          [hospitalId]
+        );
+        fhirPatients = result.rows || result;
+      } else {
+        const rows = await all(
+          `SELECT 
+            fp1."anonymousPatientId" as anonymousPatientId,
+            fp1.upi,
+            fp1."hospitalId" as hospitalId,
+            fp1."createdAt" as createdAt
+          FROM fhir_patients fp1
+          INNER JOIN (
+            SELECT upi, MAX("createdAt") as max_created
+            FROM fhir_patients
+            WHERE "hospitalId" = ? AND upi IS NOT NULL
+            GROUP BY upi
+          ) fp2 ON fp1.upi = fp2.upi AND fp1."createdAt" = fp2.max_created
+          WHERE fp1."hospitalId" = ?`,
+          [hospitalId, hospitalId]
+        );
+        fhirPatients = rows;
+      }
+    } catch (error) {
+      console.error('Error fetching FHIR patients:', error);
+      fhirPatients = [];
+    }
+    
+    // Combine patients
+    const patientMap = new Map();
+    linkages.forEach(linkage => {
+      patientMap.set(linkage.upi, {
+        upi: linkage.upi,
+        hospitalPatientId: linkage.hospitalPatientId,
+        linkedAt: linkage.linkedAt,
+        source: 'registered'
+      });
+    });
+    
+    fhirPatients.forEach(fhirPatient => {
+      if (!fhirPatient.upi) return;
+      if (!patientMap.has(fhirPatient.upi)) {
+        patientMap.set(fhirPatient.upi, {
+          upi: fhirPatient.upi,
+          hospitalPatientId: fhirPatient.anonymousPatientId,
+          linkedAt: fhirPatient.createdAt,
+          source: 'csv_upload'
+        });
+      }
+    });
+    
+    const allPatients = Array.from(patientMap.values());
+    
+    // Get contact info for each patient
+    const patientsWithContacts = await Promise.all(
+      allPatients.map(async (patient) => {
+        const contact = await getPatientContactByUPI(patient.upi);
+        return {
+          ...patient,
+          email: contact?.email || '',
+          phone: contact?.phone || '',
+          nationalId: contact?.nationalId || ''
+        };
+      })
+    );
+    
+    if (format === 'csv') {
+      // Generate CSV
+      const csvHeader = 'UPI,Hospital Patient ID,Email,Phone,National ID,Source,Linked At\n';
+      const csvRows = patientsWithContacts.map(p => {
+        const row = [
+          p.upi,
+          p.hospitalPatientId || '',
+          p.email || '',
+          p.phone || '',
+          p.nationalId || '',
+          p.source || '',
+          p.linkedAt || ''
+        ];
+        return row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',');
+      }).join('\n');
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="patients-${hospitalId}-${Date.now()}.csv"`);
+      res.send(csvHeader + csvRows);
+    } else {
+      // JSON format
+      res.json({
+        hospitalId,
+        totalPatients: patientsWithContacts.length,
+        exportedAt: new Date().toISOString(),
+        patients: patientsWithContacts
+      });
+    }
+  } catch (error) {
+    console.error('Error exporting patients:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/hospital/:hospitalId/patients/:upi/notify
+ * Send UPI notification to a specific patient
+ */
+router.post('/:hospitalId/patients/:upi/notify', authenticateHospital, async (req, res) => {
+  try {
+    const { hospitalId, upi } = req.params;
+    
+    // Verify hospital ID matches authenticated hospital
+    if (hospitalId !== req.hospitalId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Get patient contact info
+    const contact = await getPatientContactByUPI(upi);
+    if (!contact || (!contact.email && !contact.phone)) {
+      return res.status(400).json({ 
+        error: 'Patient has no email or phone number on file' 
+      });
+    }
+    
+    // Get hospital name
+    const hospital = await getHospitalFromDB(hospitalId);
+    const hospitalName = hospital?.name || 'MediPact';
+    
+    // Get patient name (from patient_identities or contact)
+    const patient = await getPatient(upi);
+    
+    // Send notification
+    const results = await sendUPINotification({
+      upi,
+      email: contact.email || null,
+      phone: contact.phone || null,
+      name: patient?.name || 'Patient'
+    }, hospitalName);
+    
+    res.json({
+      success: true,
+      upi,
+      notifications: results,
+      message: 'Notification sent successfully'
+    });
+  } catch (error) {
+    console.error('Error sending notification:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/hospital/:hospitalId/patients/notify-bulk
+ * Send UPI notifications to multiple patients
+ */
+router.post('/:hospitalId/patients/notify-bulk', authenticateHospital, async (req, res) => {
+  try {
+    const { hospitalId } = req.params;
+    const { upis } = req.body; // Array of UPIs
+    
+    if (!Array.isArray(upis) || upis.length === 0) {
+      return res.status(400).json({ error: 'UPIs array is required' });
+    }
+    
+    // Verify hospital ID matches authenticated hospital
+    if (hospitalId !== req.hospitalId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Get hospital name
+    const hospital = await getHospitalFromDB(hospitalId);
+    const hospitalName = hospital?.name || 'MediPact';
+    
+    const results = [];
+    
+    for (const upi of upis) {
+      try {
+        const contact = await getPatientContactByUPI(upi);
+        if (!contact || (!contact.email && !contact.phone)) {
+          results.push({
+            upi,
+            success: false,
+            error: 'No email or phone on file'
+          });
+          continue;
+        }
+        
+        const patient = await getPatient(upi);
+        const notificationResults = await sendUPINotification({
+          upi,
+          email: contact.email || null,
+          phone: contact.phone || null,
+          name: patient?.name || 'Patient'
+        }, hospitalName);
+        
+        results.push({
+          upi,
+          success: true,
+          notifications: notificationResults
+        });
+      } catch (error) {
+        results.push({
+          upi,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+    
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.filter(r => !r.success).length;
+    
+    res.json({
+      success: true,
+      total: upis.length,
+      successful: successCount,
+      failed: failureCount,
+      results
+    });
+  } catch (error) {
+    console.error('Error sending bulk notifications:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
