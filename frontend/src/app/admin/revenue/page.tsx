@@ -232,7 +232,7 @@ export default function AdminRevenuePage() {
                               {dist.amountHBAR.toFixed(4)} HBAR
                             </td>
                             <td className="p-2 text-sm">
-                              <Badge variant="outline">
+                              <Badge variant="info">
                                 {dist.distributionMethod === 'direct'
                                   ? 'Direct Transfer'
                                   : dist.distributionMethod === 'contract-dynamic'
