@@ -159,8 +159,8 @@ export default function DataFlowPage() {
             </p>
             <ul className="mt-3 list-disc space-y-2 pl-6 text-gray-700">
               <li>
-                <strong>Automatic Creation:</strong> Accounts created during registration
-                (hospitals/researchers) or on first payment (patients)
+                <strong>Automatic Creation:</strong> Accounts created during registration for all
+                users (hospitals, researchers, and patients)
               </li>
               <li>
                 <strong>Format:</strong> Native Hedera Account IDs (0.0.xxxxx)

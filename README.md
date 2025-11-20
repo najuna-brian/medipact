@@ -4,7 +4,7 @@
 
 [![Hedera](https://img.shields.io/badge/Built%20on-Hedera-00A9CE?style=for-the-badge&logo=hedera)](https://hedera.com)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=for-the-badge)](LICENSE.md)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg?style=for-the-badge&logo=node.js)](https://nodejs.org)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg?style=for-the-badge&logo=node.js)](https://nodejs.org)
 
 **[📚 View Complete Documentation →](https://www.medipact.space/docs)** | **[🌐 Live Docs (Frontend) →](http://localhost:3000/docs)**
 
@@ -66,7 +66,7 @@ graph LR
 ### Hedera Account Creation
 
 - **Hospitals & Researchers:** Accounts are created during registration. The platform generates an ECDSA key pair, creates a Hedera account (0.0.xxxxx) with EVM compatibility, and stores the encrypted private key.
-- **Patients:** Accounts are created lazily on first payment. The platform creates the account only when revenue is distributed, reducing upfront costs.
+- **Patients:** Accounts are created immediately during patient registration (same as hospitals and researchers). The platform generates an ECDSA key pair, creates a Hedera account (0.0.xxxxx) with EVM compatibility, and stores the encrypted private key. This ensures patients have accounts ready for revenue distribution.
 - **Process:** Platform generates keys → creates Hedera account (operator pays ~$0.05) → encrypts private key → stores account ID and EVM address in database. All accounts are EVM-compatible for smart contract interactions.
 
 ### Why Hedera?
@@ -313,7 +313,7 @@ graph LR
 
 ### Prerequisites
 
-- **Node.js 18+** - [Download](https://nodejs.org/)
+- **Node.js 20+** - [Download](https://nodejs.org/)
 - **Hedera Testnet Account** - [Get Free Account](https://portal.hedera.com/dashboard)
 - **Git**
 

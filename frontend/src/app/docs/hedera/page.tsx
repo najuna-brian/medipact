@@ -24,22 +24,36 @@ export default function HederaIntegrationPage() {
             <tbody className="divide-y divide-gray-200 bg-white">
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-[#00A9CE]">HCS</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Immutable storage of consent & data proof hashes</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Unchangeable audit trail, ~$0.0001/message</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Immutable storage of consent & data proof hashes
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Unchangeable audit trail, ~$0.0001/message
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-[#00A9CE]">Hedera EVM</td>
-                <td className="px-4 py-3 text-sm text-gray-600">ConsentManager & RevenueSplitter smart contracts</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Automated consent registry & revenue distribution</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  ConsentManager & RevenueSplitter smart contracts
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Automated consent registry & revenue distribution
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-[#00A9CE]">Hedera Account IDs</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Native accounts (0.0.xxxxx) for all users</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Seamless UX, direct HBAR transfers</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Native accounts (0.0.xxxxx) for all users
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Seamless UX, direct HBAR transfers
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-[#00A9CE]">HBAR</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Micropayments for 60/25/15 revenue split</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Micropayments for 60/25/15 revenue split
+                </td>
                 <td className="px-4 py-3 text-sm text-gray-600">Low-cost, instant settlements</td>
               </tr>
             </tbody>
@@ -73,19 +87,26 @@ export default function HederaIntegrationPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">Hospitals & Researchers</h3>
             <p className="mt-2 text-gray-700">
-              Accounts are created during registration. The platform generates an ECDSA key pair, creates a Hedera account (0.0.xxxxx) with EVM compatibility, and stores the encrypted private key.
+              Accounts are created during registration. The platform generates an ECDSA key pair,
+              creates a Hedera account (0.0.xxxxx) with EVM compatibility, and stores the encrypted
+              private key.
             </p>
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">Patients</h3>
             <p className="mt-2 text-gray-700">
-              Accounts are created lazily on first payment. The platform creates the account only when revenue is distributed, reducing upfront costs.
+              Accounts are created immediately during patient registration (same as hospitals and
+              researchers). The platform generates an ECDSA key pair, creates a Hedera account
+              (0.0.xxxxx) with EVM compatibility, and stores the encrypted private key. This ensures
+              patients have accounts ready for revenue distribution.
             </p>
           </div>
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">Process</h3>
             <p className="mt-2 text-gray-700">
-              Platform generates keys → creates Hedera account (operator pays ~$0.05) → encrypts private key → stores account ID and EVM address in database. All accounts are EVM-compatible for smart contract interactions.
+              Platform generates keys → creates Hedera account (operator pays ~$0.05) → encrypts
+              private key → stores account ID and EVM address in database. All accounts are
+              EVM-compatible for smart contract interactions.
             </p>
           </div>
         </div>
@@ -108,15 +129,11 @@ export default function HederaIntegrationPage() {
           </div>
           <div className="rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-4">
             <h3 className="font-semibold text-[#00A9CE]">✅ High throughput</h3>
-            <p className="mt-2 text-sm text-gray-700">
-              10,000+ TPS for thousands of daily queries
-            </p>
+            <p className="mt-2 text-sm text-gray-700">10,000+ TPS for thousands of daily queries</p>
           </div>
           <div className="rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-4">
             <h3 className="font-semibold text-[#00A9CE]">✅ Carbon negative</h3>
-            <p className="mt-2 text-sm text-gray-700">
-              Environmentally sustainable
-            </p>
+            <p className="mt-2 text-sm text-gray-700">Environmentally sustainable</p>
           </div>
           <div className="rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-4">
             <h3 className="font-semibold text-[#00A9CE]">✅ Native accounts</h3>
@@ -126,9 +143,7 @@ export default function HederaIntegrationPage() {
           </div>
           <div className="rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-4">
             <h3 className="font-semibold text-[#00A9CE]">✅ EVM compatible</h3>
-            <p className="mt-2 text-sm text-gray-700">
-              Smart contracts with low gas costs
-            </p>
+            <p className="mt-2 text-sm text-gray-700">Smart contracts with low gas costs</p>
           </div>
         </div>
       </section>
@@ -136,18 +151,22 @@ export default function HederaIntegrationPage() {
       <section>
         <h2 className="text-2xl font-bold text-gray-900">HCS Topics</h2>
         <p className="mt-4 text-gray-700">
-          MediPact uses Hedera Consensus Service (HCS) topics to store immutable proofs of consent and data hashes. Each message submitted to HCS is cryptographically signed and timestamped, creating an unchangeable audit trail that can be verified on HashScan.
+          MediPact uses Hedera Consensus Service (HCS) topics to store immutable proofs of consent
+          and data hashes. Each message submitted to HCS is cryptographically signed and
+          timestamped, creating an unchangeable audit trail that can be verified on HashScan.
         </p>
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
           <h3 className="text-lg font-semibold text-gray-900">Consent Topic</h3>
           <p className="mt-2 text-gray-700">
-            Stores consent records with anonymous patient IDs, HCS topic IDs, data hashes, and timestamps. Each consent submission creates a new message on the HCS topic.
+            Stores consent records with anonymous patient IDs, HCS topic IDs, data hashes, and
+            timestamps. Each consent submission creates a new message on the HCS topic.
           </p>
         </div>
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
           <h3 className="text-lg font-semibold text-gray-900">Data Proof Topic</h3>
           <p className="mt-2 text-gray-700">
-            Stores cryptographic hashes of anonymized datasets. Researchers can verify data integrity by comparing dataset hashes with HCS messages.
+            Stores cryptographic hashes of anonymized datasets. Researchers can verify data
+            integrity by comparing dataset hashes with HCS messages.
           </p>
         </div>
       </section>
@@ -155,7 +174,8 @@ export default function HederaIntegrationPage() {
       <section>
         <h2 className="text-2xl font-bold text-gray-900">HBAR Micropayments</h2>
         <p className="mt-4 text-gray-700">
-          Revenue distribution is handled automatically by the RevenueSplitter smart contract. When a researcher purchases a dataset:
+          Revenue distribution is handled automatically by the RevenueSplitter smart contract. When
+          a researcher purchases a dataset:
         </p>
         <ol className="mt-4 list-decimal space-y-2 pl-6 text-gray-700">
           <li>Payment is received in HBAR by the RevenueSplitter contract</li>
@@ -165,7 +185,8 @@ export default function HederaIntegrationPage() {
         </ol>
         <div className="mt-4 rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-6">
           <p className="text-sm text-gray-700">
-            <strong>Benefits:</strong> Trustless, Transparent, Instant, Low fees (~$0.0001 per transaction)
+            <strong>Benefits:</strong> Trustless, Transparent, Instant, Low fees (~$0.0001 per
+            transaction)
           </p>
         </div>
       </section>

@@ -62,31 +62,47 @@ export default function ArchitecturePage() {
           <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Component</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Technology</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                  Component
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                  Technology
+                </th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Purpose</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">Frontend</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Next.js 15, TypeScript, Tailwind CSS</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Patient/Hospital/Researcher/Admin portals</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Next.js 15, TypeScript, Tailwind CSS
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Patient/Hospital/Researcher/Admin portals
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">Backend</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Express.js, Node.js, SQLite/PostgreSQL</td>
-                <td className="px-4 py-3 text-sm text-gray-600">REST API, patient identity (UPI), marketplace</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Express.js, Node.js, SQLite/PostgreSQL
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  REST API, patient identity (UPI), marketplace
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">Adapter</td>
                 <td className="px-4 py-3 text-sm text-gray-600">Node.js, FHIR R4</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Processes EHR data, anonymizes PII, submits to HCS</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Processes EHR data, anonymizes PII, submits to HCS
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">Smart Contracts</td>
                 <td className="px-4 py-3 text-sm text-gray-600">Solidity (Hedera EVM)</td>
-                <td className="px-4 py-3 text-sm text-gray-600">ConsentManager & RevenueSplitter</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  ConsentManager & RevenueSplitter
+                </td>
               </tr>
             </tbody>
           </table>
@@ -99,13 +115,22 @@ export default function ArchitecturePage() {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">Next.js 15 Application</h3>
             <p className="mt-2 text-gray-700">
-              Built with Next.js 15 App Router, TypeScript, and Tailwind CSS. Provides role-based dashboards for:
+              Built with Next.js 15 App Router, TypeScript, and Tailwind CSS. Provides role-based
+              dashboards for:
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
-              <li><strong>Patients:</strong> Dashboard, earnings, wallet, consent management</li>
-              <li><strong>Hospitals:</strong> Patient registration, data upload, revenue tracking</li>
-              <li><strong>Researchers:</strong> Dataset catalog, purchases, analytics</li>
-              <li><strong>Admins:</strong> System management, verification, analytics</li>
+              <li>
+                <strong>Patients:</strong> Dashboard, earnings, wallet, consent management
+              </li>
+              <li>
+                <strong>Hospitals:</strong> Patient registration, data upload, revenue tracking
+              </li>
+              <li>
+                <strong>Researchers:</strong> Dataset catalog, purchases, analytics
+              </li>
+              <li>
+                <strong>Admins:</strong> System management, verification, analytics
+              </li>
             </ul>
           </div>
         </div>
@@ -116,9 +141,7 @@ export default function ArchitecturePage() {
         <div className="mt-4 space-y-4">
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h3 className="text-lg font-semibold text-gray-900">Express.js REST API</h3>
-            <p className="mt-2 text-gray-700">
-              RESTful API providing endpoints for:
-            </p>
+            <p className="mt-2 text-gray-700">RESTful API providing endpoints for:</p>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
               <li>User authentication and authorization</li>
               <li>Patient identity management (UPI system)</li>
@@ -158,12 +181,28 @@ export default function ArchitecturePage() {
             The adapter is responsible for processing raw EHR data:
           </p>
           <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
-            <li><strong>FHIR R4 Parsing:</strong> Validates and parses FHIR-compliant medical records</li>
-            <li><strong>PII Anonymization:</strong> Removes personally identifiable information</li>
-            <li><strong>Demographic Preservation:</strong> Maintains research-valuable demographics (age range, country, gender)</li>
-            <li><strong>K-Anonymity Enforcement:</strong> Ensures minimum 5 records per demographic group</li>
-            <li><strong>HCS Submission:</strong> Submits consent and data proof hashes to Hedera Consensus Service</li>
-            <li><strong>Smart Contract Integration:</strong> Records consent on ConsentManager contract</li>
+            <li>
+              <strong>FHIR R4 Parsing:</strong> Validates and parses FHIR-compliant medical records
+            </li>
+            <li>
+              <strong>PII Anonymization:</strong> Removes personally identifiable information
+            </li>
+            <li>
+              <strong>Demographic Preservation:</strong> Maintains research-valuable demographics
+              (age range, country, gender)
+            </li>
+            <li>
+              <strong>K-Anonymity Enforcement:</strong> Ensures minimum 5 records per demographic
+              group
+            </li>
+            <li>
+              <strong>HCS Submission:</strong> Submits consent and data proof hashes to Hedera
+              Consensus Service
+            </li>
+            <li>
+              <strong>Smart Contract Integration:</strong> Records consent on ConsentManager
+              contract
+            </li>
           </ul>
         </div>
       </section>
@@ -174,25 +213,29 @@ export default function ArchitecturePage() {
           <div className="rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-6">
             <h3 className="text-lg font-semibold text-[#00A9CE]">HCS Topics</h3>
             <p className="mt-2 text-sm text-gray-700">
-              Immutable storage for consent proofs and data hashes. Each message is cryptographically signed and timestamped.
+              Immutable storage for consent proofs and data hashes. Each message is
+              cryptographically signed and timestamped.
             </p>
           </div>
           <div className="rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-6">
             <h3 className="text-lg font-semibold text-[#00A9CE]">EVM Contracts</h3>
             <p className="mt-2 text-sm text-gray-700">
-              ConsentManager for consent registry and RevenueSplitter for automated revenue distribution.
+              ConsentManager for consent registry and RevenueSplitter for automated revenue
+              distribution.
             </p>
           </div>
           <div className="rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-6">
             <h3 className="text-lg font-semibold text-[#00A9CE]">Hedera Accounts</h3>
             <p className="mt-2 text-sm text-gray-700">
-              Native accounts (0.0.xxxxx) for all users, created during registration or on first payment.
+              Native accounts (0.0.xxxxx) for all users, created during registration for hospitals,
+              researchers, and patients.
             </p>
           </div>
           <div className="rounded-lg border border-[#00A9CE] bg-[#E3F2FD] p-6">
             <h3 className="text-lg font-semibold text-[#00A9CE]">HBAR</h3>
             <p className="mt-2 text-sm text-gray-700">
-              Native cryptocurrency for micropayments and revenue distribution with low transaction fees.
+              Native cryptocurrency for micropayments and revenue distribution with low transaction
+              fees.
             </p>
           </div>
         </div>
@@ -203,16 +246,41 @@ export default function ArchitecturePage() {
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
           <h3 className="text-lg font-semibold text-gray-900">Key Security Features</h3>
           <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
-            <li><strong>Encrypted Private Keys:</strong> All Hedera private keys are encrypted before storage</li>
-            <li><strong>Role-Based Access Control:</strong> API endpoints protected by role-based authentication</li>
-            <li><strong>PII Anonymization:</strong> No personally identifiable information stored on-chain</li>
-            <li><strong>Consent Validation:</strong> Database and smart contract level enforcement</li>
-            <li><strong>Immutable Audit Trail:</strong> All consent and data proofs stored on HCS</li>
-            <li><strong>K-Anonymity:</strong> Privacy protection through demographic grouping</li>
-            <li><strong>Payment Data Encryption:</strong> Bank accounts and mobile money numbers encrypted at rest</li>
-            <li><strong>Production Logging:</strong> Structured JSON logs with security event tracking</li>
-            <li><strong>Environment Validation:</strong> Startup validation of required configuration</li>
-            <li><strong>Security Headers:</strong> Production security headers (HSTS, XSS protection, etc.)</li>
+            <li>
+              <strong>Encrypted Private Keys:</strong> All Hedera private keys are encrypted before
+              storage
+            </li>
+            <li>
+              <strong>Role-Based Access Control:</strong> API endpoints protected by role-based
+              authentication
+            </li>
+            <li>
+              <strong>PII Anonymization:</strong> No personally identifiable information stored
+              on-chain
+            </li>
+            <li>
+              <strong>Consent Validation:</strong> Database and smart contract level enforcement
+            </li>
+            <li>
+              <strong>Immutable Audit Trail:</strong> All consent and data proofs stored on HCS
+            </li>
+            <li>
+              <strong>K-Anonymity:</strong> Privacy protection through demographic grouping
+            </li>
+            <li>
+              <strong>Payment Data Encryption:</strong> Bank accounts and mobile money numbers
+              encrypted at rest
+            </li>
+            <li>
+              <strong>Production Logging:</strong> Structured JSON logs with security event tracking
+            </li>
+            <li>
+              <strong>Environment Validation:</strong> Startup validation of required configuration
+            </li>
+            <li>
+              <strong>Security Headers:</strong> Production security headers (HSTS, XSS protection,
+              etc.)
+            </li>
           </ul>
         </div>
       </section>

@@ -7,7 +7,8 @@ export default function PricingPage() {
       <div className="border-b border-gray-200 pb-8">
         <h1 className="text-4xl font-bold text-gray-900">Pricing & Revenue Model</h1>
         <p className="mt-4 text-lg text-gray-600">
-          Transparent, category-based pricing designed to be affordable for researchers while ensuring fair compensation for data providers.
+          Transparent, category-based pricing designed to be affordable for researchers while
+          ensuring fair compensation for data providers.
         </p>
       </div>
 
@@ -15,7 +16,10 @@ export default function PricingPage() {
         <h2 className="text-2xl font-bold text-gray-900">Pricing Philosophy</h2>
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
           <p className="text-gray-700">
-            MediPact's pricing model is designed to be <strong>40% of market rates</strong>, making research data accessible while ensuring sustainable revenue for patients and hospitals. All prices are displayed in USD for transparency, with automatic HBAR conversion for transactions.
+            MediPact's pricing model is designed to be <strong>40% of market rates</strong>, making
+            research data accessible while ensuring sustainable revenue for patients and hospitals.
+            All prices are displayed in USD for transparency, with automatic HBAR conversion for
+            transactions.
           </p>
         </div>
       </section>
@@ -26,41 +30,59 @@ export default function PricingPage() {
           <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Category</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Price per Record (USD)</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Description</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                  Category
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                  Price per Record (USD)
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                  Description
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">Basic Demographics</td>
                 <td className="px-4 py-3 text-sm text-gray-600">$0.032</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Age, gender, country, region only</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Age, gender, country, region only
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">Condition Data</td>
                 <td className="px-4 py-3 text-sm text-gray-600">$0.12</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Diagnosis codes, condition names, dates</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Diagnosis codes, condition names, dates
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">Lab Results</td>
                 <td className="px-4 py-3 text-sm text-gray-600">$0.24</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Observations, lab values, test results</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Observations, lab values, test results
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">Combined Dataset</td>
                 <td className="px-4 py-3 text-sm text-gray-600">$1.00</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Demographics + conditions + observations</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Demographics + conditions + observations
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">Longitudinal</td>
                 <td className="px-4 py-3 text-sm text-gray-600">$2.00</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Multi-timepoint data, trends over time</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Multi-timepoint data, trends over time
+                </td>
               </tr>
               <tr>
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">Sensitive/Rare</td>
                 <td className="px-4 py-3 text-sm text-gray-600">$5.00</td>
-                <td className="px-4 py-3 text-sm text-gray-600">Rare conditions, sensitive diagnoses, specialized data</td>
+                <td className="px-4 py-3 text-sm text-gray-600">
+                  Rare conditions, sensitive diagnoses, specialized data
+                </td>
               </tr>
             </tbody>
           </table>
@@ -71,14 +93,19 @@ export default function PricingPage() {
         <h2 className="text-2xl font-bold text-gray-900">Volume Discounts</h2>
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
           <p className="text-gray-700">
-            Larger datasets receive automatic volume discounts to encourage bulk purchases and make research more cost-effective.
+            Larger datasets receive automatic volume discounts to encourage bulk purchases and make
+            research more cost-effective.
           </p>
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200 border border-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Record Count</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Discount</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                    Record Count
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">
+                    Discount
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
@@ -87,19 +114,19 @@ export default function PricingPage() {
                   <td className="px-4 py-3 text-sm text-gray-600">0%</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm text-gray-600">101 - 500</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">101 - 1,000</td>
                   <td className="px-4 py-3 text-sm text-gray-600">10%</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm text-gray-600">501 - 1,000</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">1,001 - 10,000</td>
                   <td className="px-4 py-3 text-sm text-gray-600">20%</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm text-gray-600">1,001 - 5,000</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">10,001 - 100,000</td>
                   <td className="px-4 py-3 text-sm text-gray-600">30%</td>
                 </tr>
                 <tr>
-                  <td className="px-4 py-3 text-sm text-gray-600">5,001+</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">100,001+</td>
                   <td className="px-4 py-3 text-sm text-gray-600">40%</td>
                 </tr>
               </tbody>
@@ -113,13 +140,16 @@ export default function PricingPage() {
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
           <h3 className="text-lg font-semibold text-gray-900">60/25/15 Split</h3>
           <p className="mt-2 text-gray-700">
-            Revenue from dataset purchases is automatically distributed using the RevenueSplitter smart contract:
+            Revenue from dataset purchases is automatically distributed using the RevenueSplitter
+            smart contract:
           </p>
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center">
               <p className="text-3xl font-bold text-green-900">60%</p>
               <p className="mt-1 text-sm font-semibold text-green-800">Patient</p>
-              <p className="mt-1 text-xs text-green-700">Direct compensation for data contribution</p>
+              <p className="mt-1 text-xs text-green-700">
+                Direct compensation for data contribution
+              </p>
             </div>
             <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
               <p className="text-3xl font-bold text-blue-900">25%</p>
@@ -138,9 +168,12 @@ export default function PricingPage() {
       <section>
         <h2 className="text-2xl font-bold text-gray-900">Fair Revenue Attribution</h2>
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="text-lg font-semibold text-gray-900">Original Hospital is Sole Beneficiary</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Original Hospital is Sole Beneficiary
+          </h3>
           <p className="mt-2 text-gray-700">
-            <strong>Key Principle:</strong> The hospital that originally collected the patient's data is the sole beneficiary of revenue from that data.
+            <strong>Key Principle:</strong> The hospital that originally collected the patient's
+            data is the sole beneficiary of revenue from that data.
           </p>
           <div className="mt-4 space-y-3">
             <div className="flex items-start space-x-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
@@ -148,7 +181,10 @@ export default function PricingPage() {
               <div>
                 <h4 className="font-semibold text-gray-900">How It Works</h4>
                 <p className="mt-1 text-sm text-gray-700">
-                  Each patient record has a permanent <code className="bg-gray-100 px-1 rounded">hospital_id</code> field linking it to the collecting hospital. When data is sold, each patient's 25% share goes to their original hospital.
+                  Each patient record has a permanent{' '}
+                  <code className="rounded bg-gray-100 px-1">hospital_id</code> field linking it to
+                  the collecting hospital. When data is sold, each patient's 25% share goes to their
+                  original hospital.
                 </p>
               </div>
             </div>
@@ -157,7 +193,9 @@ export default function PricingPage() {
               <div>
                 <h4 className="font-semibold text-gray-900">Example</h4>
                 <p className="mt-1 text-sm text-gray-700">
-                  Dataset with 100 patients: 60 from Hospital A, 40 from Hospital B. Payment: 1,000 HBAR. Hospital A receives 60 × 10 HBAR × 25% = 150 HBAR. Hospital B receives 40 × 10 HBAR × 25% = 100 HBAR.
+                  Dataset with 100 patients: 60 from Hospital A, 40 from Hospital B. Payment: 1,000
+                  HBAR. Hospital A receives 60 × 10 HBAR × 25% = 150 HBAR. Hospital B receives 40 ×
+                  10 HBAR × 25% = 100 HBAR.
                 </p>
               </div>
             </div>
@@ -173,10 +211,10 @@ export default function PricingPage() {
     B --> C[Calculate Base Price<br/>Records × Price per Record]
     C --> D{Check Record Count}
     D -->|1-100| E[0% Discount]
-    D -->|101-500| F[10% Discount]
-    D -->|501-1,000| G[20% Discount]
-    D -->|1,001-5,000| H[30% Discount]
-    D -->|5,001+| I[40% Discount]
+    D -->|101-1,000| F[10% Discount]
+    D -->|1,001-10,000| G[20% Discount]
+    D -->|10,001-100,000| H[30% Discount]
+    D -->|100,001+| I[40% Discount]
     E --> J[Apply Discount]
     F --> J
     G --> J
@@ -196,25 +234,47 @@ export default function PricingPage() {
         <h2 className="text-2xl font-bold text-gray-900">USD Display & Dynamic Exchange Rates</h2>
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
           <p className="text-gray-700">
-            All prices are displayed in USD to users for clarity and transparency. The system automatically converts between USD and HBAR using <strong>real-time exchange rates</strong> from CoinGecko API.
+            All prices are displayed in USD to users for clarity and transparency. The system
+            automatically converts between USD and HBAR using{' '}
+            <strong>real-time exchange rates</strong> from CoinGecko API.
           </p>
           <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
             <h4 className="font-semibold text-gray-900">Dynamic Exchange Rate System</h4>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
-              <li><strong>Source:</strong> CoinGecko API (hedera-hashgraph price)</li>
-              <li><strong>Update Frequency:</strong> Every 5 minutes (cached)</li>
-              <li><strong>Fallback Rate:</strong> $0.16 per HBAR (if API unavailable)</li>
-              <li><strong>Automatic Updates:</strong> Rates refreshed on server startup and periodically</li>
+              <li>
+                <strong>Source:</strong> CoinGecko API (hedera-hashgraph price)
+              </li>
+              <li>
+                <strong>Update Frequency:</strong> Every 5 minutes (cached)
+              </li>
+              <li>
+                <strong>Fallback Rate:</strong> $0.16 per HBAR (if API unavailable)
+              </li>
+              <li>
+                <strong>Automatic Updates:</strong> Rates refreshed on server startup and
+                periodically
+              </li>
             </ul>
           </div>
           <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
             <h4 className="font-semibold text-gray-900">Display Format</h4>
             <ul className="mt-2 list-disc space-y-1 pl-6 text-gray-700">
-              <li>Total price: <code className="bg-white px-1 rounded">$X.XX</code> (primary display)</li>
-              <li>Price in HBAR: <code className="bg-white px-1 rounded">X.XXXX HBAR</code> (shown below USD)</li>
-              <li>Price per record: <code className="bg-white px-1 rounded">$X.XXXX per record</code></li>
-              <li>Volume discount: <code className="bg-white px-1 rounded">(X% volume discount)</code></li>
-              <li>Pricing category: <code className="bg-white px-1 rounded">Category: X</code></li>
+              <li>
+                Total price: <code className="rounded bg-white px-1">$X.XX</code> (primary display)
+              </li>
+              <li>
+                Price in HBAR: <code className="rounded bg-white px-1">X.XXXX HBAR</code> (shown
+                below USD)
+              </li>
+              <li>
+                Price per record: <code className="rounded bg-white px-1">$X.XXXX per record</code>
+              </li>
+              <li>
+                Volume discount: <code className="rounded bg-white px-1">(X% volume discount)</code>
+              </li>
+              <li>
+                Pricing category: <code className="rounded bg-white px-1">Category: X</code>
+              </li>
             </ul>
           </div>
         </div>
@@ -224,7 +284,8 @@ export default function PricingPage() {
         <h2 className="text-2xl font-bold text-gray-900">Academic & Nonprofit Discounts</h2>
         <div className="mt-4 rounded-lg border border-gray-200 bg-white p-6">
           <p className="text-gray-700">
-            Academic institutions and nonprofit research organizations may be eligible for additional discounts. Contact us for more information about institutional pricing.
+            Academic institutions and nonprofit research organizations may be eligible for
+            additional discounts. Contact us for more information about institutional pricing.
           </p>
         </div>
       </section>
