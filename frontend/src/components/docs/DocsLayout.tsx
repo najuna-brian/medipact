@@ -15,6 +15,16 @@ import {
   FileText,
   Settings,
   TrendingUp,
+  Rocket,
+  DollarSign,
+  Lock,
+  Building2,
+  User,
+  GraduationCap,
+  CheckCircle,
+  Server,
+  BarChart,
+  Eye,
 } from 'lucide-react';
 
 interface DocsLayoutProps {
@@ -22,15 +32,41 @@ interface DocsLayoutProps {
 }
 
 const docsNav = [
+  // Getting Started
   { href: '/docs', label: 'Overview', icon: Home },
-  { href: '/docs/hedera', label: 'Hedera Integration', icon: Zap },
+  { href: '/docs/quick-start', label: 'Quick Start', icon: Settings },
+  { href: '/docs/local-setup-demo', label: 'Local Setup & Demo', icon: Rocket },
+
+  // Core Concepts
   { href: '/docs/architecture', label: 'Architecture', icon: Layers },
   { href: '/docs/data-flow', label: 'Data Flow', icon: TrendingUp },
+  { href: '/docs/hedera', label: 'Hedera Integration', icon: Zap },
+
+  // Privacy & Security
   { href: '/docs/privacy', label: 'Privacy & Security', icon: Shield },
+  { href: '/docs/double-anonymization', label: 'Double Anonymization', icon: Eye },
+  { href: '/docs/patient-controls', label: 'Patient Controls', icon: Lock },
+  { href: '/docs/consent', label: 'Consent Management', icon: Lock },
+  { href: '/docs/compliance', label: 'Compliance', icon: CheckCircle },
+
+  // Technical
   { href: '/docs/smart-contracts', label: 'Smart Contracts', icon: Code },
   { href: '/docs/database', label: 'Database Schema', icon: Database },
   { href: '/docs/api', label: 'API Reference', icon: FileText },
-  { href: '/docs/quick-start', label: 'Quick Start', icon: Settings },
+
+  // Business & Operations
+  { href: '/docs/revenue-distribution', label: 'Revenue Distribution', icon: DollarSign },
+  { href: '/docs/pricing', label: 'Pricing Model', icon: BarChart },
+  { href: '/docs/wallet', label: 'Wallet & Payments', icon: DollarSign },
+
+  // User Guides
+  { href: '/docs/for-patients', label: 'For Patients', icon: User },
+  { href: '/docs/for-hospitals', label: 'For Hospitals', icon: Building2 },
+  { href: '/docs/hospital-upload', label: 'Hospital Upload', icon: Building2 },
+  { href: '/docs/for-researchers', label: 'For Researchers', icon: GraduationCap },
+
+  // Deployment
+  { href: '/docs/production', label: 'Production Deployment', icon: Server },
 ];
 
 export default function DocsLayout({ children }: DocsLayoutProps) {
