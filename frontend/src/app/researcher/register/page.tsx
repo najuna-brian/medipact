@@ -207,8 +207,8 @@ export default function ResearcherRegisterPage() {
             <div className="text-center text-sm text-gray-600">
               <p>
                 Already registered?{' '}
-                <a href="/researcher/dashboard" className="text-indigo-600 hover:underline">
-                  Go to Dashboard
+                <a href="/researcher/login" className="text-indigo-600 hover:underline">
+                  Login
                 </a>
               </p>
             </div>

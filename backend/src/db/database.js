@@ -925,6 +925,7 @@ async function createPostgreSQLTables() {
       currency VARCHAR(10) NOT NULL DEFAULT 'HBAR',
       hedera_transaction_id VARCHAR(100),
       revenue_distribution_hash VARCHAR(255),
+      query_filters TEXT,
       access_type VARCHAR(50) NOT NULL DEFAULT 'download',
       access_expires_at TIMESTAMP,
       status VARCHAR(20) NOT NULL DEFAULT 'pending',
@@ -934,6 +935,16 @@ async function createPostgreSQLTables() {
       FOREIGN KEY (dataset_id) REFERENCES datasets(id)
     )
   `);
+  
+  // Add query_filters column if it doesn't exist (for existing databases)
+  try {
+    await client.query(`
+      ALTER TABLE purchases ADD COLUMN IF NOT EXISTS query_filters TEXT
+    `);
+  } catch (error) {
+    // Column might already exist, ignore error
+    console.log('Note: query_filters column may already exist:', error.message);
+  }
 
   // Revenue Distributions Table - Tracks individual payouts to patients, hospitals, and platform
   await client.query(`
@@ -1718,6 +1729,7 @@ async function createSQLiteTables() {
       currency TEXT NOT NULL DEFAULT 'HBAR',
       hedera_transaction_id TEXT,
       revenue_distribution_hash TEXT,
+      query_filters TEXT,
       access_type TEXT NOT NULL DEFAULT 'download',
       access_expires_at TIMESTAMP,
       status TEXT NOT NULL DEFAULT 'pending',
@@ -1727,6 +1739,16 @@ async function createSQLiteTables() {
       FOREIGN KEY (dataset_id) REFERENCES datasets(id)
     )
   `);
+  
+  // Add query_filters column if it doesn't exist (for existing databases)
+  try {
+    await run(`
+      ALTER TABLE purchases ADD COLUMN query_filters TEXT
+    `);
+  } catch (error) {
+    // Column might already exist, ignore error
+    console.log('Note: query_filters column may already exist:', error.message);
+  }
 
   // Revenue Distributions Table - Tracks individual payouts to patients, hospitals, and platform
   await run(`

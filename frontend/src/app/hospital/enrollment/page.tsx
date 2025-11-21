@@ -92,11 +92,17 @@ export default function HospitalEnrollmentPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl font-bold">Hospital Enrollment</h1>
-          <p className="text-muted-foreground">
-            Register your hospital to start managing patient identities and sharing anonymized data
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="mb-2 text-3xl font-bold">Hospital Enrollment</h1>
+            <p className="text-muted-foreground">
+              Register your hospital to start managing patient identities and sharing anonymized
+              data
+            </p>
+          </div>
+          <Link href="/hospital/login">
+            <Button variant="outline">Already have an account? Login</Button>
+          </Link>
         </div>
 
         {/* Error/Success Messages */}

@@ -20,6 +20,27 @@ import { verifyHBARPayment, createPaymentRequest } from '../services/payment-ver
 const router = express.Router();
 
 /**
+ * Normalize query filters for consistent storage and comparison
+ * Removes preview, limit, format, and researcherId fields and sorts keys
+ */
+function normalizeQueryFilters(filters) {
+  const normalized = { ...filters };
+  delete normalized.preview;
+  delete normalized.limit;
+  delete normalized.format;
+  delete normalized.researcherId;
+  
+  // Sort keys for consistent JSON stringification
+  const sortedKeys = Object.keys(normalized).sort();
+  const sorted = {};
+  for (const key of sortedKeys) {
+    sorted[key] = normalized[key];
+  }
+  
+  return sorted;
+}
+
+/**
  * Middleware to check researcher verification status
  * Always prompts unverified researchers to verify
  */
@@ -238,6 +259,56 @@ router.post('/query', queryLimiter, async (req, res) => {
     
     // If csv-flattened format is requested, return flattened CSV
     if (format === 'csv-flattened') {
+      // Check if this is a preview or full export
+      const isPreview = filters.preview !== false;
+      
+      // For full export (not preview), check if researcher has purchased this query
+      if (!isPreview) {
+        const { getDatabaseType, get } = await import('../db/database.js');
+        const dbType = getDatabaseType();
+        
+        // Normalize filters for comparison
+        const normalizedFilters = normalizeQueryFilters(filters);
+        const filtersJSON = JSON.stringify(normalizedFilters);
+        
+        // Check for completed purchase with matching query filters
+        let purchase;
+        if (dbType === 'postgresql') {
+          purchase = await get(
+            `SELECT id, status, purchased_at 
+             FROM purchases 
+             WHERE researcher_id = $1 
+               AND status = 'completed' 
+               AND query_filters = $2
+             ORDER BY purchased_at DESC 
+             LIMIT 1`,
+            [researcherId, filtersJSON]
+          );
+        } else {
+          purchase = await get(
+            `SELECT id, status, purchased_at 
+             FROM purchases 
+             WHERE researcher_id = ? 
+               AND status = 'completed' 
+               AND query_filters = ?
+             ORDER BY purchased_at DESC 
+             LIMIT 1`,
+            [researcherId, filtersJSON]
+          );
+        }
+        
+        if (!purchase) {
+          return res.status(403).json({
+            error: 'Purchase required',
+            message: 'You must purchase this data before downloading. Please complete a purchase first.',
+            preview: true, // Allow preview
+            recordCount: null
+          });
+        }
+        
+        console.log(`[QUERY] Purchase verified for researcher ${researcherId}, purchase ID: ${purchase.id}`);
+      }
+      
       const { formatAsFlattenedCSV } = await import('../services/dataset-service.js');
       
       // Create a temporary dataset-like object for export
@@ -819,12 +890,20 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
                          ? distributionResult.distribution[0]?.hash 
                          : null);
     
+    // Normalize and store query filters for query-based purchases
+    let queryFiltersJSON = null;
+    if (queryFilters) {
+      // Normalize filters for storage
+      const normalizedFilters = normalizeQueryFilters(queryFilters);
+      queryFiltersJSON = JSON.stringify(normalizedFilters);
+    }
+    
     if (dbType === 'postgresql') {
       await run(
         `INSERT INTO purchases (
           id, researcher_id, dataset_id, amount, currency, hedera_transaction_id, 
-          revenue_distribution_hash, access_type, status, purchased_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP)
+          revenue_distribution_hash, query_filters, access_type, status, purchased_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
         ON CONFLICT (id) DO NOTHING`,
         [
           purchaseId,
@@ -834,6 +913,7 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
           'HBAR',
           transactionId || null,
           revenueHash,
+          queryFiltersJSON, // Store query filters for query-based purchases
           'download',
           'completed'
         ]
@@ -842,8 +922,8 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
       await run(
         `INSERT OR IGNORE INTO purchases (
           id, researcher_id, dataset_id, amount, currency, hedera_transaction_id, 
-          revenue_distribution_hash, access_type, status, purchased_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+          revenue_distribution_hash, query_filters, access_type, status, purchased_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
         [
           purchaseId,
           researcherId,
@@ -852,6 +932,7 @@ router.post('/purchase', purchaseLimiter, async (req, res) => {
           'HBAR',
           transactionId || null,
           revenueHash,
+          queryFiltersJSON, // Store query filters for query-based purchases
           'download',
           'completed'
         ]

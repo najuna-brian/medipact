@@ -334,6 +334,11 @@ export async function exportQueryAsFlattenedCSV(
   });
 
   if (!response.ok) {
+    // Handle purchase required error
+    if (response.status === 403) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Purchase required before downloading data. Please complete a purchase first.');
+    }
     throw new Error(`Export failed: ${response.statusText}`);
   }
 

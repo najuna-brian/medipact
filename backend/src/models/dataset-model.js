@@ -485,11 +485,12 @@ CREATE TABLE IF NOT EXISTS query_logs (
 CREATE TABLE IF NOT EXISTS purchases (
   id TEXT PRIMARY KEY,
   researcher_id TEXT NOT NULL,
-  dataset_id TEXT NOT NULL,
+  dataset_id TEXT,
   amount DECIMAL(18, 8) NOT NULL,
   currency TEXT NOT NULL DEFAULT 'HBAR',
   hedera_transaction_id TEXT,
   revenue_distribution_hash TEXT,
+  query_filters TEXT,
   access_type TEXT NOT NULL DEFAULT 'download',
   access_expires_at TIMESTAMP,
   status TEXT NOT NULL DEFAULT 'pending',
