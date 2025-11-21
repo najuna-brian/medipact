@@ -1,8 +1,12 @@
-# Demo Video Script - MediPact MVP
+# Demo Video Script - MediPact MVP (Local CSV Demo)
+
+> **⚠️ NOTE**: This script is for the **local CSV demo** approach (using `npm run start:legacy`).  
+> **For the main hackathon demo with frontend/backend integration, use [`DEMO_VIDEO_SCRIPT.md`](./DEMO_VIDEO_SCRIPT.md)** which covers all 4 Hedera services, full frontend flow, and addresses all judging criteria.
 
 **Hackathon**: Hedera Hello Future: Ascension 2025  
 **Duration**: 3-5 minutes  
-**Format**: Screen recording with narration
+**Format**: Screen recording with narration  
+**Approach**: Local CSV processing demo (terminal-based)
 
 ---
 
