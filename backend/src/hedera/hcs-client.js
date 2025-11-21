@@ -96,7 +96,7 @@ export async function submitHCSMessage(topicId, message) {
  */
 export async function logQueryToHCS(queryData) {
   if (!queryAuditTopicId) {
-    console.warn('⚠️  Query audit topic not configured, skipping HCS logging');
+    // Silent return - HCS logging is optional
     return null;
   }
   

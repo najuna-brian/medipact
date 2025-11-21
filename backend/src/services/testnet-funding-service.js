@@ -30,7 +30,7 @@ export async function autoFundTestnetAccount(accountId, amountHBAR = 100) {
   // Check if auto-funding is enabled
   const autoFundingEnabled = process.env.AUTO_FUND_TESTNET_ACCOUNTS === 'true';
   if (!autoFundingEnabled) {
-    console.log('⚠️ Auto-funding disabled (set AUTO_FUND_TESTNET_ACCOUNTS=true to enable)');
+    // Silent return - funding will be handled manually if needed
     return {
       success: false,
       message: 'Auto-funding is disabled. Set AUTO_FUND_TESTNET_ACCOUNTS=true to enable.'
